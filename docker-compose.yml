@@ -1,0 +1,9 @@
+services:
+  konzertplaner:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./static/posters:/app/static/posters
+    restart: unless-stopped

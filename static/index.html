@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konzertplaner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+/* ─── CSS Variables (themeable) ────────────────────────────────────── */
+:root {
+  --bg:        #0d0d0d;
+  --surface:   #161616;
+  --surface2:  #1f1f1f;
+  --surface3:  #272727;
+  --border:    #2a2a2a;
+  --accent:    #e8ff47;
+  --tour:      #38bdf8;
+  --festival:  #a78bfa;
+  --text:      #f0f0f0;
+  --muted:     #777;
+  --radius:    10px;
+  --tickets-color: #4ade80;
+  --watch-color:   #fb923c;
+}
+
+/* ─── Reset ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 15px; }
+
+/* ─── Header ───────────────────────────────────────────────────────── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-bottom: 1px solid var(--border);
+  background: var(--bg); position: sticky; top: 0; z-index: 50; gap: 12px;
+}
+.header-left  { display: flex; align-items: center; gap: 14px; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem;
+  letter-spacing: 3px; color: var(--accent); }
+.logo span { color: var(--text); }
+
+/* ─── Hamburger ────────────────────────────────────────────────────── */
+.burger {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); width: 36px; height: 36px; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center; transition: color .2s, border-color .2s;
+}
+.burger:hover { color: var(--text); border-color: var(--text); }
+
+/* ─── Drawer ───────────────────────────────────────────────────────── */
+.drawer-backdrop {
+  position: fixed; inset: 0; z-index: 200; pointer-events: none;
+}
+.drawer-backdrop.open { pointer-events: all; }
+.drawer-overlay {
+  position: absolute; inset: 0; background: #0007; opacity: 0; transition: opacity .25s;
+}
+.drawer-backdrop.open .drawer-overlay { opacity: 1; }
+.drawer {
+  position: absolute; top: 0; left: 0; bottom: 0; width: 280px;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; transform: translateX(-100%); transition: transform .25s ease;
+}
+.drawer-backdrop.open .drawer { transform: translateX(0); }
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
+}
+.drawer-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px; color: var(--accent); }
+.drawer-body { flex: 1; overflow-y: auto; padding: 12px 0; }
+.drawer-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+  cursor: pointer; transition: background .15s; font-size: 14px; color: var(--text);
+  background: none; border: none; width: 100%; text-align: left;
+}
+.drawer-item:hover { background: var(--surface2); }
+.drawer-item .di-icon { font-size: 18px; width: 24px; text-align: center; }
+.drawer-sep { height: 1px; background: var(--border); margin: 6px 20px; }
+
+/* ─── Header buttons ───────────────────────────────────────────────── */
+.btn-new {
+  background: var(--accent); color: #000; border: none; border-radius: var(--radius);
+  padding: 9px 20px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  font-size: 14px; cursor: pointer; transition: transform .15s, box-shadow .15s;
+}
+.btn-new:hover { transform: translateY(-1px); box-shadow: 0 4px 20px color-mix(in srgb,var(--accent) 35%,transparent); }
+
+/* ─── Tabs ─────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 9px 22px; background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: color .2s, border-color .2s; margin-bottom: -1px;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ─── Filter bar ───────────────────────────────────────────────────── */
+.filter-bar { display: flex; align-items: center; gap: 10px; padding: 14px 32px; }
+.filter-bar span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.filter-chip {
+  padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: none; color: var(--muted); font-size: 13px; cursor: pointer; transition: all .2s;
+}
+.filter-chip.active-tickets  { border-color: var(--tickets-color); color: var(--tickets-color); background: color-mix(in srgb,var(--tickets-color) 8%,transparent); }
+.filter-chip.active-watchlist { border-color: var(--watch-color);   color: var(--watch-color);   background: color-mix(in srgb,var(--watch-color) 8%,transparent); }
+
+/* ─── Main content ─────────────────────────────────────────────────── */
+main { padding: 24px 32px; min-height: calc(100vh - 130px); }
+
+/* ─── Event cards ──────────────────────────────────────────────────── */
+.event-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; margin-bottom: 20px; overflow: hidden;
+  animation: fadeUp .3s ease both; cursor: pointer; transition: border-color .2s;
+}
+.event-card:hover { border-color: color-mix(in srgb,var(--accent) 40%,transparent); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+.event-header {
+  display: flex; align-items: center; gap: 18px;
+  padding: 18px 22px; border-bottom: 1px solid var(--border);
+}
+.event-poster { width: 68px; height: 68px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.event-poster-placeholder {
+  width: 68px; height: 68px; border-radius: 8px; background: var(--surface2);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 26px; color: var(--muted);
+}
+.event-meta { flex: 1; min-width: 0; }
+.event-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 2px; line-height: 1; }
+.event-subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
+.event-support { font-size: 13px; color: var(--text); margin-top: 4px; }
+.event-support span { color: var(--muted); }
+.event-actions { display: flex; gap: 7px; }
+.btn-icon {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--muted); width: 32px; height: 32px; cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; transition: color .2s, border-color .2s;
+}
+.btn-icon:hover { color: var(--text); border-color: var(--text); }
+.btn-icon.delete:hover { color: #f87171; border-color: #f87171; }
+
+/* ─── Type badge ───────────────────────────────────────────────────── */
+.type-badge {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+  padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
+}
+.type-badge.tour     { background: color-mix(in srgb,var(--tour) 12%,transparent);   color: var(--tour);   border: 1px solid color-mix(in srgb,var(--tour) 25%,transparent); }
+.type-badge.festival { background: color-mix(in srgb,var(--festival) 12%,transparent); color: var(--festival); border: 1px solid color-mix(in srgb,var(--festival) 25%,transparent); }
+
+/* ─── Tags ─────────────────────────────────────────────────────────── */
+.tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+.tag-tickets  { background: color-mix(in srgb,var(--tickets-color) 12%,transparent); color: var(--tickets-color); border: 1px solid color-mix(in srgb,var(--tickets-color) 25%,transparent); }
+.tag-watchlist { background: color-mix(in srgb,var(--watch-color) 12%,transparent);  color: var(--watch-color);  border: 1px solid color-mix(in srgb,var(--watch-color) 25%,transparent); }
+
+/* ─── Concert items (list view) ────────────────────────────────────── */
+.concert-list { display: flex; flex-direction: column; }
+.concert-item {
+  display: grid; grid-template-columns: 80px 1fr auto;
+  padding: 13px 22px; border-bottom: 1px solid var(--border); align-items: start;
+}
+.concert-item:last-child { border-bottom: none; }
+
+/* shared date block */
+.date-block { text-align: center; padding-top: 2px; }
+.date-day   { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; line-height: 1; color: var(--tour); }
+.festival-date .date-day { color: var(--festival); }
+.date-month { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.date-year  { font-size: 11px; color: var(--muted); }
+.date-end   { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.concert-info  { padding: 0 14px; }
+.concert-venue { font-weight: 500; font-size: 15px; }
+.concert-city  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.concert-time  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.concert-support-acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.act-chip { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
+
+.concert-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 2px; }
+.concert-price { font-size: 13px; color: var(--muted); }
+
+/* ─── Festival section ─────────────────────────────────────────────── */
+.festival-body {
+  display: grid; grid-template-columns: 80px 1fr; gap: 0;
+  padding: 13px 22px;
+}
+.festival-info { padding: 0 14px; }
+.fi-row { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.fi-row span { color: var(--text); }
+.bands-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 6px; }
+.bands-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.band-chip { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: color-mix(in srgb,var(--festival) 10%,transparent); color: var(--festival); border: 1px solid color-mix(in srgb,var(--festival) 25%,transparent); }
+
+/* ─── Calendar ─────────────────────────────────────────────────────── */
+.cal-header { display: flex; align-items: center; justify-content: space-between; padding: 0 0 18px; }
+.cal-nav {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 5px 14px; cursor: pointer; font-size: 18px; transition: background .15s;
+}
+.cal-nav:hover { background: var(--border); }
+.cal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.7rem; letter-spacing: 2px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day-name { text-align: center; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 5px 0; }
+.cal-cell {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+  min-height: 86px; padding: 7px; transition: border-color .15s;
+}
+.cal-cell.today { border-color: var(--accent); }
+.cal-cell.other-month .cal-date { color: var(--border); }
+.cal-date { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+.cal-events { display: flex; flex-direction: column; gap: 2px; }
+.cal-event {
+  font-size: 10px; padding: 2px 5px; border-radius: 3px;
+  background: color-mix(in srgb,var(--tour) 12%,transparent); color: var(--tour);
+  border-left: 2px solid var(--tour);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background .15s;
+}
+.cal-event:hover { background: color-mix(in srgb,var(--tour) 22%,transparent); }
+.cal-event.ev-tickets   { background: color-mix(in srgb,var(--tickets-color) 10%,transparent); color: var(--tickets-color); border-left-color: var(--tickets-color); }
+.cal-event.ev-watchlist { background: color-mix(in srgb,var(--watch-color) 10%,transparent);   color: var(--watch-color);   border-left-color: var(--watch-color); }
+.cal-event.ev-festival  { background: color-mix(in srgb,var(--festival) 10%,transparent);      color: var(--festival);      border-left-color: var(--festival); }
+
+/* ─── Empty state ──────────────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 80px 20px; color: var(--muted); }
+.empty-state .icon { font-size: 52px; margin-bottom: 14px; opacity: .4; }
+.empty-state h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 2px; color: var(--text); margin-bottom: 6px; }
+.empty-state p { font-size: 14px; }
+
+/* ─── Generic Modal ────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0; background: #000b; backdrop-filter: blur(4px);
+  z-index: 100; display: flex; align-items: flex-start; justify-content: center;
+  padding: 36px 16px; overflow-y: auto; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  width: 100%; max-width: 740px; padding: 32px;
+  transform: translateY(18px); transition: transform .25s ease; margin: auto;
+}
+.modal-backdrop.open .modal { transform: translateY(0); }
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 2px;
+  margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center;
+}
+.btn-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: color .15s; }
+.btn-close:hover { color: var(--text); }
+
+/* ─── Event type chooser ───────────────────────────────────────────── */
+.event-type-selector { display: flex; gap: 10px; margin-bottom: 22px; }
+.type-option {
+  flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+  background: none; cursor: pointer; transition: all .2s; text-align: left;
+}
+.type-option:hover { border-color: var(--muted); }
+.type-option.sel-tour     { border-color: var(--tour);   background: color-mix(in srgb,var(--tour) 6%,transparent); }
+.type-option.sel-festival { border-color: var(--festival); background: color-mix(in srgb,var(--festival) 6%,transparent); }
+.type-option .type-icon  { font-size: 22px; margin-bottom: 5px; }
+.type-option .type-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 1px; display: block; }
+.type-option .type-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ─── Poster upload ────────────────────────────────────────────────── */
+.tour-form-top { display: grid; grid-template-columns: 130px 1fr; gap: 20px; margin-bottom: 20px; }
+.poster-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.poster-upload {
+  width: 130px; height: 130px; border: 2px dashed var(--border); border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color .2s, background .2s; gap: 5px; overflow: hidden; position: relative;
+}
+.poster-upload:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
+.poster-upload .pu-icon  { font-size: 26px; color: var(--muted); }
+.poster-upload .pu-label { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.4; }
+.poster-upload img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.paste-hint { font-size: 10px; color: var(--border); text-align: center; }
+input[type=file].hidden { display: none; }
+
+/* ─── Form fields ──────────────────────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1/-1; }
+label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+input[type=text], input[type=date], input[type=time], input[type=number], select, textarea {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text); padding: 9px 12px; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; outline: none; width: 100%; transition: border-color .2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: #444; }
+textarea { resize: vertical; min-height: 72px; }
+
+/* ─── Toggle ───────────────────────────────────────────────────────── */
+.toggle-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.toggle-row input { display: none; }
+.toggle-track {
+  width: 32px; height: 17px; background: var(--border); border-radius: 20px;
+  position: relative; transition: background .2s; flex-shrink: 0;
+}
+.toggle-track::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: left .2s;
+}
+.toggle-row input:checked + .toggle-track { background: var(--accent); }
+.toggle-row input:checked + .toggle-track::after { left: 17px; }
+.collapsible { display: none; }
+.collapsible.visible { display: flex; }
+
+/* ─── Tag checkboxes ───────────────────────────────────────────────── */
+.tag-checks { display: flex; gap: 12px; }
+.tag-check { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+.tag-check input { display: none; }
+.check-box {
+  width: 17px; height: 17px; border-radius: 4px; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all .2s;
+}
+.tag-check input:checked + .check-box { background: var(--accent); border-color: var(--accent); color: #000; }
+
+/* ─── Section divider ──────────────────────────────────────────────── */
+.sec { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 6px; }
+.sec-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+/* ─── Concert block ────────────────────────────────────────────────── */
+.concert-blocks { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.concert-block {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px;
+}
+.cb-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.cb-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.btn-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; transition: color .15s; }
+.btn-remove:hover { color: #f87171; }
+
+/* support checkboxes per concert */
+.support-checks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.sup-check { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+.sup-check input { display: none; }
+.sup-check input:checked + .check-box { background: var(--accent); border-color: var(--accent); color: #000; }
+
+/* ─── Pill tag-input ───────────────────────────────────────────────── */
+.pill-wrap { position: relative; }
+.pill-field {
+  display: flex; flex-wrap: wrap; gap: 5px; min-height: 40px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+  padding: 5px 9px; cursor: text; transition: border-color .2s; align-items: center;
+}
+.pill-field:focus-within { border-color: var(--accent); }
+.pill {
+  display: flex; align-items: center; gap: 4px; background: var(--surface3);
+  border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; font-size: 13px; white-space: nowrap;
+}
+.pill .p-rm { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; line-height: 1; padding: 0; }
+.pill .p-rm:hover { color: #f87171; }
+.pill-input {
+  border: none; outline: none; background: transparent; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; min-width: 100px; flex: 1;
+}
+.ac-drop {
+  position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 300;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+  overflow: hidden; box-shadow: 0 6px 20px #0009; display: none;
+}
+.ac-drop.open { display: block; }
+.ac-item { padding: 8px 13px; font-size: 13px; cursor: pointer; transition: background .1s; }
+.ac-item:hover, .ac-item.hi { background: var(--surface3); }
+.ac-item .hi-text { color: var(--accent); }
+
+/* ─── Btn row ──────────────────────────────────────────────────────── */
+.btn-add-block {
+  background: none; border: 1px dashed var(--border); border-radius: 7px;
+  color: var(--muted); padding: 9px; width: 100%; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  transition: border-color .2s, color .2s;
+}
+.btn-add-block:hover { border-color: var(--accent); color: var(--accent); }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.btn-cancel {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--muted); padding: 9px 20px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; transition: all .2s;
+}
+.btn-cancel:hover { border-color: var(--text); color: var(--text); }
+.btn-save {
+  background: var(--accent); color: #000; border: none; border-radius: var(--radius);
+  padding: 9px 26px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  font-size: 14px; cursor: pointer; transition: transform .15s, box-shadow .15s;
+}
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 18px color-mix(in srgb,var(--accent) 35%,transparent); }
+.btn-save:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ─── Catalogue modal ──────────────────────────────────────────────── */
+.cat-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; max-height: 340px; overflow-y: auto; }
+.cat-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+}
+.cat-logo { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--surface3); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); overflow: hidden; }
+.cat-logo img { width: 100%; height: 100%; object-fit: cover; }
+.cat-name-input {
+  flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border);
+  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; padding: 2px 4px;
+  transition: border-color .2s;
+}
+.cat-name-input:focus { border-color: var(--accent); }
+.cat-city-input {
+  width: 130px; background: transparent; border: none; border-bottom: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; padding: 2px 4px;
+  transition: border-color .2s;
+}
+.cat-city-input:focus { border-color: var(--accent); }
+.cat-item-actions { display: flex; gap: 6px; }
+.btn-sm {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--muted); padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all .2s;
+}
+.btn-sm:hover { border-color: var(--text); color: var(--text); }
+.btn-sm.danger:hover { border-color: #f87171; color: #f87171; }
+.cat-add-row { display: flex; gap: 8px; }
+.cat-add-row input { flex: 1; }
+
+/* ─── Color picker panel ───────────────────────────────────────────── */
+.color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.color-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.color-row label { font-size: 13px; color: var(--muted); margin: 0; text-transform: none; letter-spacing: 0; flex: 1; }
+input[type=color] {
+  width: 40px; height: 30px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface2); cursor: pointer; padding: 2px;
+}
+
+/* ─── Detail view overlay ──────────────────────────────────────────── */
+.detail-backdrop {
+  position: fixed; inset: 0; background: #000b; backdrop-filter: blur(4px);
+  z-index: 150; display: flex; align-items: flex-start; justify-content: center;
+  padding: 36px 16px; overflow-y: auto; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.detail-backdrop.open { opacity: 1; pointer-events: all; }
+.detail-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  width: 100%; max-width: 680px; overflow: hidden;
+  transform: translateY(18px); transition: transform .25s ease; margin: auto;
+}
+.detail-backdrop.open .detail-panel { transform: translateY(0); }
+.detail-header {
+  display: flex; align-items: flex-start; gap: 18px; padding: 22px;
+  border-bottom: 1px solid var(--border); position: relative;
+}
+.detail-poster { width: 90px; height: 90px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.detail-poster-ph { width: 90px; height: 90px; border-radius: 10px; background: var(--surface2);
+  display: flex; align-items: center; justify-content: center; font-size: 36px; color: var(--muted); flex-shrink: 0; }
+.detail-meta { flex: 1; }
+.detail-title { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 2px; line-height: 1; }
+.detail-subtitle { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.detail-support { font-size: 13px; color: var(--text); margin-top: 5px; }
+.detail-close-row { position: absolute; top: 14px; right: 14px; display: flex; gap: 7px; }
+.detail-body { padding: 0; }
+.detail-concerts { display: flex; flex-direction: column; }
+.detail-concert-item {
+  display: grid; grid-template-columns: 80px 1fr auto;
+  padding: 14px 22px; border-bottom: 1px solid var(--border); align-items: start;
+}
+.detail-concert-item:last-child { border-bottom: none; }
+.detail-comment {
+  padding: 16px 22px; border-top: 1px solid var(--border);
+  font-size: 14px; color: var(--muted); line-height: 1.6; white-space: pre-wrap;
+}
+.detail-comment-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; color: var(--border); }
+
+/* ─── Popover ──────────────────────────────────────────────────────── */
+.popover {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 16px; z-index: 400; max-width: 240px;
+  box-shadow: 0 6px 28px #0009; font-size: 13px; pointer-events: none;
+  opacity: 0; transition: opacity .15s;
+}
+.popover.vis { opacity: 1; }
+.pop-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 1px; margin-bottom: 3px; }
+.pop-row { color: var(--muted); margin-top: 3px; }
+.pop-row span { color: var(--text); }
+
+/* ─── Past events section ─────────────────────────────────────────── */
+.past-section-toggle {
+  display: flex; align-items: center; gap: 10px; padding: 10px 0 14px;
+  cursor: pointer; user-select: none; color: var(--muted); font-size: 13px;
+  background: none; border: none; width: 100%; text-align: left;
+}
+.past-section-toggle .pst-arrow { font-size: 11px; transition: transform .2s; display: inline-block; }
+.past-section-toggle.open .pst-arrow { transform: rotate(90deg); }
+.past-section-toggle .pst-label { font-family: "Bebas Neue", sans-serif; letter-spacing: 1.5px; font-size: 1rem; }
+.past-section-toggle .pst-count { font-size: 11px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 1px 8px; }
+.past-events { display: none; }
+.past-events.open { display: block; }
+.past-section-divider { border-top: 1px solid var(--border); margin: 8px 0 0; }
+/* Artist logo drop zone (list row) */
+.logo-drop-zone {
+  width: 48px; height: 48px; border-radius: 8px; border: 1.5px dashed var(--border);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; overflow: hidden; position: relative;
+  transition: border-color .2s, background .2s; font-size: 20px; color: var(--muted);
+}
+.logo-drop-zone:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
+.logo-drop-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Artist detail popup logo zone */
+.adm-logo-zone {
+  width: 140px; height: 140px; border-radius: 14px; border: 2px dashed var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden; position: relative;
+  transition: border-color .2s, background .2s; font-size: 48px; color: var(--muted);
+}
+.adm-logo-zone:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
+.adm-logo-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--surface2); }
+/* ─── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+@media (max-width: 640px) {
+  header, .tabs, main, .filter-bar { padding-left: 14px; padding-right: 14px; }
+  .tour-form-top { grid-template-columns: 1fr; }
+  .form-grid, .color-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────── -->
+<header>
+  <div class="header-left">
+    <button class="burger" onclick="toggleDrawer()" title="Menü">☰</button>
+    <div class="logo">KONZERT<span>PLANER</span></div>
+  </div>
+  <div class="header-right">
+    <button class="btn-new" onclick="openEventModal()">＋ Neues Event</button>
+  </div>
+</header>
+
+<!-- ── Drawer ─────────────────────────────────────────────────────── -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawerOnBg(event)">
+  <div class="drawer-overlay"></div>
+  <nav class="drawer">
+    <div class="drawer-header">
+      <span class="drawer-title">Menü</span>
+      <button class="btn-close" onclick="toggleDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <button class="drawer-item" onclick="openArtistCatalogue()">
+        <span class="di-icon">🎤</span> Artists
+      </button>
+      <button class="drawer-item" onclick="openVenueCatalogue()">
+        <span class="di-icon">🏟</span> Venues
+      </button>
+      <div class="drawer-sep"></div>
+      <button class="drawer-item" onclick="openDesignPanel()">
+        <span class="di-icon">🎨</span> Design
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- ── Tabs ───────────────────────────────────────────────────────── -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('list',this)">Konzertliste</button>
+  <button class="tab" onclick="switchTab('calendar',this)">Kalender</button>
+</div>
+
+<!-- ── Filter bar ─────────────────────────────────────────────────── -->
+<div class="filter-bar">
+  <span>Filter:</span>
+  <button class="filter-chip" id="chip-tickets"   onclick="toggleFilter('tickets')">🎟 Tickets gekauft</button>
+  <button class="filter-chip" id="chip-watchlist" onclick="toggleFilter('watchlist')">🔖 Merkliste</button>
+</div>
+
+<!-- ── List Tab ───────────────────────────────────────────────────── -->
+<main id="tab-list"><div id="event-list"></div></main>
+
+<!-- ── Calendar Tab ───────────────────────────────────────────────── -->
+<main id="tab-calendar" style="display:none">
+  <div class="cal-header">
+    <button class="cal-nav" onclick="calNav(-1)">‹</button>
+    <div class="cal-title" id="cal-title"></div>
+    <button class="cal-nav" onclick="calNav(1)">›</button>
+  </div>
+  <div class="cal-grid" id="cal-grid">
+    <div class="cal-day-name">Mo</div><div class="cal-day-name">Di</div>
+    <div class="cal-day-name">Mi</div><div class="cal-day-name">Do</div>
+    <div class="cal-day-name">Fr</div><div class="cal-day-name">Sa</div>
+    <div class="cal-day-name">So</div>
+  </div>
+</main>
+
+<!-- ── Event edit/create modal ────────────────────────────────────── -->
+<div class="modal-backdrop" id="event-modal" onclick="closeMbg('event-modal',event)">
+ <div class="modal">
+  <div class="modal-title">
+    <span id="event-modal-title">Neues Event</span>
+    <button class="btn-close" onclick="closeModal('event-modal')">✕</button>
+  </div>
+
+  <!-- type chooser -->
+  <div id="type-chooser">
+    <div class="event-type-selector">
+      <button type="button" class="type-option sel-tour" id="opt-tour" onclick="selectType('tour')">
+        <div class="type-icon">🎸</div>
+        <span class="type-label">Tour / Konzert</span>
+        <div class="type-desc">Artist, Support Acts, mehrere Termine</div>
+      </button>
+      <button type="button" class="type-option" id="opt-festival" onclick="selectType('festival')">
+        <div class="type-icon">🎪</div>
+        <span class="type-label">Festival</span>
+        <div class="type-desc">Einmaliges Event, Bands to Watch</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- TOUR FORM -->
+  <div id="tour-form">
+    <div class="tour-form-top">
+      <div class="poster-col">
+        <div class="poster-upload" id="pu-tour"
+             onclick="document.getElementById('fi-tour').click()"
+             ondragover="event.preventDefault()" ondrop="handleDrop(event,'tour')">
+          <div class="pu-icon">🎨</div><div class="pu-label">Poster hochladen</div>
+        </div>
+        <div class="paste-hint">Strg+V zum Einfügen</div>
+        <input type="file" id="fi-tour" class="hidden" accept="image/*" onchange="handleFile(event,'tour')">
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Artist *</label>
+          <input type="text" id="f-artist" placeholder="Bandname oder Künstler">
+        </div>
+        <div class="form-group">
+          <label>Tourname</label>
+          <input type="text" id="f-tourname" placeholder="z.B. World Tour 2025">
+        </div>
+        <div class="form-group">
+          <label>Support Acts</label>
+          <div class="pill-wrap">
+            <div class="pill-field" id="support-field" onclick="focusPill('support-input')">
+              <input class="pill-input" id="support-input" autocomplete="off" placeholder="Act eingeben…"
+                oninput="onPillInput('support')" onkeydown="onPillKey(event,'support')"
+                onfocus="onPillFocus('support')" onblur="onPillBlur('support')">
+            </div>
+            <div class="ac-drop" id="support-drop"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Konzerttermine</div>
+      <div class="concert-blocks" id="concert-blocks"></div>
+      <button type="button" class="btn-add-block" onclick="addConcertBlock()">＋ Konzert hinzufügen</button>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Notiz / Kommentar</div>
+      <textarea id="f-tour-comment" placeholder="Persönliche Notizen zum Event…"></textarea>
+    </div>
+  </div><!-- /tour-form -->
+
+  <!-- FESTIVAL FORM -->
+  <div id="festival-form" style="display:none">
+    <div class="tour-form-top">
+      <div class="poster-col">
+        <div class="poster-upload" id="pu-festival"
+             onclick="document.getElementById('fi-festival').click()"
+             ondragover="event.preventDefault()" ondrop="handleDrop(event,'festival')">
+          <div class="pu-icon">🎨</div><div class="pu-label">Poster hochladen</div>
+        </div>
+        <div class="paste-hint">Strg+V zum Einfügen</div>
+        <input type="file" id="fi-festival" class="hidden" accept="image/*" onchange="handleFile(event,'festival')">
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Festivalname *</label>
+          <input type="text" id="f-fest-name" placeholder="z.B. Rock am Ring">
+        </div>
+        <div class="form-group">
+          <label>Stadt *</label>
+          <input type="text" id="f-fest-city" placeholder="z.B. Nürburg" oninput="onFestCityInput()">
+        </div>
+        <div class="form-group">
+          <label>Venue</label>
+          <div class="pill-wrap">
+            <input type="text" id="f-fest-venue" placeholder="z.B. Nürburgring" autocomplete="off"
+              oninput="onVenueInput('f-fest-venue','f-fest-city','venue-drop-fest')"
+              onblur="setTimeout(()=>closeAcDrop('venue-drop-fest'),150)">
+            <div class="ac-drop" id="venue-drop-fest"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Startdatum *</label>
+          <input type="date" id="f-fest-date" oninput="syncEndDateMin('f-fest-date','f-fest-enddate')">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-bottom:4px">
+          <label class="toggle-row">
+            <input type="checkbox" id="f-fest-multi" onchange="toggleFestMulti()">
+            <div class="toggle-track"></div>
+            Mehrtägig
+          </label>
+        </div>
+        <div class="form-group collapsible" id="fest-end-grp">
+          <label>Enddatum</label>
+          <input type="date" id="f-fest-enddate">
+        </div>
+        <div class="form-group">
+          <label>Startzeit</label>
+          <input type="time" id="f-fest-time">
+        </div>
+        <div class="form-group">
+          <label>Ticketpreis (€)</label>
+          <input type="number" id="f-fest-price" placeholder="Optional" min="0" step="0.01">
+        </div>
+        <div class="form-group full">
+          <label>Tags</label>
+          <div class="tag-checks">
+            <label class="tag-check"><input type="checkbox" id="f-fest-tag-tickets"><div class="check-box">✓</div><span>🎟 Tickets</span></label>
+            <label class="tag-check"><input type="checkbox" id="f-fest-tag-watchlist"><div class="check-box">✓</div><span>🔖 Merkliste</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Bands to Watch</div>
+      <div class="pill-wrap">
+        <div class="pill-field" id="bands-field" onclick="focusPill('bands-input')">
+          <input class="pill-input" id="bands-input" autocomplete="off" placeholder="Band eingeben…"
+            oninput="onPillInput('bands')" onkeydown="onPillKey(event,'bands')"
+            onfocus="onPillFocus('bands')" onblur="onPillBlur('bands')">
+        </div>
+        <div class="ac-drop" id="bands-drop"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Notiz / Kommentar</div>
+      <textarea id="f-fest-comment" placeholder="Persönliche Notizen zum Event…"></textarea>
+    </div>
+  </div><!-- /festival-form -->
+
+  <div class="form-actions">
+    <button type="button" class="btn-cancel" onclick="closeModal('event-modal')">Abbrechen</button>
+    <button type="button" class="btn-save" id="btn-save" onclick="saveEvent()">Speichern</button>
+  </div>
+ </div>
+</div>
+
+<!-- ── Artist catalogue modal ─────────────────────────────────────── -->
+<div class="modal-backdrop" id="artist-modal" onclick="closeMbg('artist-modal',event)">
+ <div class="modal" style="max-width:560px">
+  <div class="modal-title">
+    <span>Artists</span>
+    <button class="btn-close" onclick="closeModal('artist-modal')">✕</button>
+  </div>
+  <div class="cat-list" id="artist-list"></div>
+  <div class="cat-add-row">
+    <input type="text" id="new-artist-name" placeholder="Neuer Artist…"
+      onkeydown="if(event.key==='Enter')addArtist()">
+    <button class="btn-save" style="padding:9px 18px" onclick="addArtist()">＋ Hinzufügen</button>
+  </div>
+ </div>
+</div>
+
+<!-- Artist detail popup -->
+<div class="modal-backdrop" id="artist-detail-modal" onclick="closeMbg('artist-detail-modal',event)">
+ <div class="modal" style="max-width:400px">
+  <div class="modal-title">
+    <span id="adm-title">Artist</span>
+    <button class="btn-close" onclick="closeModal('artist-detail-modal')">✕</button>
+  </div>
+  <!-- Logo area -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:22px">
+    <div class="adm-logo-zone" id="adm-logo-zone"
+         onclick="admPickFile()"
+         ondragover="event.preventDefault()"
+         ondrop="admHandleDrop(event)"
+         tabindex="0" title="Klicken, Drag & Drop oder Strg+V">
+      <span id="adm-logo-inner">🎤</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center">
+      Klicken · Drag &amp; Drop · Strg+V einfügen
+    </div>
+  </div>
+  <!-- Name field -->
+  <div class="form-group" style="margin-bottom:22px">
+    <label>Name</label>
+    <input type="text" id="adm-name" onkeydown="if(event.key==='Enter')saveArtistDetail()">
+  </div>
+  <div class="form-actions" style="margin-top:0">
+    <button class="btn-cancel" onclick="closeModal('artist-detail-modal')">Abbrechen</button>
+    <button class="btn-save" onclick="saveArtistDetail()">Speichern</button>
+  </div>
+ </div>
+</div>
+
+<!-- ── Venue catalogue modal ──────────────────────────────────────── -->
+<div class="modal-backdrop" id="venue-modal" onclick="closeMbg('venue-modal',event)">
+ <div class="modal" style="max-width:600px">
+  <div class="modal-title">
+    <span>Venues</span>
+    <button class="btn-close" onclick="closeModal('venue-modal')">✕</button>
+  </div>
+  <div class="cat-list" id="venue-list"></div>
+  <div class="cat-add-row">
+    <input type="text" id="new-venue-name" placeholder="Venue…" style="flex:2">
+    <input type="text" id="new-venue-city" placeholder="Stadt…">
+    <button class="btn-save" style="padding:9px 18px;white-space:nowrap" onclick="addVenue()">＋ Hinzufügen</button>
+  </div>
+ </div>
+</div>
+
+<!-- ── Design modal ────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="design-modal" onclick="closeMbg('design-modal',event)">
+ <div class="modal" style="max-width:500px">
+  <div class="modal-title">
+    <span>Design</span>
+    <button class="btn-close" onclick="closeModal('design-modal')">✕</button>
+  </div>
+  <div class="color-grid" id="color-grid"></div>
+  <div class="form-actions" style="margin-top:20px">
+    <button class="btn-cancel" onclick="resetColors()">Zurücksetzen</button>
+    <button class="btn-save" onclick="closeModal('design-modal')">Fertig</button>
+  </div>
+ </div>
+</div>
+
+<!-- ── Detail view ─────────────────────────────────────────────────── -->
+<div class="detail-backdrop" id="detail-bd" onclick="closeDetailOnBg(event)">
+ <div class="detail-panel" id="detail-panel"></div>
+</div>
+
+<!-- ── Popover ─────────────────────────────────────────────────────── -->
+<div class="popover" id="popover"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════════════════════
+let allEvents   = [];
+let knownBands  = [];
+let knownVenues = [];     // [{id,name,city}]
+let artists     = [];     // catalogue
+let venuesCat   = [];     // catalogue
+
+let activeFilters = new Set();
+let currentTab    = 'list';
+let calYear, calMonth;
+
+let editingId      = null;
+let currentType    = 'tour';
+let pendingBlob    = { tour: null, festival: null };
+let savedPoster    = { tour: null, festival: null };
+
+// pill state
+const pillState = {
+  support: { tags: [], hi: -1 },
+  bands:   { tags: [], hi: -1 },
+};
+
+const today = new Date();
+calYear  = today.getFullYear();
+calMonth = today.getMonth();
+
+// ── Color theme ───────────────────────────────────────────────────────
+const COLOR_VARS = [
+  { key: '--accent',        label: 'Akzentfarbe' },
+  { key: '--tour',          label: 'Tour-Farbe' },
+  { key: '--festival',      label: 'Festival-Farbe' },
+  { key: '--tickets-color', label: 'Tickets-Tag' },
+  { key: '--watch-color',   label: 'Merkliste-Tag' },
+  { key: '--bg',            label: 'Hintergrund' },
+  { key: '--surface',       label: 'Oberfläche 1' },
+  { key: '--surface2',      label: 'Oberfläche 2' },
+  { key: '--text',          label: 'Text' },
+  { key: '--muted',         label: 'Gedämpft' },
+  { key: '--border',        label: 'Rahmen' },
+];
+const DEFAULT_COLORS = {};
+COLOR_VARS.forEach(c => DEFAULT_COLORS[c.key] = getComputedStyle(document.documentElement).getPropertyValue(c.key).trim());
+
+function loadColors() {
+  const saved = JSON.parse(localStorage.getItem('kp-colors') || '{}');
+  Object.entries(saved).forEach(([k,v]) => document.documentElement.style.setProperty(k, v));
+}
+function saveColors(key, val) {
+  document.documentElement.style.setProperty(key, val);
+  const saved = JSON.parse(localStorage.getItem('kp-colors') || '{}');
+  saved[key] = val;
+  localStorage.setItem('kp-colors', JSON.stringify(saved));
+}
+function resetColors() {
+  localStorage.removeItem('kp-colors');
+  COLOR_VARS.forEach(c => document.documentElement.style.removeProperty(c.key));
+  buildColorGrid();
+}
+function buildColorGrid() {
+  const grid = document.getElementById('color-grid');
+  grid.innerHTML = COLOR_VARS.map(c => {
+    const val = getComputedStyle(document.documentElement).getPropertyValue(c.key).trim();
+    return `<div class="color-row">
+      <label>${c.label}</label>
+      <input type="color" value="${val}" oninput="saveColors('${c.key}',this.value)">
+    </div>`;
+  }).join('');
+}
+loadColors();
+
+// ══════════════════════════════════════════════════════════════════════
+// Boot
+// ══════════════════════════════════════════════════════════════════════
+async function fetchAll() {
+  const [evR, bR, vR, aR, vcR] = await Promise.all([
+    fetch('/api/events'), fetch('/api/bands'), fetch('/api/venues'),
+    fetch('/api/artists'), fetch('/api/venues-catalogue'),
+  ]);
+  allEvents   = await evR.json();
+  knownBands  = await bR.json();
+  knownVenues = await vR.json();
+  artists     = await aR.json();
+  venuesCat   = await vcR.json();
+  renderList();
+  renderCalendar();
+}
+fetchAll();
+
+// ══════════════════════════════════════════════════════════════════════
+// Tabs / filters
+// ══════════════════════════════════════════════════════════════════════
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-list').style.display     = tab === 'list'     ? 'block' : 'none';
+  document.getElementById('tab-calendar').style.display = tab === 'calendar' ? 'block' : 'none';
+}
+function toggleFilter(tag) {
+  const chip = document.getElementById('chip-' + tag);
+  if (activeFilters.has(tag)) {
+    activeFilters.delete(tag);
+    chip.className = 'filter-chip';
+  } else {
+    activeFilters.add(tag);
+    chip.className = 'filter-chip active-' + tag;
+  }
+  renderList(); renderCalendar();
+}
+function eventVisible(ev) {
+  if (!activeFilters.size) return true;
+  const tags = ev.event_type === 'festival' ? (ev.tags||[])
+    : (ev.concerts||[]).flatMap(c => c.tags||[]);
+  return [...activeFilters].some(f => tags.includes(f));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// List render
+// ══════════════════════════════════════════════════════════════════════
+// Returns the latest ISO date string for an event (for past detection)
+function eventLatestDate(ev) {
+  if (ev.event_type === 'festival') return ev.end_date || ev.date || '';
+  if (!ev.concerts || !ev.concerts.length) return '';
+  return ev.concerts.reduce((max, c) => { const d = c.end_date || c.date || ''; return d > max ? d : max; }, '');
+}
+// Returns the earliest ISO date string for an event (for sorting)
+function eventEarliestDate(ev) {
+  if (ev.event_type === 'festival') return ev.date || '';
+  if (!ev.concerts || !ev.concerts.length) return '';
+  return ev.concerts.reduce((min, c) => { const d = c.date || ''; return (min === '' || d < min) ? d : min; }, '');
+}
+
+function renderList() {
+  const el = document.getElementById('event-list');
+  const vis = allEvents.filter(ev => eventVisible(ev));
+  if (!vis.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="icon">\uD83C\uDFB8</div><h3>Keine Events</h3>
+      <p>Leg dein erstes Event mit \u201eNeues Event\u201c an.</p></div>`;
+    return;
+  }
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const upcoming = [], past = [];
+  vis.forEach(ev => {
+    const latest = eventLatestDate(ev);
+    if (latest && latest < todayIso) past.push(ev);
+    else upcoming.push(ev);
+  });
+  const byEarliest = (a, b) => eventEarliestDate(a).localeCompare(eventEarliestDate(b));
+  upcoming.sort(byEarliest);
+  past.sort(byEarliest);
+
+  const upcomingHtml = upcoming.map(ev =>
+    ev.event_type === 'festival' ? renderFestCard(ev) : renderTourCard(ev)
+  ).join('');
+
+  let pastHtml = '';
+  if (past.length) {
+    const pastCards = past.map(ev =>
+      ev.event_type === 'festival' ? renderFestCard(ev) : renderTourCard(ev)
+    ).join('');
+    pastHtml = `<div class="past-section-divider"></div>
+      <button class="past-section-toggle" id="past-toggle" onclick="togglePastSection()">
+        <span class="pst-arrow">\u25B6</span>
+        <span class="pst-label">Vergangene Events</span>
+        <span class="pst-count">${past.length}</span>
+      </button>
+      <div class="past-events" id="past-events">${pastCards}</div>`;
+  }
+  el.innerHTML = upcomingHtml + pastHtml;
+}
+
+function togglePastSection() {
+  const btn = document.getElementById('past-toggle');
+  const body = document.getElementById('past-events');
+  if (!btn) return;
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function renderTourCard(tour) {
+  const ps = tour.poster ? `<img class="event-poster" src="/static/posters/${tour.poster}" alt="">` : `<div class="event-poster-placeholder">🎵</div>`;
+  const concerts = activeFilters.size
+    ? tour.concerts.filter(c => [...activeFilters].some(f => c.tags.includes(f)))
+    : tour.concerts;
+  const concertsHtml = concerts.map(c => renderConcertRow(c)).join('');
+  return `<div class="event-card" onclick="openDetail('${tour.id}')">
+    <div class="event-header">
+      ${ps}
+      <div class="event-meta">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+          <span class="type-badge tour">Tour</span>
+        </div>
+        <div class="event-title">${esc(tour.artist)}</div>
+        <div class="event-subtitle">${esc(tour.tour_name)}</div>
+        ${tour.support.length ? `<div class="event-support"><span>Support: </span>${esc(tour.support.join(' · '))}</div>` : ''}
+      </div>
+      <div class="event-actions" onclick="event.stopPropagation()">
+        <button class="btn-icon" onclick="openEventModal(getEvent('${tour.id}'))" title="Bearbeiten">✏️</button>
+        <button class="btn-icon delete" onclick="deleteEvent('${tour.id}')" title="Löschen">🗑</button>
+      </div>
+    </div>
+    <div class="concert-list">${concertsHtml}</div>
+  </div>`;
+}
+
+function renderConcertRow(c) {
+  const d = parseDate(c.date);
+  const tagHtml = (c.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+  const actHtml = (c.support_present||[]).map(a => `<span class="act-chip">${esc(a)}</span>`).join('');
+  const endLabel = c.end_date ? `<div class="date-end">→ ${fmtDateShort(c.end_date)}</div>` : '';
+  return `<div class="concert-item">
+    <div class="date-block">
+      <div class="date-day">${d.day}</div>
+      <div class="date-month">${d.month}</div>
+      <div class="date-year">${d.year}</div>
+      ${endLabel}
+    </div>
+    <div class="concert-info">
+      <div class="concert-venue">${esc(c.venue)}</div>
+      <div class="concert-city">📍 ${esc(c.city)}</div>
+      ${c.time ? `<div class="concert-time">🕐 ${esc(c.time)} Uhr</div>` : ''}
+      ${actHtml ? `<div class="concert-support-acts">${actHtml}</div>` : ''}
+    </div>
+    <div class="concert-right">
+      ${c.price ? `<div class="concert-price">${esc(String(c.price))} €</div>` : ''}
+      <div class="tags">${tagHtml}</div>
+    </div>
+  </div>`;
+}
+
+function renderFestCard(fest) {
+  const ps = fest.poster ? `<img class="event-poster" src="/static/posters/${fest.poster}" alt="">` : `<div class="event-poster-placeholder">🎪</div>`;
+  const d = parseDate(fest.date);
+  const endLabel = fest.end_date ? `<div class="date-end">→ ${fmtDateShort(fest.end_date)}</div>` : '';
+  const tagHtml = (fest.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+  const bandsHtml = (fest.bands_to_watch||[]).map(b => `<span class="band-chip">${esc(b)}</span>`).join('');
+  return `<div class="event-card" onclick="openDetail('${fest.id}')">
+    <div class="event-header">
+      ${ps}
+      <div class="event-meta">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+          <span class="type-badge festival">Festival</span>
+        </div>
+        <div class="event-title">${esc(fest.name)}</div>
+      </div>
+      <div class="event-actions" onclick="event.stopPropagation()">
+        <button class="btn-icon" onclick="openEventModal(getEvent('${fest.id}'))" title="Bearbeiten">✏️</button>
+        <button class="btn-icon delete" onclick="deleteEvent('${fest.id}')" title="Löschen">🗑</button>
+      </div>
+    </div>
+    <div class="concert-item">
+      <div class="date-block festival-date">
+        <div class="date-day">${d.day}</div>
+        <div class="date-month">${d.month}</div>
+        <div class="date-year">${d.year}</div>
+        ${endLabel}
+      </div>
+      <div class="concert-info">
+        <div class="concert-venue">${esc(fest.venue)||'–'}</div>
+        <div class="concert-city">📍 ${esc(fest.city)}</div>
+        ${fest.time ? `<div class="concert-time">🕐 ${esc(fest.time)} Uhr</div>` : ''}
+        ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
+      </div>
+      <div class="concert-right">
+        ${fest.price ? `<div class="concert-price">${esc(String(fest.price))} €</div>` : ''}
+        <div class="tags">${tagHtml}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Detail view
+// ══════════════════════════════════════════════════════════════════════
+function openDetail(id) {
+  const ev = getEvent(id);
+  if (!ev) return;
+  const bd = document.getElementById('detail-bd');
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML = buildDetailHTML(ev);
+  bd.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDetail() {
+  document.getElementById('detail-bd').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeDetailOnBg(e) {
+  if (e.target === document.getElementById('detail-bd')) closeDetail();
+}
+
+function buildDetailHTML(ev) {
+  const ps = ev.poster
+    ? `<img class="detail-poster" src="/static/posters/${ev.poster}" alt="">`
+    : `<div class="detail-poster-ph">${ev.event_type==='festival'?'🎪':'🎵'}</div>`;
+
+  const commentBlock = ev.comment
+    ? `<div class="detail-comment"><div class="detail-comment-label">Notiz</div>${esc(ev.comment)}</div>` : '';
+
+  if (ev.event_type === 'festival') {
+    const d = parseDate(ev.date);
+    const endLabel = ev.end_date ? `<div class="date-end">→ ${fmtDateShort(ev.end_date)}</div>` : '';
+    const tagHtml = (ev.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+    const bandsHtml = (ev.bands_to_watch||[]).map(b=>`<span class="band-chip">${esc(b)}</span>`).join('');
+    return `
+      <div class="detail-header">
+        ${ps}
+        <div class="detail-meta">
+          <div style="display:flex;gap:7px;align-items:center;margin-bottom:4px">
+            <span class="type-badge festival">Festival</span>
+          </div>
+          <div class="detail-title">${esc(ev.name)}</div>
+          <div class="detail-subtitle">${esc(ev.tour_name||'')}</div>
+        </div>
+        <div class="detail-close-row">
+          <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
+          <button class="btn-close" onclick="closeDetail()">✕</button>
+        </div>
+      </div>
+      <div class="detail-concerts">
+        <div class="detail-concert-item">
+          <div class="date-block festival-date">
+            <div class="date-day">${d.day}</div>
+            <div class="date-month">${d.month}</div>
+            <div class="date-year">${d.year}</div>
+            ${endLabel}
+          </div>
+          <div class="concert-info">
+            <div class="concert-venue">${esc(ev.venue)||'–'}</div>
+            <div class="concert-city">📍 ${esc(ev.city)}</div>
+            ${ev.time ? `<div class="concert-time">🕐 ${esc(ev.time)} Uhr</div>` : ''}
+            ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
+          </div>
+          <div class="concert-right">
+            ${ev.price ? `<div class="concert-price">${esc(String(ev.price))} €</div>` : ''}
+            <div class="tags">${tagHtml}</div>
+          </div>
+        </div>
+      </div>
+      ${commentBlock}`;
+  }
+
+  // Tour
+  const concerts = ev.concerts || [];
+  const concHtml = concerts.map(c => {
+    const d = parseDate(c.date);
+    const endLabel = c.end_date ? `<div class="date-end">→ ${fmtDateShort(c.end_date)}</div>` : '';
+    const tagHtml = (c.tags||[]).map(t=>`<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+    const actHtml = (c.support_present||[]).map(a=>`<span class="act-chip">${esc(a)}</span>`).join('');
+    return `<div class="detail-concert-item">
+      <div class="date-block">
+        <div class="date-day">${d.day}</div><div class="date-month">${d.month}</div>
+        <div class="date-year">${d.year}</div>${endLabel}
+      </div>
+      <div class="concert-info">
+        <div class="concert-venue">${esc(c.venue)}</div>
+        <div class="concert-city">📍 ${esc(c.city)}</div>
+        ${c.time?`<div class="concert-time">🕐 ${esc(c.time)} Uhr</div>`:''}
+        ${actHtml?`<div class="concert-support-acts">${actHtml}</div>`:''}
+      </div>
+      <div class="concert-right">
+        ${c.price?`<div class="concert-price">${esc(String(c.price))} €</div>`:''}
+        <div class="tags">${tagHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="detail-header">
+      ${ps}
+      <div class="detail-meta">
+        <div style="display:flex;gap:7px;margin-bottom:4px"><span class="type-badge tour">Tour</span></div>
+        <div class="detail-title">${esc(ev.artist)}</div>
+        <div class="detail-subtitle">${esc(ev.tour_name)}</div>
+        ${ev.support.length?`<div class="detail-support"><span style="color:var(--muted)">Support: </span>${esc(ev.support.join(' · '))}</div>`:''}
+      </div>
+      <div class="detail-close-row">
+        <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
+        <button class="btn-close" onclick="closeDetail()">✕</button>
+      </div>
+    </div>
+    <div class="detail-concerts">${concHtml}</div>
+    ${commentBlock}`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Calendar
+// ══════════════════════════════════════════════════════════════════════
+function renderCalendar() {
+  const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni',
+    'Juli','August','September','Oktober','November','Dezember'];
+  document.getElementById('cal-title').textContent = `${MONTHS_DE[calMonth]} ${calYear}`;
+  const grid = document.getElementById('cal-grid');
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  let dow = new Date(calYear, calMonth, 1).getDay();
+  dow = dow === 0 ? 6 : dow - 1;
+  const dim  = new Date(calYear, calMonth+1, 0).getDate();
+  const dimp = new Date(calYear, calMonth, 0).getDate();
+  const total = Math.ceil((dow + dim) / 7) * 7;
+
+  const entries = [];
+  allEvents.filter(ev => eventVisible(ev)).forEach(ev => {
+    if (ev.event_type === 'festival') {
+      entries.push({ iso: ev.date, end_iso: ev.end_date, label: ev.name, type: 'festival', tags: ev.tags||[], id: ev.id });
+    } else {
+      (ev.concerts||[]).forEach(c => {
+        entries.push({ iso: c.date, end_iso: c.end_date, label: ev.artist, type: 'tour', tags: c.tags||[], data: c, id: ev.id });
+      });
+    }
+  });
+
+  for (let i = 0; i < total; i++) {
+    let dayNum, isOther = false, cellDate;
+    if (i < dow)         { dayNum = dimp - dow + i + 1; isOther = true; cellDate = new Date(calYear, calMonth-1, dayNum); }
+    else if (i >= dow+dim){ dayNum = i - dow - dim + 1;  isOther = true; cellDate = new Date(calYear, calMonth+1, dayNum); }
+    else                  { dayNum = i - dow + 1;                        cellDate = new Date(calYear, calMonth,   dayNum); }
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (isOther ? ' other-month' : '') +
+      (cellDate.toDateString() === today.toDateString() ? ' today' : '');
+
+    const dateDiv = document.createElement('div');
+    dateDiv.className = 'cal-date'; dateDiv.textContent = dayNum;
+    cell.appendChild(dateDiv);
+
+    const iso = cellDate.toISOString().slice(0,10);
+    const evDiv = document.createElement('div');
+    evDiv.className = 'cal-events';
+
+    entries.filter(e => e.iso === iso || (e.end_iso && e.iso <= iso && e.end_iso >= iso))
+      .forEach(e => {
+        const el = document.createElement('div');
+        const cls = e.type === 'festival' ? 'ev-festival'
+          : e.tags.includes('tickets') ? 'ev-tickets'
+          : e.tags.includes('watchlist') ? 'ev-watchlist' : '';
+        el.className = 'cal-event' + (cls ? ' '+cls : '');
+        el.textContent = e.label;
+        el.addEventListener('click', ev => { ev.stopPropagation(); openDetail(e.id); });
+        if (e.data) {
+          el.addEventListener('mouseenter', evt => showPopover(evt, e.data));
+          el.addEventListener('mouseleave', hidePopover);
+        }
+        evDiv.appendChild(el);
+      });
+
+    cell.appendChild(evDiv);
+    grid.appendChild(cell);
+  }
+}
+function calNav(d) {
+  calMonth += d;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Popover
+// ══════════════════════════════════════════════════════════════════════
+function showPopover(e, c) {
+  const p = document.getElementById('popover');
+  p.innerHTML = `<div class="pop-title">${esc(c.artist||'')}</div>
+    <div class="pop-row">📅 <span>${fmtDateLong(c.date)}${c.end_date?' – '+fmtDateLong(c.end_date):''}</span></div>
+    ${c.time?`<div class="pop-row">🕐 <span>${esc(c.time)} Uhr</span></div>`:''}
+    <div class="pop-row">📍 <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
+    ${c.price?`<div class="pop-row">💶 <span>${esc(String(c.price))} €</span></div>`:''}`;
+  p.style.left = (e.clientX+12)+'px'; p.style.top = (e.clientY-10)+'px';
+  p.classList.add('vis');
+}
+function hidePopover() { document.getElementById('popover').classList.remove('vis'); }
+
+// ══════════════════════════════════════════════════════════════════════
+// Drawer
+// ══════════════════════════════════════════════════════════════════════
+function toggleDrawer() {
+  document.getElementById('drawer-backdrop').classList.toggle('open');
+}
+function closeDrawerOnBg(e) {
+  if (e.target.classList.contains('drawer-overlay')) toggleDrawer();
+}
+function closeDrawer() {
+  document.getElementById('drawer-backdrop').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Generic modal helpers
+// ══════════════════════════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeMbg(id, e) {
+  if (e.target === document.getElementById(id)) closeModal(id);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Event modal
+// ══════════════════════════════════════════════════════════════════════
+function openEventModal(ev) {
+  closeDrawer();
+  editingId = ev ? ev.id : null;
+  pendingBlob = { tour: null, festival: null };
+  savedPoster = { tour: ev?.poster||null, festival: ev?.poster||null };
+
+  document.getElementById('type-chooser').style.display = ev ? 'none' : 'block';
+  document.getElementById('event-modal-title').textContent = ev ? 'Event bearbeiten' : 'Neues Event';
+
+  selectType(ev ? ev.event_type : 'tour', false);
+
+  if (!ev || ev.event_type === 'tour') {
+    document.getElementById('f-artist').value   = ev?.artist || '';
+    document.getElementById('f-tourname').value = ev?.tour_name || '';
+    document.getElementById('f-tour-comment').value = ev?.comment || '';
+    pillState.support.tags = [...(ev?.support||[])];
+    renderPills('support');
+    document.getElementById('concert-blocks').innerHTML = '';
+    (ev?.concerts||[]).forEach(c => addConcertBlock(c));
+    setPosterPreview('tour', ev?.poster||null);
+  }
+  if (!ev || ev.event_type === 'festival') {
+    document.getElementById('f-fest-name').value     = ev?.name || '';
+    document.getElementById('f-fest-city').value     = ev?.city || '';
+    document.getElementById('f-fest-venue').value    = ev?.venue || '';
+    document.getElementById('f-fest-date').value     = ev?.date || '';
+    document.getElementById('f-fest-time').value     = ev?.time || '';
+    document.getElementById('f-fest-price').value    = ev?.price != null ? ev.price : '';
+    document.getElementById('f-fest-enddate').value  = ev?.end_date || '';
+    const multi = !!(ev?.end_date);
+    document.getElementById('f-fest-multi').checked  = multi;
+    document.getElementById('fest-end-grp').classList.toggle('visible', multi);
+    document.getElementById('f-fest-tag-tickets').checked   = (ev?.tags||[]).includes('tickets');
+    document.getElementById('f-fest-tag-watchlist').checked = (ev?.tags||[]).includes('watchlist');
+    document.getElementById('f-fest-comment').value = ev?.comment || '';
+    pillState.bands.tags = [...(ev?.bands_to_watch||[])];
+    renderPills('bands');
+    setPosterPreview('festival', ev?.poster||null);
+  }
+
+  openModal('event-modal');
+}
+
+function selectType(type, resetFields = true) {
+  currentType = type;
+  document.getElementById('tour-form').style.display     = type === 'tour'     ? 'block' : 'none';
+  document.getElementById('festival-form').style.display = type === 'festival' ? 'block' : 'none';
+  document.getElementById('opt-tour').className     = 'type-option' + (type === 'tour'     ? ' sel-tour'     : '');
+  document.getElementById('opt-festival').className = 'type-option' + (type === 'festival' ? ' sel-festival' : '');
+}
+
+function toggleFestMulti() {
+  const c = document.getElementById('f-fest-multi').checked;
+  document.getElementById('fest-end-grp').classList.toggle('visible', c);
+  if (c) syncEndDateMin('f-fest-date', 'f-fest-enddate');
+}
+
+// ── Poster ───────────────────────────────────────────────────────────
+function setPosterPreview(which, filename) {
+  const el = document.getElementById('pu-'+which);
+  el.innerHTML = '';
+  if (filename) {
+    savedPoster[which] = filename;
+    const img = document.createElement('img'); img.src = `/static/posters/${filename}`; el.appendChild(img);
+  } else {
+    savedPoster[which] = null;
+    el.innerHTML = '<div class="pu-icon">🎨</div><div class="pu-label">Poster hochladen</div>';
+  }
+}
+function previewBlob(which, blob) {
+  pendingBlob[which] = blob;
+  const url = URL.createObjectURL(blob);
+  const el = document.getElementById('pu-'+which);
+  el.innerHTML = ''; const img = document.createElement('img'); img.src = url; el.appendChild(img);
+}
+function handleFile(e, which) { const f = e.target.files[0]; if (f) previewBlob(which, f); }
+function handleDrop(e, which) {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) previewBlob(which, f);
+}
+document.addEventListener('paste', e => {
+  if (!document.getElementById('event-modal').classList.contains('open')) return;
+  for (const item of e.clipboardData.items) {
+    if (item.type.startsWith('image/')) { previewBlob(currentType, item.getAsFile()); break; }
+  }
+});
+async function uploadBlobIfNeeded(which) {
+  const blob = pendingBlob[which];
+  if (!blob) return savedPoster[which];
+  const fd = new FormData(); fd.append('poster', blob);
+  const r = await fetch('/api/upload-poster', { method: 'POST', body: fd });
+  if (!r.ok) throw new Error('Upload fehlgeschlagen');
+  return (await r.json()).filename;
+}
+
+// ── Concert blocks ───────────────────────────────────────────────────
+let blockCount = 0;
+function addConcertBlock(prefill) {
+  blockCount++;
+  const id = 'cb-'+blockCount;
+  const div = document.createElement('div');
+  div.className = 'concert-block'; div.id = id;
+
+  // support checkboxes
+  const currentSupport = pillState.support.tags;
+  const presentList = prefill?.support_present ?? [...currentSupport];
+  const supChecks = currentSupport.length
+    ? `<div class="form-group full">
+        <label>Support bei diesem Termin</label>
+        <div class="support-checks">
+          ${currentSupport.map(act => `
+            <label class="sup-check">
+              <input type="checkbox" class="cb-sup" data-act="${esc(act)}" ${presentList.includes(act)?'checked':''}>
+              <div class="check-box">✓</div>
+              <span>${esc(act)}</span>
+            </label>`).join('')}
+        </div>
+      </div>` : '';
+
+  div.innerHTML = `
+    <div class="cb-head">
+      <span class="cb-title">Termin ${blockCount}</span>
+      <button type="button" class="btn-remove" onclick="document.getElementById('${id}').remove()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Datum *</label>
+        <input type="date" class="cb-date" value="${prefill?.date||''}"
+          oninput="syncEndDateMin(this, this.closest('.concert-block').querySelector('.cb-enddate'))">
+      </div>
+      <div class="form-group" style="justify-content:flex-end;padding-bottom:4px">
+        <label class="toggle-row">
+          <input type="checkbox" class="cb-multi" onchange="toggleCbMulti(this,'${id}')">
+          <div class="toggle-track"></div>
+          Mehrtägig
+        </label>
+      </div>
+      <div class="form-group collapsible ${prefill?.end_date?'visible':''}" id="${id}-end">
+        <label>Enddatum</label>
+        <input type="date" class="cb-enddate" value="${prefill?.end_date||''}">
+      </div>
+      <div class="form-group">
+        <label>Uhrzeit</label>
+        <input type="time" class="cb-time" value="${prefill?.time||''}">
+      </div>
+      <div class="form-group">
+        <label>Stadt *</label>
+        <div class="pill-wrap">
+          <input type="text" class="cb-city" placeholder="z.B. Berlin" value="${prefill?esc(prefill.city):''}"
+            oninput="onVenueInput(this,'','venue-drop-${id}')"
+            onblur="setTimeout(()=>closeAcDrop('venue-drop-${id}'),150)">
+          <div class="ac-drop" id="venue-drop-${id}"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Venue *</label>
+        <div class="pill-wrap">
+          <input type="text" class="cb-venue" placeholder="z.B. Columbiahalle" value="${prefill?esc(prefill.venue):''}"
+            oninput="onVenueInput(this,'','venue-drop2-${id}')"
+            onblur="setTimeout(()=>closeAcDrop('venue-drop2-${id}'),150)">
+          <div class="ac-drop" id="venue-drop2-${id}"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Preis (€)</label>
+        <input type="number" class="cb-price" placeholder="Optional" min="0" step="0.01"
+          value="${prefill?.price!=null?prefill.price:''}">
+      </div>
+      <div class="form-group">
+        <label>Tags</label>
+        <div class="tag-checks">
+          <label class="tag-check"><input type="checkbox" class="cb-tag-tickets" ${prefill?.tags?.includes('tickets')?'checked':''}><div class="check-box">✓</div><span>🎟 Tickets</span></label>
+          <label class="tag-check"><input type="checkbox" class="cb-tag-watchlist" ${prefill?.tags?.includes('watchlist')?'checked':''}><div class="check-box">✓</div><span>🔖 Merkliste</span></label>
+        </div>
+      </div>
+      ${supChecks}
+    </div>`;
+  document.getElementById('concert-blocks').appendChild(div);
+
+  if (prefill?.end_date) {
+    div.querySelector('.cb-multi').checked = true;
+  }
+}
+function toggleCbMulti(cb, id) {
+  document.getElementById(id+'-end').classList.toggle('visible', cb.checked);
+  if (cb.checked) {
+    // sync min date for end date input
+    const block = cb.closest('.concert-block');
+    const startEl = block.querySelector('.cb-date');
+    const endEl = block.querySelector('.cb-enddate');
+    syncEndDateMin(startEl, endEl);
+  }
+}
+function syncEndDateMin(startEl, endEl) {
+  const startInput = typeof startEl === 'string' ? document.getElementById(startEl) : startEl;
+  const endInput   = typeof endEl   === 'string' ? document.getElementById(endEl)   : endEl;
+  if (!startInput || !endInput) return;
+  const val = startInput.value;
+  if (val) {
+    endInput.min = val;
+    // If end date is already set but before new start, clear it
+    if (endInput.value && endInput.value < val) endInput.value = '';
+    // Jump the end date picker calendar to the same month/year as start
+    // (browsers don't expose a way to set the initial view, but setting value
+    //  as a default is the next best thing when field is empty)
+    if (!endInput.value) endInput.value = val;
+  }
+}
+
+// ── Venue autocomplete in concert blocks / festival ──────────────────
+function onVenueInput(inputEl, cityInputIdOrEl, dropId) {
+  const input = typeof inputEl === 'string' ? document.getElementById(inputEl) : inputEl;
+  const q = input.value.trim().toLowerCase();
+  // Determine if the triggering input is a city field or a venue field
+  const isCity = input.classList.contains('cb-city') || input.id === 'f-fest-city';
+  const cityEl = typeof cityInputIdOrEl === 'string' && cityInputIdOrEl
+    ? document.getElementById(cityInputIdOrEl)
+    : (input.closest('.concert-block') ? input.closest('.concert-block').querySelector('.cb-city') : null);
+  const city = cityEl ? cityEl.value.trim().toLowerCase() : '';
+  const drop = document.getElementById(dropId);
+  if (!drop) return;
+  // Store which type of field triggered this, so pickVenue knows what to fill
+  drop.dataset.fieldType = isCity ? 'city' : 'venue';
+  if (!q) { drop.classList.remove('open'); return; }
+  let suggestions = knownVenues.filter(v => {
+    const matches = v.name.toLowerCase().includes(q) || v.city.toLowerCase().includes(q);
+    if (!matches) return false;
+    if (city && !isCity) return v.city.toLowerCase() === city;
+    return true;
+  }).slice(0, 8);
+  if (!suggestions.length) { drop.classList.remove('open'); return; }
+  drop.innerHTML = suggestions.map(v =>
+    `<div class="ac-item" onmousedown="event.preventDefault()"
+      onclick="pickVenue(this,'${dropId}','${esc(v.name)}','${esc(v.city)}')">
+      ${esc(v.name)}<span style="color:var(--muted);font-size:12px"> · ${esc(v.city)}</span>
+    </div>`
+  ).join('');
+  drop.classList.add('open');
+}
+function onFestCityInput() {
+  const venue = document.getElementById('f-fest-venue');
+  if (venue.value) onVenueInput('f-fest-venue', 'f-fest-city', 'venue-drop-fest');
+}
+function pickVenue(itemEl, dropId, venueName, cityName) {
+  const drop = document.getElementById(dropId);
+  const fieldType = drop.dataset.fieldType || 'venue';
+  // The input that owns this dropdown is the one just before it in the DOM
+  const container = drop.previousElementSibling;
+  if (container) {
+    const input = container.tagName === 'INPUT' ? container : container.querySelector('input');
+    if (input) {
+      // Fill the correct value based on which field type triggered the dropdown
+      input.value = fieldType === 'city' ? cityName : venueName;
+    }
+    // For venue inputs in a concert block: also fill city if empty
+    if (fieldType === 'venue') {
+      const block = drop.closest('.concert-block');
+      if (block) {
+        const cityInput = block.querySelector('.cb-city');
+        if (cityInput && !cityInput.value) cityInput.value = cityName;
+      }
+      // For festival venue field: fill city field if empty
+      const festCity = document.getElementById('f-fest-city');
+      if (festCity && !festCity.value) festCity.value = cityName;
+    }
+  }
+  closeAcDrop(dropId);
+}
+function closeAcDrop(id) {
+  const el = document.getElementById(id); if (el) el.classList.remove('open');
+}
+
+// ── Save ─────────────────────────────────────────────────────────────
+async function saveEvent() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'Speichern…';
+  try {
+    const poster = await uploadBlobIfNeeded(currentType);
+    let payload;
+    if (currentType === 'festival') {
+      const name = document.getElementById('f-fest-name').value.trim();
+      const date = document.getElementById('f-fest-date').value;
+      if (!name) { alert('Bitte Festivalnamen angeben.'); return; }
+      if (!date) { alert('Bitte Startdatum angeben.'); return; }
+      const tags = [];
+      if (document.getElementById('f-fest-tag-tickets').checked)   tags.push('tickets');
+      if (document.getElementById('f-fest-tag-watchlist').checked) tags.push('watchlist');
+      payload = {
+        event_type: 'festival', name,
+        city:   document.getElementById('f-fest-city').value.trim(),
+        venue:  document.getElementById('f-fest-venue').value.trim(),
+        date,
+        end_date: document.getElementById('f-fest-multi').checked ? document.getElementById('f-fest-enddate').value||null : null,
+        time:  document.getElementById('f-fest-time').value||null,
+        price: document.getElementById('f-fest-price').value||null,
+        bands_to_watch: [...pillState.bands.tags],
+        tags, poster,
+        comment: document.getElementById('f-fest-comment').value.trim(),
+      };
+    } else {
+      const artist = document.getElementById('f-artist').value.trim();
+      if (!artist) { alert('Bitte Artist angeben.'); return; }
+      const blocks = document.querySelectorAll('.concert-block');
+      const concerts = [];
+      for (const b of blocks) {
+        const date  = b.querySelector('.cb-date').value;
+        const city  = b.querySelector('.cb-city').value.trim();
+        const venue = b.querySelector('.cb-venue').value.trim();
+        if (!date||!city||!venue) { alert('Bitte alle Pflichtfelder der Konzerttermine ausfüllen.'); return; }
+        const tags = [];
+        if (b.querySelector('.cb-tag-tickets').checked)   tags.push('tickets');
+        if (b.querySelector('.cb-tag-watchlist').checked) tags.push('watchlist');
+        const supPresent = [...b.querySelectorAll('.cb-sup:checked')].map(cb => cb.dataset.act);
+        concerts.push({
+          date, city, venue,
+          time:     b.querySelector('.cb-time').value||null,
+          end_date: b.querySelector('.cb-multi').checked ? b.querySelector('.cb-enddate').value||null : null,
+          price:    b.querySelector('.cb-price').value||null,
+          tags, support_present: supPresent,
+        });
+      }
+      payload = {
+        event_type: 'tour', artist,
+        tour_name: document.getElementById('f-tourname').value.trim()||'Tour',
+        support: [...pillState.support.tags],
+        concerts, poster,
+        comment: document.getElementById('f-tour-comment').value.trim(),
+      };
+    }
+    const url    = editingId ? `/api/events/${editingId}` : '/api/events';
+    const method = editingId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error('Server error');
+    closeModal('event-modal');
+    await fetchAll();
+  } catch(err) {
+    alert('Fehler: '+err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Speichern';
+  }
+}
+
+// ── Delete ───────────────────────────────────────────────────────────
+async function deleteEvent(id) {
+  if (!confirm('Event wirklich löschen?')) return;
+  await fetch('/api/events/'+id, { method: 'DELETE' });
+  await fetchAll();
+}
+function getEvent(id) { return allEvents.find(e => e.id === id); }
+
+// ══════════════════════════════════════════════════════════════════════
+// Pill / autocomplete generic
+// ══════════════════════════════════════════════════════════════════════
+function focusPill(id) { document.getElementById(id).focus(); }
+
+function renderPills(which) {
+  const field = document.getElementById(which+'-field');
+  const input = document.getElementById(which+'-input');
+  field.querySelectorAll('.pill').forEach(p => p.remove());
+  pillState[which].tags.forEach((tag, i) => {
+    const pill = document.createElement('div'); pill.className = 'pill';
+    pill.innerHTML = `${esc(tag)}<button type="button" class="p-rm" onclick="removePill('${which}',${i})">✕</button>`;
+    field.insertBefore(pill, input);
+  });
+}
+function removePill(which, i) { pillState[which].tags.splice(i,1); renderPills(which); }
+function addPillTag(which, val) {
+  val = val.trim();
+  if (val && !pillState[which].tags.includes(val)) pillState[which].tags.push(val);
+  document.getElementById(which+'-input').value = '';
+  renderPills(which);
+  closeAcDrop(which+'-drop');
+}
+
+function onPillInput(which) {
+  const q = document.getElementById(which+'-input').value.trim().toLowerCase();
+  if (!q) { closeAcDrop(which+'-drop'); return; }
+  const starts   = knownBands.filter(b => b.toLowerCase().startsWith(q) && !pillState[which].tags.includes(b));
+  const contains = knownBands.filter(b => b.toLowerCase().includes(q) && !b.toLowerCase().startsWith(q) && !pillState[which].tags.includes(b));
+  const suggestions = [...starts, ...contains].slice(0,8);
+  const drop = document.getElementById(which+'-drop');
+  if (!suggestions.length) { drop.classList.remove('open'); return; }
+  drop.innerHTML = suggestions.map(s => {
+    const idx = s.toLowerCase().indexOf(q);
+    const h = idx >= 0 ? esc(s.slice(0,idx))+'<span class="hi-text">'+esc(s.slice(idx,idx+q.length))+'</span>'+esc(s.slice(idx+q.length)) : esc(s);
+    return `<div class="ac-item" onmousedown="event.preventDefault()" onclick="addPillTag('${which}','${s.replace(/'/g,"\\'")}')">
+      ${h}</div>`;
+  }).join('');
+  drop.classList.add('open');
+  pillState[which].hi = -1;
+}
+function onPillFocus(which) { onPillInput(which); }
+function onPillBlur(which)  { setTimeout(() => closeAcDrop(which+'-drop'), 150); }
+function onPillKey(e, which) {
+  const items = document.querySelectorAll('#'+which+'-drop .ac-item');
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const hi = pillState[which].hi;
+    if (hi >= 0 && items[hi]) items[hi].click();
+    else addPillTag(which, document.getElementById(which+'-input').value);
+  } else if (e.key === 'Backspace' && !document.getElementById(which+'-input').value && pillState[which].tags.length) {
+    pillState[which].tags.pop(); renderPills(which);
+  } else if (e.key === ',' ) {
+    e.preventDefault(); addPillTag(which, document.getElementById(which+'-input').value);
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault(); pillState[which].hi = Math.min(pillState[which].hi+1, items.length-1);
+    items.forEach((it,i) => it.classList.toggle('hi', i === pillState[which].hi));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); pillState[which].hi = Math.max(pillState[which].hi-1, -1);
+    items.forEach((it,i) => it.classList.toggle('hi', i === pillState[which].hi));
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Artist catalogue
+// ══════════════════════════════════════════════════════════════════════
+function openArtistCatalogue() {
+  closeDrawer();
+  renderArtistList();
+  openModal('artist-modal');
+}
+
+function renderArtistList() {
+  const el = document.getElementById('artist-list');
+  if (!artists.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Artists gespeichert.</div>';
+    return;
+  }
+  el.innerHTML = artists.map(a => {
+    const logoEl = a.logo
+      ? `<div class="logo-drop-zone" style="border-style:solid"><img src="/static/logos/${a.logo}" alt=""></div>`
+      : `<div class="logo-drop-zone">\uD83C\uDFAD</div>`;
+    const nameEl = `<span style="flex:1;font-size:14px">${esc(a.name)}</span>`;
+    if (a.derived) {
+      return `<div class="cat-item" style="cursor:pointer" onclick="openArtistDetail(${JSON.stringify(a)})">
+        ${logoEl}${nameEl}
+        <span style="font-size:11px;color:var(--border);white-space:nowrap">aus Events</span>
+      </div>`;
+    }
+    return `<div class="cat-item" style="cursor:pointer" onclick="openArtistDetail(${JSON.stringify(a)})">
+      ${logoEl}${nameEl}
+      <div class="cat-item-actions" onclick="event.stopPropagation()">
+        <button class="btn-sm danger" onclick="deleteArtist('${a.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Artist detail popup ───────────────────────────────────────────────
+let _admCurrentArtist = null;
+let _admPendingBlob   = null;
+
+function openArtistDetail(a) {
+  _admCurrentArtist = typeof a === 'string' ? JSON.parse(a) : a;
+  _admPendingBlob   = null;
+  document.getElementById('adm-title').textContent = _admCurrentArtist.derived ? 'Artist speichern' : 'Artist bearbeiten';
+  document.getElementById('adm-name').value = _admCurrentArtist.name;
+  const inner = document.getElementById('adm-logo-inner');
+  inner.innerHTML = _admCurrentArtist.logo
+    ? `<img src="/static/logos/${_admCurrentArtist.logo}" alt="">`
+    : '\uD83C\uDFAD';
+  openModal('artist-detail-modal');
+}
+
+function admPickFile() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = () => { if (input.files[0]) admPreviewBlob(input.files[0]); };
+  input.click();
+}
+function admHandleDrop(e) {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) admPreviewBlob(f);
+}
+function admPreviewBlob(blob) {
+  _admPendingBlob = blob;
+  document.getElementById('adm-logo-inner').innerHTML =
+    `<img src="${URL.createObjectURL(blob)}" alt="">`;
+}
+
+document.addEventListener('paste', async e => {
+  if (!document.getElementById('artist-detail-modal').classList.contains('open')) return;
+  for (const item of e.clipboardData.items) {
+    if (item.type.startsWith('image/')) { admPreviewBlob(item.getAsFile()); break; }
+  }
+}, true);
+
+async function saveArtistDetail() {
+  const name = document.getElementById('adm-name').value.trim();
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  const a = _admCurrentArtist;
+  let logoFilename = a.logo || null;
+  if (_admPendingBlob) {
+    const fd = new FormData(); fd.append('logo', _admPendingBlob);
+    const r = await fetch('/api/upload-logo', { method:'POST', body: fd });
+    logoFilename = (await r.json()).filename;
+  }
+  if (a.derived || !a.id) {
+    await fetch('/api/artists', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, logo: logoFilename }),
+    });
+  } else {
+    await fetch('/api/artists/'+a.id, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, logo: logoFilename }),
+    });
+  }
+  await reloadCatalogue();
+  renderArtistList();
+  closeModal('artist-detail-modal');
+}
+
+async function addArtist() {
+  const name = document.getElementById('new-artist-name').value.trim();
+  if (!name) return;
+  await fetch('/api/artists', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+  document.getElementById('new-artist-name').value = '';
+  await reloadCatalogue();
+  renderArtistList();
+}
+
+async function deleteArtist(id) {
+  if (!confirm('Artist löschen?')) return;
+  await fetch('/api/artists/'+id, { method:'DELETE' });
+  await reloadCatalogue();
+  renderArtistList();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+function openVenueCatalogue() { closeDrawer(); renderVenueList(); openModal('venue-modal'); }
+function renderVenueList() {
+  const el = document.getElementById('venue-list');
+  if (!venuesCat.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Venues gespeichert.</div>'; return; }
+  el.innerHTML = venuesCat.map(v => `
+    <div class="cat-item">
+      <div class="cat-logo">🏟</div>
+      <input class="cat-name-input" value="${esc(v.name)}" id="vn-${v.id}" onblur="saveVenue('${v.id}')">
+      <input class="cat-city-input" value="${esc(v.city)}" id="vc-${v.id}" placeholder="Stadt" onblur="saveVenue('${v.id}')">
+      <div class="cat-item-actions">
+        <button class="btn-sm danger" onclick="deleteVenue('${v.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+async function addVenue() {
+  const name = document.getElementById('new-venue-name').value.trim();
+  const city = document.getElementById('new-venue-city').value.trim();
+  if (!name) return;
+  await fetch('/api/venues-catalogue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,city}) });
+  document.getElementById('new-venue-name').value = '';
+  document.getElementById('new-venue-city').value = '';
+  await reloadCatalogue();
+  renderVenueList();
+}
+async function saveVenue(id) {
+  const name = document.getElementById('vn-'+id).value.trim();
+  const city = document.getElementById('vc-'+id).value.trim();
+  await fetch('/api/venues-catalogue/'+id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,city}) });
+  await reloadCatalogue();
+}
+async function deleteVenue(id) {
+  if (!confirm('Venue löschen?')) return;
+  await fetch('/api/venues-catalogue/'+id, { method:'DELETE' });
+  await reloadCatalogue();
+  renderVenueList();
+}
+
+async function reloadCatalogue() {
+  const [aR, vcR, bR, vR] = await Promise.all([
+    fetch('/api/artists'), fetch('/api/venues-catalogue'),
+    fetch('/api/bands'), fetch('/api/venues'),
+  ]);
+  artists     = await aR.json();
+  venuesCat   = await vcR.json();
+  knownBands  = await bR.json();
+  knownVenues = await vR.json();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Design panel
+// ══════════════════════════════════════════════════════════════════════
+function openDesignPanel() { closeDrawer(); buildColorGrid(); openModal('design-modal'); }
+
+// ══════════════════════════════════════════════════════════════════════
+// Utilities
+// ══════════════════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseDate(iso) {
+  if (!iso) return { day:'?', month:'???', year:'????' };
+  const d = new Date(iso+'T12:00:00');
+  return {
+    day:   d.getDate(),
+    month: d.toLocaleDateString('de-DE',{month:'short'}),
+    year:  d.getFullYear(),
+  };
+}
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+}
+function fmtDateLong(iso) {
+  if (!iso) return '';
+  return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDetail();
+    ['event-modal','artist-modal','venue-modal','design-modal'].forEach(id => closeModal(id));
+    closeDrawer();
+  }
+});
+</script>
+</body>
+</html>
