@@ -24,7 +24,8 @@ konzertplaner/
 
 ```bash
 # Abhängigkeiten installieren (uv)
-uv pip install flask werkzeug
+uv venv --python 3.13
+uv add flask werkzeug
 
 # Server starten
 python main.py
