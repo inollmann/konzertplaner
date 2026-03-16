@@ -271,7 +271,7 @@ def get_artists():
 @app.route("/api/artists", methods=["POST"])
 def create_artist():
     data = request.get_json()
-    a = Artist(name=data["name"], logo=data.get("logo"))
+    a = Artist(name=data["name"], logo=data.get("logo"), photo=data.get("photo"))
     catalogue["artists"][a.id] = a
     save_catalogue()
     return jsonify(a.to_dict()), 201
@@ -285,6 +285,8 @@ def update_artist(aid):
     a.name = data.get("name", a.name)
     if "logo" in data:
         a.logo = data["logo"]
+    if "photo" in data:
+        a.photo = data["photo"]
     save_catalogue()
     return jsonify(a.to_dict())
 

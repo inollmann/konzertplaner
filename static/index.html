@@ -176,7 +176,7 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .concert-city  { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .concert-time  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .concert-support-acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-.act-chip { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
+/* act-chip now defined in rating section above */
 
 .concert-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 2px; }
 .concert-price { font-size: 13px; color: var(--muted); }
@@ -213,13 +213,14 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .cal-events { display: flex; flex-direction: column; gap: 2px; }
 .cal-event {
   font-size: 10px; padding: 2px 5px; border-radius: 3px;
-  background: color-mix(in srgb,var(--tour) 12%,transparent); color: var(--tour);
-  border-left: 2px solid var(--tour);
+  background: var(--surface3); color: var(--muted);
+  border-left: 2px solid var(--border);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background .15s;
 }
-.cal-event:hover { background: color-mix(in srgb,var(--tour) 22%,transparent); }
+.cal-event:hover { filter: brightness(1.2); }
 .cal-event.ev-tickets   { background: color-mix(in srgb,var(--tickets-color) 10%,transparent); color: var(--tickets-color); border-left-color: var(--tickets-color); }
 .cal-event.ev-watchlist { background: color-mix(in srgb,var(--watch-color) 10%,transparent);   color: var(--watch-color);   border-left-color: var(--watch-color); }
+.cal-event.ev-tour      { background: color-mix(in srgb,var(--tour) 10%,transparent);         color: var(--tour);         border-left-color: var(--tour); }
 .cal-event.ev-festival  { background: color-mix(in srgb,var(--festival) 10%,transparent);      color: var(--festival);      border-left-color: var(--festival); }
 
 /* ─── Empty state ──────────────────────────────────────────────────── */
@@ -456,6 +457,7 @@ input[type=color] {
 .detail-concert-item {
   display: grid; grid-template-columns: 80px 1fr auto;
   padding: 14px 22px; border-bottom: 1px solid var(--border); align-items: start;
+  row-gap: 0;
 }
 .detail-concert-item:last-child { border-bottom: none; }
 .detail-comment {
@@ -497,7 +499,7 @@ input[type=color] {
   transition: border-color .2s, background .2s; font-size: 20px; color: var(--muted);
 }
 .logo-drop-zone:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
-.logo-drop-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.logo-drop-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: transparent; }
 /* Artist detail popup logo zone */
 .adm-logo-zone {
   width: 140px; height: 140px; border-radius: 14px; border: 2px dashed var(--border);
@@ -507,6 +509,60 @@ input[type=color] {
 }
 .adm-logo-zone:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
 .adm-logo-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--surface2); }
+/* ─── Rating bar ──────────────────────────────────────────────────── */
+.rating-row {
+  display: flex; align-items: center; gap: 10px; padding: 4px 0; flex-wrap: nowrap;
+}
+.rating-label { font-size: 12px; color: var(--muted); width: 150px; min-width: 150px;
+  flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rating-bar { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+.rating-pip {
+  width: 20px; height: 9px; border-radius: 3px; background: var(--surface3);
+  cursor: pointer; transition: transform .1s;
+  border: 1px solid var(--border);
+}
+.rating-pip:hover { transform: scaleY(1.35); }
+.rating-reset {
+  background: none; border: none; color: var(--border); cursor: pointer;
+  font-size: 13px; padding: 0 2px; transition: color .15s; line-height: 1;
+}
+.rating-reset:hover { color: #f87171; }
+/* ratings section spans full width inside the concert grid */
+.detail-ratings-block {
+  grid-column: 1 / -1;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+/* Support acts styled like festival bands (tour color) */
+.act-chip {
+  font-size: 12px; padding: 3px 10px; border-radius: 20px;
+  background: color-mix(in srgb,var(--tour) 10%,transparent);
+  color: var(--tour); border: 1px solid color-mix(in srgb,var(--tour) 25%,transparent);
+}
+/* Poster lightbox */
+.lightbox-backdrop {
+  position: fixed; inset: 0; background: #000d; backdrop-filter: blur(6px);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.lightbox-backdrop.open { opacity: 1; pointer-events: all; }
+.lightbox-img {
+  max-width: 90vw; max-height: 90vh; object-fit: contain;
+  border-radius: 12px; box-shadow: 0 20px 60px #0009;
+  transform: scale(.92); transition: transform .25s ease;
+}
+.lightbox-backdrop.open .lightbox-img { transform: scale(1); }
+.lightbox-close {
+  position: fixed; top: 20px; right: 24px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+  font-size: 20px; width: 38px; height: 38px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Artist detail: two image slots */
+.adm-images { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+.adm-img-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.adm-img-slot-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 /* ─── Scrollbar ────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -768,30 +824,56 @@ input[type=color] {
 
 <!-- Artist detail popup -->
 <div class="modal-backdrop" id="artist-detail-modal" onclick="closeMbg('artist-detail-modal',event)">
- <div class="modal" style="max-width:400px">
+ <div class="modal" style="max-width:480px">
   <div class="modal-title">
     <span id="adm-title">Artist</span>
     <button class="btn-close" onclick="closeModal('artist-detail-modal')">✕</button>
   </div>
-  <!-- Logo area -->
-  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:22px">
-    <div class="adm-logo-zone" id="adm-logo-zone"
-         onclick="admPickFile()"
-         ondragover="event.preventDefault()"
-         ondrop="admHandleDrop(event)"
-         tabindex="0" title="Klicken, Drag & Drop oder Strg+V">
-      <span id="adm-logo-inner">🎤</span>
+  <!-- Two image slots -->
+  <div class="adm-images">
+    <div class="adm-img-slot">
+      <div class="adm-logo-zone" id="adm-logo-zone"
+           onclick="admPickFile('logo')"
+           ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'logo')"
+           title="Logo: Klicken, Drag & Drop oder Strg+V">
+        <span id="adm-logo-inner">🎤</span>
+      </div>
+      <div class="adm-img-slot-label">Logo</div>
     </div>
-    <div style="font-size:11px;color:var(--muted);text-align:center">
-      Klicken · Drag &amp; Drop · Strg+V einfügen
+    <div class="adm-img-slot">
+      <div class="adm-logo-zone" id="adm-photo-zone"
+           onclick="admPickFile('photo')"
+           ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'photo')"
+           title="Foto: Klicken, Drag & Drop oder Strg+V">
+        <span id="adm-photo-inner">📷</span>
+      </div>
+      <div class="adm-img-slot-label">Foto</div>
     </div>
   </div>
+  <!-- Active slot selector -->
+  <div style="display:flex;justify-content:center;gap:16px;margin:-6px 0 14px;font-size:12px;color:var(--muted)">
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+      <input type="radio" name="adm-slot" value="logo" id="adm-slot-logo" checked
+        onchange="if(this.checked)_admLastSlot='logo'" style="accent-color:var(--accent)">
+      Logo aktiv
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+      <input type="radio" name="adm-slot" value="photo" id="adm-slot-photo"
+        onchange="if(this.checked)_admLastSlot='photo'" style="accent-color:var(--accent)">
+      Foto aktiv
+    </label>
+  </div>
+  <div style="font-size:11px;color:var(--border);text-align:center;margin:-8px 0 14px">
+    Klicken · Drag &amp; Drop · Strg+V einfügen
+  </div>
   <!-- Name field -->
-  <div class="form-group" style="margin-bottom:22px">
+  <div class="form-group" style="margin-bottom:12px">
     <label>Name</label>
     <input type="text" id="adm-name" onkeydown="if(event.key==='Enter')saveArtistDetail()">
   </div>
-  <div class="form-actions" style="margin-top:0">
+  <!-- Ratings (read-only, shown if any exist) -->
+  <div id="adm-ratings"></div>
+  <div class="form-actions" style="margin-top:16px">
     <button class="btn-cancel" onclick="closeModal('artist-detail-modal')">Abbrechen</button>
     <button class="btn-save" onclick="saveArtistDetail()">Speichern</button>
   </div>
@@ -993,13 +1075,13 @@ function renderList() {
   past.sort(byEarliest);
 
   const upcomingHtml = upcoming.map(ev =>
-    ev.event_type === 'festival' ? renderFestCard(ev) : renderTourCard(ev)
+    ev.event_type === 'festival' ? renderFestCard(ev, false) : renderTourCard(ev, false)
   ).join('');
 
   let pastHtml = '';
   if (past.length) {
     const pastCards = past.map(ev =>
-      ev.event_type === 'festival' ? renderFestCard(ev) : renderTourCard(ev)
+      ev.event_type === 'festival' ? renderFestCard(ev, true) : renderTourCard(ev, true)
     ).join('');
     pastHtml = `<div class="past-section-divider"></div>
       <button class="past-section-toggle" id="past-toggle" onclick="togglePastSection()">
@@ -1020,12 +1102,102 @@ function togglePastSection() {
   body.classList.toggle('open');
 }
 
-function renderTourCard(tour) {
-  const ps = tour.poster ? `<img class="event-poster" src="/static/posters/${tour.poster}" alt="">` : `<div class="event-poster-placeholder">🎵</div>`;
+// ── Ratings helpers ──────────────────────────────────────────────────
+// ratings stored as: ratings[eventId][actName] = 1-10 | null
+let ratings = JSON.parse(localStorage.getItem('kp-ratings') || '{}');
+
+function saveRatings() { localStorage.setItem('kp-ratings', JSON.stringify(ratings)); }
+
+function getRating(eventId, act) {
+  return ratings[eventId]?.[act] ?? null;
+}
+function setRating(eventId, act, val) {
+  if (!ratings[eventId]) ratings[eventId] = {};
+  ratings[eventId][act] = val;
+  saveRatings();
+  refreshAfterRating(eventId);
+}
+function resetRating(eventId, act) {
+  if (ratings[eventId]) delete ratings[eventId][act];
+  saveRatings();
+  refreshAfterRating(eventId);
+}
+function refreshAfterRating(eventId) {
+  // Re-render the detail panel in place if it is currently showing this event
+  const bd = document.getElementById('detail-bd');
+  if (bd.classList.contains('open')) {
+    const ev = getEvent(eventId);
+    if (ev) {
+      document.getElementById('detail-panel').innerHTML = buildDetailHTML(ev);
+    }
+  }
+  // Also refresh the list so past-event cards (if visible) stay in sync
+  renderList();
+}
+
+// Color for a rating pip at position pos (1-10), given total rating val
+function pipColor(val, pos) {
+  if (val === null || pos > val) return null; // grey
+  // Interpolate hue: 0° (dark red) → 120° (dark green), sat/light fixed
+  const t = (val - 1) / 9; // 0 at rating 1, 1 at rating 10
+  const hue = Math.round(t * 120);
+  return `hsl(${hue},70%,35%)`;
+}
+
+function ratingBarHtml(eventId, actName, isPast) {
+  if (!isPast) return '';
+  const val = getRating(eventId, actName);
+  const pips = Array.from({length:10}, (_,i) => {
+    const pos = i+1;
+    const col = pipColor(val, pos);
+    const style = col ? `background:${col};border-color:${col}` : '';
+    return `<div class="rating-pip" style="${style}"
+      onclick="event.stopPropagation();setRating('${eventId}','${actName.replace(/'/g,"\\'")}',${pos})"
+      title="${pos}/10"></div>`;
+  }).join('');
+  const reset = val !== null
+    ? `<button class="rating-reset" onclick="event.stopPropagation();resetRating('${eventId}','${actName.replace(/'/g,"\\'")}')" title="Zurücksetzen">✕</button>`
+    : '';
+  return `<div class="rating-row">
+    <span class="rating-label">${esc(actName)}</span>
+    <div class="rating-bar">${pips}${reset}</div>
+  </div>`;
+}
+
+// ── Detail ratings block (shown only in detail/event-card view) ──────
+// Renders all rating bars for a list of act names, aligned via fixed-width label
+function renderDetailRatings(eventId, actNames) {
+  return actNames.map(a => ratingBarHtml(eventId, a, true)).join('');
+}
+
+// ── Price formatter ───────────────────────────────────────────────────
+function fmtPrice(p) {
+  if (p == null || p === '') return '';
+  const n = parseFloat(p);
+  if (isNaN(n)) return String(p);
+  return Number.isInteger(n) ? `${n} €` : `${n.toFixed(2)} €`;
+}
+
+// ── Poster clickable ──────────────────────────────────────────────────
+function posterEl(poster, placeholder) {
+  if (!poster) return `<div class="event-poster-placeholder">${placeholder}</div>`;
+  return `<img class="event-poster" src="/static/posters/${poster}" alt=""
+    onclick="event.stopPropagation();openLightbox('/static/posters/${poster}')" title="Poster vergrößern"
+    style="cursor:zoom-in">`;
+}
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ── Render helpers ────────────────────────────────────────────────────
+function renderTourCard(tour, isPast) {
+  const ps = posterEl(tour.poster, '🎵');
   const concerts = activeFilters.size
     ? tour.concerts.filter(c => [...activeFilters].some(f => c.tags.includes(f)))
     : tour.concerts;
-  const concertsHtml = concerts.map(c => renderConcertRow(c)).join('');
+  const concertsHtml = concerts.map(c => renderConcertRow(c, tour.id, isPast)).join('');
   return `<div class="event-card" onclick="openDetail('${tour.id}')">
     <div class="event-header">
       ${ps}
@@ -1046,7 +1218,7 @@ function renderTourCard(tour) {
   </div>`;
 }
 
-function renderConcertRow(c) {
+function renderConcertRow(c, eventId, isPast) {
   const d = parseDate(c.date);
   const tagHtml = (c.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
   const actHtml = (c.support_present||[]).map(a => `<span class="act-chip">${esc(a)}</span>`).join('');
@@ -1065,18 +1237,20 @@ function renderConcertRow(c) {
       ${actHtml ? `<div class="concert-support-acts">${actHtml}</div>` : ''}
     </div>
     <div class="concert-right">
-      ${c.price ? `<div class="concert-price">${esc(String(c.price))} €</div>` : ''}
+      ${c.price ? `<div class="concert-price">${fmtPrice(c.price)}</div>` : ''}
       <div class="tags">${tagHtml}</div>
     </div>
   </div>`;
 }
 
-function renderFestCard(fest) {
-  const ps = fest.poster ? `<img class="event-poster" src="/static/posters/${fest.poster}" alt="">` : `<div class="event-poster-placeholder">🎪</div>`;
+function renderFestCard(fest, isPast) {
+  const ps = posterEl(fest.poster, '🎪');
   const d = parseDate(fest.date);
   const endLabel = fest.end_date ? `<div class="date-end">→ ${fmtDateShort(fest.end_date)}</div>` : '';
   const tagHtml = (fest.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
   const bandsHtml = (fest.bands_to_watch||[]).map(b => `<span class="band-chip">${esc(b)}</span>`).join('');
+  const allBands = fest.bands_to_watch||[];
+  const ratingsHtml = isPast ? allBands.map(b => ratingBarHtml(fest.id, b, true)).join('') : '';
   return `<div class="event-card" onclick="openDetail('${fest.id}')">
     <div class="event-header">
       ${ps}
@@ -1105,7 +1279,7 @@ function renderFestCard(fest) {
         ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
       </div>
       <div class="concert-right">
-        ${fest.price ? `<div class="concert-price">${esc(String(fest.price))} €</div>` : ''}
+        ${fest.price ? `<div class="concert-price">${fmtPrice(fest.price)}</div>` : ''}
         <div class="tags">${tagHtml}</div>
       </div>
     </div>
@@ -1134,17 +1308,22 @@ function closeDetailOnBg(e) {
 
 function buildDetailHTML(ev) {
   const ps = ev.poster
-    ? `<img class="detail-poster" src="/static/posters/${ev.poster}" alt="">`
+    ? `<img class="detail-poster" src="/static/posters/${ev.poster}" alt=""
+        onclick="openLightbox('/static/posters/${ev.poster}')"
+        style="cursor:zoom-in" title="Poster vergrößern">`
     : `<div class="detail-poster-ph">${ev.event_type==='festival'?'🎪':'🎵'}</div>`;
 
   const commentBlock = ev.comment
     ? `<div class="detail-comment"><div class="detail-comment-label">Notiz</div>${esc(ev.comment)}</div>` : '';
 
   if (ev.event_type === 'festival') {
+    const todayIsoF = new Date().toISOString().slice(0,10);
+    const evIsPastF = !!(eventLatestDate(ev) && eventLatestDate(ev) < todayIsoF);
+    const allBandsF = ev.bands_to_watch||[];
     const d = parseDate(ev.date);
     const endLabel = ev.end_date ? `<div class="date-end">→ ${fmtDateShort(ev.end_date)}</div>` : '';
     const tagHtml = (ev.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
-    const bandsHtml = (ev.bands_to_watch||[]).map(b=>`<span class="band-chip">${esc(b)}</span>`).join('');
+    const bandsHtml = allBandsF.map(b=>`<span class="band-chip">${esc(b)}</span>`).join('');
     return `
       <div class="detail-header">
         ${ps}
@@ -1175,21 +1354,26 @@ function buildDetailHTML(ev) {
             ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
           </div>
           <div class="concert-right">
-            ${ev.price ? `<div class="concert-price">${esc(String(ev.price))} €</div>` : ''}
+            ${ev.price ? `<div class="concert-price">${fmtPrice(ev.price)}</div>` : ''}
             <div class="tags">${tagHtml}</div>
           </div>
         </div>
       </div>
+      ${evIsPastF && allBandsF.length ? `<div style="padding:12px 22px;border-top:1px solid var(--border)">${renderDetailRatings(ev.id, allBandsF)}</div>` : ''}
       ${commentBlock}`;
   }
 
   // Tour
   const concerts = ev.concerts || [];
+  const todayIso2 = new Date().toISOString().slice(0,10);
+  const evIsPast2 = !!(eventLatestDate(ev) && eventLatestDate(ev) < todayIso2);
   const concHtml = concerts.map(c => {
     const d = parseDate(c.date);
     const endLabel = c.end_date ? `<div class="date-end">→ ${fmtDateShort(c.end_date)}</div>` : '';
     const tagHtml = (c.tags||[]).map(t=>`<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
     const actHtml = (c.support_present||[]).map(a=>`<span class="act-chip">${esc(a)}</span>`).join('');
+    const allActs = [c.artist, ...(c.support_present||[])].filter(Boolean);
+    const detailRatingsHtml = evIsPast2 ? renderDetailRatings(ev.id, allActs) : '';
     return `<div class="detail-concert-item">
       <div class="date-block">
         <div class="date-day">${d.day}</div><div class="date-month">${d.month}</div>
@@ -1202,9 +1386,10 @@ function buildDetailHTML(ev) {
         ${actHtml?`<div class="concert-support-acts">${actHtml}</div>`:''}
       </div>
       <div class="concert-right">
-        ${c.price?`<div class="concert-price">${esc(String(c.price))} €</div>`:''}
+        ${c.price?`<div class="concert-price">${fmtPrice(c.price)}</div>`:''}
         <div class="tags">${tagHtml}</div>
       </div>
+      ${detailRatingsHtml ? `<div class="detail-ratings-block">${detailRatingsHtml}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -1276,7 +1461,7 @@ function renderCalendar() {
         const el = document.createElement('div');
         const cls = e.type === 'festival' ? 'ev-festival'
           : e.tags.includes('tickets') ? 'ev-tickets'
-          : e.tags.includes('watchlist') ? 'ev-watchlist' : '';
+          : e.tags.includes('watchlist') ? 'ev-watchlist' : 'ev-tour';
         el.className = 'cal-event' + (cls ? ' '+cls : '');
         el.textContent = e.label;
         el.addEventListener('click', ev => { ev.stopPropagation(); openDetail(e.id); });
@@ -1307,7 +1492,7 @@ function showPopover(e, c) {
     <div class="pop-row">📅 <span>${fmtDateLong(c.date)}${c.end_date?' – '+fmtDateLong(c.end_date):''}</span></div>
     ${c.time?`<div class="pop-row">🕐 <span>${esc(c.time)} Uhr</span></div>`:''}
     <div class="pop-row">📍 <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
-    ${c.price?`<div class="pop-row">💶 <span>${esc(String(c.price))} €</span></div>`:''}`;
+    ${c.price?`<div class="pop-row">💶 <span>${fmtPrice(c.price)}</span></div>`:''}`;
   p.style.left = (e.clientX+12)+'px'; p.style.top = (e.clientY-10)+'px';
   p.classList.add('vis');
 }
@@ -1767,7 +1952,9 @@ function openArtistCatalogue() {
   openModal('artist-modal');
 }
 
+let _admStore = [];  // temp array to pass artist objects safely via index
 function renderArtistList() {
+  _admStore = [];
   const el = document.getElementById('artist-list');
   if (!artists.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Artists gespeichert.</div>';
@@ -1778,17 +1965,24 @@ function renderArtistList() {
       ? `<div class="logo-drop-zone" style="border-style:solid"><img src="/static/logos/${a.logo}" alt=""></div>`
       : `<div class="logo-drop-zone">\uD83C\uDFAD</div>`;
     const nameEl = `<span style="flex:1;font-size:14px">${esc(a.name)}</span>`;
+    const ratingsSummary = artistRatingsSummary(a.name);
     if (a.derived) {
-      return `<div class="cat-item" style="cursor:pointer" onclick="openArtistDetail(${JSON.stringify(a)})">
-        ${logoEl}${nameEl}
+      return `<div class="cat-item" style="cursor:pointer;flex-wrap:wrap" onclick="openArtistDetailById(${_admStore.push(a)-1})">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          ${logoEl}${nameEl}
+        </div>
         <span style="font-size:11px;color:var(--border);white-space:nowrap">aus Events</span>
+        ${ratingsSummary ? `<div style="width:100%;padding:6px 0 2px 60px">${ratingsSummary}</div>` : ''}
       </div>`;
     }
-    return `<div class="cat-item" style="cursor:pointer" onclick="openArtistDetail(${JSON.stringify(a)})">
-      ${logoEl}${nameEl}
+    return `<div class="cat-item" style="cursor:pointer;flex-wrap:wrap" onclick="openArtistDetailById(${_admStore.push(a)-1})">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        ${logoEl}${nameEl}
+      </div>
       <div class="cat-item-actions" onclick="event.stopPropagation()">
         <button class="btn-sm danger" onclick="deleteArtist('${a.id}')">🗑</button>
       </div>
+      ${ratingsSummary ? `<div style="width:100%;padding:6px 0 2px 60px;font-size:12px;color:var(--muted)">${ratingsSummary}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1797,66 +1991,163 @@ function renderArtistList() {
 let _admCurrentArtist = null;
 let _admPendingBlob   = null;
 
+function openArtistDetailById(idx) { openArtistDetail(_admStore[idx]); }
 function openArtistDetail(a) {
   _admCurrentArtist = typeof a === 'string' ? JSON.parse(a) : a;
-  _admPendingBlob   = null;
+  _admPendingBlob   = { logo: null, photo: null };
+  _admLastSlot      = 'logo';
   document.getElementById('adm-title').textContent = _admCurrentArtist.derived ? 'Artist speichern' : 'Artist bearbeiten';
   document.getElementById('adm-name').value = _admCurrentArtist.name;
-  const inner = document.getElementById('adm-logo-inner');
-  inner.innerHTML = _admCurrentArtist.logo
-    ? `<img src="/static/logos/${_admCurrentArtist.logo}" alt="">`
-    : '\uD83C\uDFAD';
+  document.getElementById('adm-logo-inner').innerHTML = _admCurrentArtist.logo
+    ? `<img src="/static/logos/${_admCurrentArtist.logo}" alt="">` : '\uD83C\uDFAD';
+  document.getElementById('adm-photo-inner').innerHTML = _admCurrentArtist.photo
+    ? `<img src="/static/logos/${_admCurrentArtist.photo}" alt="">` : '\uD83D\uDCF7';
+  // Show ratings
+  document.getElementById('adm-ratings').innerHTML = artistDetailRatingsHtml(_admCurrentArtist.name);
   openModal('artist-detail-modal');
 }
 
-function admPickFile() {
+let _admLastSlot = 'logo'; // which slot was last interacted with (for paste)
+
+function admPickFile(slot) {
+  _admLastSlot = slot;
+  // sync radio
+  const radio = document.getElementById('adm-slot-'+slot);
+  if (radio) radio.checked = true;
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
-  input.onchange = () => { if (input.files[0]) admPreviewBlob(input.files[0]); };
+  input.onchange = () => { if (input.files[0]) admPreviewBlob(input.files[0], slot); };
   input.click();
 }
-function admHandleDrop(e) {
+function admHandleDrop(e, slot) {
   e.preventDefault();
+  _admLastSlot = slot;
+  const radio = document.getElementById('adm-slot-'+slot);
+  if (radio) radio.checked = true;
   const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('image/')) admPreviewBlob(f);
+  if (f && f.type.startsWith('image/')) admPreviewBlob(f, slot);
 }
-function admPreviewBlob(blob) {
-  _admPendingBlob = blob;
-  document.getElementById('adm-logo-inner').innerHTML =
-    `<img src="${URL.createObjectURL(blob)}" alt="">`;
+function admPreviewBlob(blob, slot) {
+  _admPendingBlob[slot] = blob;
+  const innerId = slot === 'logo' ? 'adm-logo-inner' : 'adm-photo-inner';
+  document.getElementById(innerId).innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="">`;
 }
 
 document.addEventListener('paste', async e => {
   if (!document.getElementById('artist-detail-modal').classList.contains('open')) return;
   for (const item of e.clipboardData.items) {
-    if (item.type.startsWith('image/')) { admPreviewBlob(item.getAsFile()); break; }
+    if (item.type.startsWith('image/')) { admPreviewBlob(item.getAsFile(), _admLastSlot); break; }
   }
 }, true);
+
+async function uploadArtistImg(blob) {
+  if (!blob) return null;
+  const fd = new FormData(); fd.append('logo', blob);
+  const r = await fetch('/api/upload-logo', { method:'POST', body: fd });
+  return (await r.json()).filename;
+}
 
 async function saveArtistDetail() {
   const name = document.getElementById('adm-name').value.trim();
   if (!name) { alert('Bitte einen Namen eingeben.'); return; }
   const a = _admCurrentArtist;
-  let logoFilename = a.logo || null;
-  if (_admPendingBlob) {
-    const fd = new FormData(); fd.append('logo', _admPendingBlob);
-    const r = await fetch('/api/upload-logo', { method:'POST', body: fd });
-    logoFilename = (await r.json()).filename;
-  }
+  const logoFilename  = _admPendingBlob.logo  ? await uploadArtistImg(_admPendingBlob.logo)  : (a.logo  || null);
+  const photoFilename = _admPendingBlob.photo ? await uploadArtistImg(_admPendingBlob.photo) : (a.photo || null);
+  const payload = { name, logo: logoFilename, photo: photoFilename };
   if (a.derived || !a.id) {
-    await fetch('/api/artists', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, logo: logoFilename }),
-    });
+    await fetch('/api/artists', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   } else {
-    await fetch('/api/artists/'+a.id, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, logo: logoFilename }),
-    });
+    await fetch('/api/artists/'+a.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   }
   await reloadCatalogue();
   renderArtistList();
   closeModal('artist-detail-modal');
+}
+
+// ── Artist ratings summary (for catalogue list) ──────────────────────
+function artistRatingsSummary(name) {
+  const entries = [];
+  const todayIso = new Date().toISOString().slice(0,10);
+  allEvents.forEach(ev => {
+    const latest = eventLatestDate(ev);
+    if (!latest || latest >= todayIso) return; // only past
+    if (ev.event_type === 'tour') {
+      ev.concerts.forEach(c => {
+        const allActs = [c.artist, ...(c.support_present||[])];
+        if (allActs.some(a => a && a.toLowerCase() === name.toLowerCase())) {
+          const r = getRating(ev.id, name);
+          if (r !== null) entries.push({ label: `${esc(ev.artist)} · ${fmtDateShort(c.date)}`, rating: r });
+        }
+      });
+    } else if (ev.event_type === 'festival') {
+      if ((ev.bands_to_watch||[]).some(b => b.toLowerCase() === name.toLowerCase())) {
+        const r = getRating(ev.id, name);
+        if (r !== null) entries.push({ label: `${esc(ev.name)} · ${fmtDateShort(ev.date)}`, rating: r });
+      }
+    }
+  });
+  if (!entries.length) return '';
+  // Build compact bar rows with event label
+  return entries.map(e => {
+    const pips = Array.from({length:10}, (_,i) => {
+      const pos = i+1;
+      const col = pipColor(e.rating, pos);
+      const style = col ? `background:${col};border-color:${col}` : '';
+      return `<div class="rating-pip" style="${style};width:14px;height:7px;cursor:default"></div>`;
+    }).join('');
+    const col = pipColor(e.rating, e.rating);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px">
+      <span style="color:var(--muted);min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.label}</span>
+      <div style="display:flex;gap:2px;flex-shrink:0">${pips}</div>
+      <strong style="color:${col};width:28px;text-align:right;flex-shrink:0">${e.rating}/10</strong>
+    </div>`;
+  }).join('');
+}
+
+// ── Artist detail: ratings display ───────────────────────────────────
+function artistDetailRatingsHtml(name) {
+  const entries = [];
+  const todayIso = new Date().toISOString().slice(0,10);
+  allEvents.forEach(ev => {
+    const latest = eventLatestDate(ev);
+    if (!latest || latest >= todayIso) return;
+    if (ev.event_type === 'tour') {
+      ev.concerts.forEach(c => {
+        const allActs = [c.artist, ...(c.support_present||[])];
+        if (allActs.some(a => a && a.toLowerCase() === name.toLowerCase())) {
+          const r = getRating(ev.id, name);
+          if (r !== null) entries.push({ label: `${esc(ev.artist)} – ${fmtDateShort(c.date)}`, sublabel: esc(c.venue), rating: r });
+        }
+      });
+    } else if (ev.event_type === 'festival') {
+      if ((ev.bands_to_watch||[]).some(b => b.toLowerCase() === name.toLowerCase())) {
+        const r = getRating(ev.id, name);
+        if (r !== null) entries.push({ label: esc(ev.name), sublabel: fmtDateShort(ev.date), rating: r });
+      }
+    }
+  });
+  if (!entries.length) return '';
+  const rows = entries.map(e => {
+    const pips = Array.from({length:10}, (_,i) => {
+      const pos = i+1;
+      const col = pipColor(e.rating, pos);
+      const style = col ? `background:${col};border-color:${col}` : '';
+      return `<div class="rating-pip" style="${style};cursor:default"></div>`;
+    }).join('');
+    const col = pipColor(e.rating, e.rating);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text)">${e.label}</div>
+        <div style="font-size:11px;color:var(--muted)">${e.sublabel}</div>
+      </div>
+      <div style="display:flex;gap:3px;flex-shrink:0">${pips}</div>
+      <strong style="color:${col};width:32px;text-align:right;flex-shrink:0;font-size:13px">${e.rating}/10</strong>
+    </div>`;
+  }).join('');
+  return `<div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Bewertungen</div>
+    ${rows}
+  </div>`;
 }
 
 async function addArtist() {
@@ -1955,11 +2246,17 @@ function fmtDateLong(iso) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    closeDetail();
-    ['event-modal','artist-modal','venue-modal','design-modal'].forEach(id => closeModal(id));
+    closeLightbox(); closeDetail();
+    ['event-modal','artist-modal','artist-detail-modal','venue-modal','design-modal'].forEach(id => closeModal(id));
     closeDrawer();
   }
 });
 </script>
+
+<!-- Lightbox -->
+<div class="lightbox-backdrop" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="">
+</div>
 </body>
 </html>

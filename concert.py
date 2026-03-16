@@ -275,18 +275,19 @@ class Concert:
 # ── Catalogue models ──────────────────────────────────────────────────────────
 
 class Artist:
-    """Stand-alone artist entry with optional logo."""
-    def __init__(self, name: str, logo: str | None = None):
+    """Stand-alone artist entry with optional logo and photo."""
+    def __init__(self, name: str, logo: str | None = None, photo: str | None = None):
         self.id: str = str(uuid.uuid4())
         self.name: str = name
         self.logo: str | None = logo
+        self.photo: str | None = photo   # separate band photo / live shot
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "logo": self.logo}
+        return {"id": self.id, "name": self.name, "logo": self.logo, "photo": self.photo}
 
     @classmethod
     def from_dict(cls, data: dict) -> "Artist":
-        a = cls(name=data["name"], logo=data.get("logo"))
+        a = cls(name=data["name"], logo=data.get("logo"), photo=data.get("photo"))
         a.id = data["id"]
         return a
 
