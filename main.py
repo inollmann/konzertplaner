@@ -182,7 +182,7 @@ def create_event():
             name=data["name"], city=data.get("city", ""),
             venue=data.get("venue", ""), date=data.get("date", ""),
             end_date=data.get("end_date"), time=data.get("time"),
-            price=data.get("price"),
+            price=data.get("price"), ticket_link=data.get("ticket_link"),
             bands_to_watch=data.get("bands_to_watch", []),
             tags=data.get("tags", []), poster=data.get("poster"),
             comment=data.get("comment", ""),
@@ -199,6 +199,7 @@ def create_event():
                 price=c.get("price"), time=c.get("time"),
                 end_date=c.get("end_date"), tags=c.get("tags", []),
                 support_present=c.get("support_present"),
+                ticket_link=c.get("ticket_link"),
             )
     events[ev.id] = ev
     save_events(events)
@@ -218,6 +219,7 @@ def update_event(eid):
         ev.end_date = data.get("end_date", ev.end_date)
         ev.time   = data.get("time",   ev.time)
         ev.price  = data["price"] if "price" in data else ev.price
+        ev.ticket_link = data.get("ticket_link", ev.ticket_link)
         ev.bands_to_watch = data.get("bands_to_watch", ev.bands_to_watch)
         ev.tags   = data.get("tags",   ev.tags)
         ev.comment = data.get("comment", ev.comment)
@@ -235,6 +237,7 @@ def update_event(eid):
                     price=c.get("price"), time=c.get("time"),
                     end_date=c.get("end_date"), tags=c.get("tags", []),
                     support_present=c.get("support_present"),
+                    ticket_link=c.get("ticket_link"),
                 )
     if "poster" in data:
         ev.poster = data["poster"]
@@ -303,7 +306,27 @@ def delete_artist(aid):
 
 @app.route("/api/venues-catalogue", methods=["GET"])
 def get_venues_catalogue():
-    return jsonify([v.to_dict() for v in catalogue["venues"].values()])
+    """
+    Returns catalogue venues merged with venue/city pairs derived from events.
+    Event-derived entries without a catalogue record are returned as stubs
+    (id=None, derived=True) so the frontend can display and optionally save them.
+    """
+    cat_keys = {f"{v.name.casefold()}|{v.city.casefold()}" for v in catalogue["venues"].values()}
+    result = [v.to_dict() for v in catalogue["venues"].values()]
+    for ev in events.values():
+        pairs = []
+        if isinstance(ev, Tour):
+            pairs = [(c.venue, c.city) for c in ev.concerts if c.venue]
+        elif isinstance(ev, Festival):
+            if ev.venue:
+                pairs = [(ev.venue, ev.city)]
+        for name, city in pairs:
+            key = f"{name.casefold()}|{city.casefold()}"
+            if key not in cat_keys:
+                cat_keys.add(key)
+                result.append({"id": None, "name": name, "city": city, "derived": True})
+    result.sort(key=lambda x: (x["name"].casefold(), x["city"].casefold()))
+    return jsonify(result)
 
 @app.route("/api/venues-catalogue", methods=["POST"])
 def create_venue():

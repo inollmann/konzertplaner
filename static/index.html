@@ -86,6 +86,12 @@ header {
   font-size: 14px; cursor: pointer; transition: transform .15s, box-shadow .15s;
 }
 .btn-new:hover { transform: translateY(-1px); box-shadow: 0 4px 20px color-mix(in srgb,var(--accent) 35%,transparent); }
+.btn-export {
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--muted); padding: 9px 16px; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; cursor: pointer; transition: all .2s;
+}
+.btn-export:hover { border-color: var(--text); color: var(--text); }
 
 /* ─── Tabs ─────────────────────────────────────────────────────────── */
 .tabs { display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid var(--border); }
@@ -501,14 +507,34 @@ input[type=color] {
 .logo-drop-zone:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
 .logo-drop-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: transparent; }
 /* Artist detail popup logo zone */
-.adm-logo-zone {
-  width: 140px; height: 140px; border-radius: 14px; border: 2px dashed var(--border);
+/* Artist image slots — fluid, preserve aspect ratio, no cropping */
+.adm-logo-zone, .adm-photo-zone {
+  border-radius: 14px; border: 2px dashed var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; overflow: hidden; position: relative;
-  transition: border-color .2s, background .2s; font-size: 48px; color: var(--muted);
+  cursor: pointer; transition: border-color .2s, background .2s; color: var(--muted);
+  /* overflow visible so border shows, but image is constrained by max-width on img */
 }
-.adm-logo-zone:hover { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent); }
-.adm-logo-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--surface2); }
+.adm-logo-zone:hover, .adm-photo-zone:hover {
+  border-color: var(--accent); background: color-mix(in srgb,var(--accent) 4%,transparent);
+}
+/* Empty placeholder: fixed square for logo, full-width for photo */
+.adm-logo-zone  { width: 160px; height: 160px; font-size: 52px; flex-shrink: 0; }
+.adm-photo-zone { width: 100%; min-height: 120px; font-size: 52px; }
+/* Image loaded: zone shrinks to image, image never exceeds its container */
+.adm-logo-zone.has-img  { width: auto; height: auto; max-width: 160px; }
+.adm-photo-zone.has-img { height: auto; min-height: 0; }
+.adm-logo-zone img {
+  display: block;
+  max-width: 160px;   /* hard cap at placeholder width */
+  max-height: 280px;
+  width: auto; height: auto; border-radius: 12px;
+}
+.adm-photo-zone img {
+  display: block;
+  max-width: 100%;    /* fills container width, never overflows */
+  max-height: 300px;
+  width: auto; height: auto; border-radius: 12px;
+}
 /* ─── Rating bar ──────────────────────────────────────────────────── */
 .rating-row {
   display: flex; align-items: center; gap: 10px; padding: 4px 0; flex-wrap: nowrap;
@@ -560,7 +586,8 @@ input[type=color] {
   display: flex; align-items: center; justify-content: center;
 }
 /* Artist detail: two image slots */
-.adm-images { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+.adm-images { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.adm-images-top { display: flex; gap: 14px; align-items: flex-start; }
 .adm-img-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .adm-img-slot-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 /* ─── Scrollbar ────────────────────────────────────────────────────── */
@@ -584,6 +611,7 @@ input[type=color] {
     <div class="logo">KONZERT<span>PLANER</span></div>
   </div>
   <div class="header-right">
+    <button class="btn-export" onclick="openExportModal()">⬇ Liste exportieren</button>
     <button class="btn-new" onclick="openEventModal()">＋ Neues Event</button>
   </div>
 </header>
@@ -824,24 +852,40 @@ input[type=color] {
 
 <!-- Artist detail popup -->
 <div class="modal-backdrop" id="artist-detail-modal" onclick="closeMbg('artist-detail-modal',event)">
- <div class="modal" style="max-width:480px">
+ <div class="modal" style="max-width:560px">
   <div class="modal-title">
     <span id="adm-title">Artist</span>
     <button class="btn-close" onclick="closeModal('artist-detail-modal')">✕</button>
   </div>
   <!-- Two image slots -->
   <div class="adm-images">
-    <div class="adm-img-slot">
-      <div class="adm-logo-zone" id="adm-logo-zone"
-           onclick="admPickFile('logo')"
-           ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'logo')"
-           title="Logo: Klicken, Drag & Drop oder Strg+V">
-        <span id="adm-logo-inner">🎤</span>
+    <div class="adm-images-top">
+      <div class="adm-img-slot" style="flex-shrink:0">
+        <div class="adm-logo-zone" id="adm-logo-zone"
+             onclick="admPickFile('logo')"
+             ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'logo')"
+             title="Logo: Klicken, Drag & Drop oder Strg+V">
+          <span id="adm-logo-inner">🎤</span>
+        </div>
+        <div class="adm-img-slot-label">Logo</div>
       </div>
-      <div class="adm-img-slot-label">Logo</div>
+      <!-- Active slot selector inline with logo -->
+      <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:12px;color:var(--muted)">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="adm-slot" value="logo" id="adm-slot-logo" checked
+            onchange="if(this.checked)_admLastSlot='logo'" style="accent-color:var(--accent)">
+          Logo aktiv
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="adm-slot" value="photo" id="adm-slot-photo"
+            onchange="if(this.checked)_admLastSlot='photo'" style="accent-color:var(--accent)">
+          Foto aktiv
+        </label>
+        <div style="font-size:10px;color:var(--border);margin-top:4px">Klicken · Drag&amp;Drop · Strg+V</div>
+      </div>
     </div>
-    <div class="adm-img-slot">
-      <div class="adm-logo-zone" id="adm-photo-zone"
+    <div class="adm-img-slot" style="width:100%">
+      <div class="adm-photo-zone" id="adm-photo-zone"
            onclick="admPickFile('photo')"
            ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'photo')"
            title="Foto: Klicken, Drag & Drop oder Strg+V">
@@ -850,22 +894,7 @@ input[type=color] {
       <div class="adm-img-slot-label">Foto</div>
     </div>
   </div>
-  <!-- Active slot selector -->
-  <div style="display:flex;justify-content:center;gap:16px;margin:-6px 0 14px;font-size:12px;color:var(--muted)">
-    <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
-      <input type="radio" name="adm-slot" value="logo" id="adm-slot-logo" checked
-        onchange="if(this.checked)_admLastSlot='logo'" style="accent-color:var(--accent)">
-      Logo aktiv
-    </label>
-    <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
-      <input type="radio" name="adm-slot" value="photo" id="adm-slot-photo"
-        onchange="if(this.checked)_admLastSlot='photo'" style="accent-color:var(--accent)">
-      Foto aktiv
-    </label>
-  </div>
-  <div style="font-size:11px;color:var(--border);text-align:center;margin:-8px 0 14px">
-    Klicken · Drag &amp; Drop · Strg+V einfügen
-  </div>
+
   <!-- Name field -->
   <div class="form-group" style="margin-bottom:12px">
     <label>Name</label>
@@ -1238,6 +1267,7 @@ function renderConcertRow(c, eventId, isPast) {
     </div>
     <div class="concert-right">
       ${c.price ? `<div class="concert-price">${fmtPrice(c.price)}</div>` : ''}
+      ${c.ticket_link ? `<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ticket-link-btn">🎟 Tickets</a>` : ''}
       <div class="tags">${tagHtml}</div>
     </div>
   </div>`;
@@ -1280,6 +1310,7 @@ function renderFestCard(fest, isPast) {
       </div>
       <div class="concert-right">
         ${fest.price ? `<div class="concert-price">${fmtPrice(fest.price)}</div>` : ''}
+        ${fest.ticket_link ? `<a href="${esc(fest.ticket_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ticket-link-btn">🎟 Tickets</a>` : ''}
         <div class="tags">${tagHtml}</div>
       </div>
     </div>
@@ -1355,6 +1386,7 @@ function buildDetailHTML(ev) {
           </div>
           <div class="concert-right">
             ${ev.price ? `<div class="concert-price">${fmtPrice(ev.price)}</div>` : ''}
+            ${ev.ticket_link ? `<a href="${esc(ev.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">🎟 Tickets</a>` : ''}
             <div class="tags">${tagHtml}</div>
           </div>
         </div>
@@ -1387,6 +1419,7 @@ function buildDetailHTML(ev) {
       </div>
       <div class="concert-right">
         ${c.price?`<div class="concert-price">${fmtPrice(c.price)}</div>`:''}
+        ${c.ticket_link?`<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">🎟 Tickets</a>`:''}
         <div class="tags">${tagHtml}</div>
       </div>
       ${detailRatingsHtml ? `<div class="detail-ratings-block">${detailRatingsHtml}</div>` : ''}
@@ -1998,10 +2031,22 @@ function openArtistDetail(a) {
   _admLastSlot      = 'logo';
   document.getElementById('adm-title').textContent = _admCurrentArtist.derived ? 'Artist speichern' : 'Artist bearbeiten';
   document.getElementById('adm-name').value = _admCurrentArtist.name;
-  document.getElementById('adm-logo-inner').innerHTML = _admCurrentArtist.logo
-    ? `<img src="/static/logos/${_admCurrentArtist.logo}" alt="">` : '\uD83C\uDFAD';
-  document.getElementById('adm-photo-inner').innerHTML = _admCurrentArtist.photo
-    ? `<img src="/static/logos/${_admCurrentArtist.photo}" alt="">` : '\uD83D\uDCF7';
+  const logoZone  = document.getElementById('adm-logo-zone');
+  const photoZone = document.getElementById('adm-photo-zone');
+  if (_admCurrentArtist.logo) {
+    logoZone.classList.add('has-img');
+    document.getElementById('adm-logo-inner').innerHTML = `<img src="/static/logos/${_admCurrentArtist.logo}" alt="">`;
+  } else {
+    logoZone.classList.remove('has-img');
+    document.getElementById('adm-logo-inner').innerHTML = '\uD83C\uDFAD';
+  }
+  if (_admCurrentArtist.photo) {
+    photoZone.classList.add('has-img');
+    document.getElementById('adm-photo-inner').innerHTML = `<img src="/static/logos/${_admCurrentArtist.photo}" alt="">`;
+  } else {
+    photoZone.classList.remove('has-img');
+    document.getElementById('adm-photo-inner').innerHTML = '\uD83D\uDCF7';
+  }
   // Show ratings
   document.getElementById('adm-ratings').innerHTML = artistDetailRatingsHtml(_admCurrentArtist.name);
   openModal('artist-detail-modal');
@@ -2029,7 +2074,10 @@ function admHandleDrop(e, slot) {
 }
 function admPreviewBlob(blob, slot) {
   _admPendingBlob[slot] = blob;
-  const innerId = slot === 'logo' ? 'adm-logo-inner' : 'adm-photo-inner';
+  const zoneId  = slot === 'logo' ? 'adm-logo-zone'  : 'adm-photo-zone';
+  const innerId = slot === 'logo' ? 'adm-logo-inner'  : 'adm-photo-inner';
+  const zone = document.getElementById(zoneId);
+  zone.classList.add('has-img');
   document.getElementById(innerId).innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="">`;
 }
 
@@ -2171,15 +2219,31 @@ function openVenueCatalogue() { closeDrawer(); renderVenueList(); openModal('ven
 function renderVenueList() {
   const el = document.getElementById('venue-list');
   if (!venuesCat.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Venues gespeichert.</div>'; return; }
-  el.innerHTML = venuesCat.map(v => `
-    <div class="cat-item">
+  el.innerHTML = venuesCat.map(v => {
+    if (v.derived) {
+      return `<div class="cat-item" style="opacity:.75">
+        <div class="cat-logo">🏟</div>
+        <span style="flex:1;font-size:14px;color:var(--muted)">${esc(v.name)}</span>
+        <span style="font-size:12px;color:var(--muted);min-width:80px">${esc(v.city)}</span>
+        <div class="cat-item-actions">
+          <button class="btn-sm" onclick="promoteVenue('${esc(v.name).replace(/'/g,"\'")}','${esc(v.city).replace(/'/g,"\'")}')">＋ Speichern</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="cat-item">
       <div class="cat-logo">🏟</div>
       <input class="cat-name-input" value="${esc(v.name)}" id="vn-${v.id}" onblur="saveVenue('${v.id}')">
       <input class="cat-city-input" value="${esc(v.city)}" id="vc-${v.id}" placeholder="Stadt" onblur="saveVenue('${v.id}')">
       <div class="cat-item-actions">
         <button class="btn-sm danger" onclick="deleteVenue('${v.id}')">🗑</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+async function promoteVenue(name, city) {
+  await fetch('/api/venues-catalogue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, city}) });
+  await reloadCatalogue();
+  renderVenueList();
 }
 async function addVenue() {
   const name = document.getElementById('new-venue-name').value.trim();
@@ -2226,6 +2290,195 @@ function openDesignPanel() { closeDrawer(); buildColorGrid(); openModal('design-
 function esc(s) {
   return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── Export ────────────────────────────────────────────────────────────
+function openExportModal() {
+  updateFmtLabels();
+  openModal('export-modal');
+}
+
+function updateFmtLabels() {
+  const fmt = document.querySelector('input[name="exp-fmt"]:checked')?.value || 'html';
+  document.getElementById('fmt-html-lbl').style.borderColor = fmt === 'html' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('fmt-csv-lbl').style.borderColor  = fmt === 'csv'  ? 'var(--accent)' : 'var(--border)';
+}
+
+function runExport() {
+  const inclTickets   = document.getElementById('exp-tickets').checked;
+  const inclWatchlist = document.getElementById('exp-watchlist').checked;
+  const inclUntagged  = document.getElementById('exp-untagged').checked;
+  const inclPast      = document.getElementById('exp-past').checked;
+  const fmt = document.querySelector('input[name="exp-fmt"]:checked')?.value || 'html';
+
+  const todayIso = new Date().toISOString().slice(0,10);
+
+  // Filter helper: does event pass the tag selections?
+  function evPassesFilter(ev) {
+    const tags = ev.event_type === 'festival' ? (ev.tags||[])
+      : (ev.concerts||[]).flatMap(c => c.tags||[]);
+    const hasTickets   = tags.includes('tickets');
+    const hasWatchlist = tags.includes('watchlist');
+    const hasNone      = !hasTickets && !hasWatchlist;
+    return (inclTickets && hasTickets) || (inclWatchlist && hasWatchlist) || (inclUntagged && hasNone);
+  }
+
+  let vis = allEvents.filter(ev => evPassesFilter(ev));
+  let upcoming = vis.filter(ev => !(eventLatestDate(ev) && eventLatestDate(ev) < todayIso));
+  let past     = vis.filter(ev =>   eventLatestDate(ev) && eventLatestDate(ev) < todayIso);
+  if (!inclPast) past = [];
+
+  upcoming.sort((a,b) => eventEarliestDate(a).localeCompare(eventEarliestDate(b)));
+  past.sort((a,b)     => eventEarliestDate(a).localeCompare(eventEarliestDate(b)));
+
+  if (fmt === 'csv') {
+    exportCSV(upcoming, past, todayIso);
+  } else {
+    exportHTML(upcoming, past, todayIso);
+  }
+  closeModal('export-modal');
+}
+
+// ── CSV export ────────────────────────────────────────────────────────
+function exportCSV(upcoming, past, todayIso) {
+  const rows = [['Typ','Name/Artist','Tour/Festival','Datum','Enddatum','Uhrzeit','Stadt','Venue','Preis','Ticketlink','Tags','Support/Bands','Status']];
+  function addEv(ev, status) {
+    if (ev.event_type === 'festival') {
+      rows.push([
+        'Festival', ev.name, ev.name, ev.date||'', ev.end_date||'', ev.time||'',
+        ev.city||'', ev.venue||'', ev.price||'', ev.ticket_link||'',
+        (ev.tags||[]).join('; '), (ev.bands_to_watch||[]).join('; '), status
+      ]);
+    } else {
+      (ev.concerts||[]).forEach(c => {
+        rows.push([
+          'Konzert', ev.artist, ev.tour_name||'', c.date||'', c.end_date||'', c.time||'',
+          c.city||'', c.venue||'', c.price||'', c.ticket_link||'',
+          (c.tags||[]).join('; '), (c.support_present||[]).join('; '), status
+        ]);
+      });
+    }
+  }
+  upcoming.forEach(ev => addEv(ev, 'anstehend'));
+  past.forEach(ev => addEv(ev, 'vergangen'));
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  dlBlob(csv, `konzertplaner-${todayIso}.csv`, 'text/csv;charset=utf-8');
+}
+
+// ── HTML export ───────────────────────────────────────────────────────
+function exportHTML(upcoming, past, todayIso) {
+  const accentCol = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8ff47';
+  const tourCol   = getComputedStyle(document.documentElement).getPropertyValue('--tour').trim()   || '#38bdf8';
+  const festCol   = getComputedStyle(document.documentElement).getPropertyValue('--festival').trim()|| '#a78bfa';
+
+  function evHtml(ev) {
+    if (ev.event_type === 'festival') {
+      const d = parseDate(ev.date);
+      const endStr = ev.end_date ? ` – ${fmtDateShort(ev.end_date)}` : '';
+      const tagTxt = (ev.tags||[]).map(t => t==='tickets'?'🎟 Tickets':'🔖 Merkliste').join(' · ');
+      const bands  = (ev.bands_to_watch||[]).join(', ');
+      return `<div class="ev-card">
+        <div class="ev-header">
+          <div class="ev-date-col" style="color:${festCol}">
+            <div class="ev-day">${d.day}</div>
+            <div class="ev-mon">${d.month}</div>
+            <div class="ev-yr">${d.year}${endStr}</div>
+          </div>
+          <div class="ev-main">
+            <div class="ev-badge" style="color:${festCol};border-color:${festCol}">Festival</div>
+            <div class="ev-title">${esc(ev.name)}</div>
+            <div class="ev-sub">📍 ${esc(ev.venue)}${ev.city?', '+esc(ev.city):''}${ev.time?' · 🕐 '+esc(ev.time)+' Uhr':''}</div>
+            ${ev.price||ev.ticket_link ? `<div class="ev-detail">${ev.price?'💶 '+fmtPrice(ev.price):''}${ev.ticket_link?` <a href="${esc(ev.ticket_link)}">🎟 Tickets</a>`:''}${tagTxt?' · '+tagTxt:''}</div>` : (tagTxt?`<div class="ev-detail">${tagTxt}</div>`:'')}
+            ${bands ? `<div class="ev-detail" style="color:#999">Bands: ${esc(bands)}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }
+    const concRows = (ev.concerts||[]).map(c => {
+      const d = parseDate(c.date);
+      const endStr = c.end_date ? `–${new Date(c.end_date+'T12:00:00').getDate()}` : '';
+      const acts = (c.support_present||[]).join(', ');
+      const tagIcons = (c.tags||[]).map(t=>t==='tickets'?'🎟':'🔖').join(' ');
+      return `<div class="conc-row">
+        <div class="conc-date" style="color:${tourCol}">
+          <span class="cd-day">${d.day}${endStr}</span>
+          <span class="cd-mon">${d.month}</span>
+          <span class="cd-yr">${d.year}</span>
+        </div>
+        <div class="conc-info">
+          <strong>${esc(c.venue)}</strong>, ${esc(c.city)}
+          ${c.time?' · 🕐 '+esc(c.time)+' Uhr':''}
+          ${c.price?' · 💶 '+fmtPrice(c.price):''}
+          ${c.ticket_link?` · <a href="${esc(c.ticket_link)}">🎟 Tickets</a>`:''}
+          ${acts?`<br><span style="color:#777">${esc(acts)}</span>`:''}
+        </div>
+        <div class="conc-tags">${tagIcons}</div>
+      </div>`;
+    }).join('');
+    return `<div class="ev-card">
+      <div class="ev-artist-header">
+        <div class="ev-badge" style="color:${tourCol};border-color:${tourCol}">Tour</div>
+        <div class="ev-title">${esc(ev.artist)}</div>
+        <div class="ev-sub">${esc(ev.tour_name||'')}${ev.support&&ev.support.length ? ' · Support: '+esc(ev.support.join(', ')) : ''}</div>
+      </div>
+      ${concRows}
+    </div>`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8">
+<title>Konzertplaner – ${new Date().toLocaleDateString('de-DE')}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #111; color: #f0f0f0; max-width: 900px; margin: 0 auto; padding: 36px 20px; }
+  h1  { font-size: 2rem; letter-spacing: 3px; color: ${accentCol}; margin-bottom: 4px; }
+  .sub { color: #555; font-size: 13px; margin-bottom: 28px; }
+  h2  { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 2px; margin: 28px 0 10px; padding-top: 16px; border-top: 1px solid #2a2a2a; }
+  .ev-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  .ev-header { display: grid; grid-template-columns: 64px 1fr; gap: 0; }
+  .ev-date-col { padding: 14px 0 14px 16px; text-align: center; }
+  .ev-day  { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+  .ev-mon  { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
+  .ev-yr   { font-size: 11px; color: #555; }
+  .ev-main { padding: 12px 16px; }
+  .ev-artist-header { padding: 14px 16px 8px; border-bottom: 1px solid #2a2a2a; }
+  .ev-badge { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; display: inline-block; padding: 2px 8px; border-radius: 4px; border: 1px solid; margin-bottom: 4px; }
+  .ev-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 2px; }
+  .ev-sub   { font-size: 12px; color: #777; margin-bottom: 4px; }
+  .ev-detail { font-size: 12px; color: #aaa; margin-top: 3px; }
+  .conc-row { display: grid; grid-template-columns: 80px 1fr auto; gap: 0; padding: 10px 16px; border-bottom: 1px solid #222; font-size: 13px; align-items: start; }
+  .conc-row:last-child { border-bottom: none; }
+  .conc-date { display: flex; flex-direction: column; font-weight: 700; }
+  .cd-day { font-size: 1.5rem; line-height: 1; }
+  .cd-mon { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
+  .cd-yr  { font-size: 10px; color: #555; }
+  .conc-info { line-height: 1.6; }
+  .conc-tags { font-size: 14px; padding-top: 2px; }
+  a { color: #4ade80; }
+  @media print {
+    body { background: #fff; color: #111; }
+    .ev-card { background: #f8f8f8; border-color: #ddd; }
+    .ev-artist-header { border-color: #ddd; }
+    .conc-row { border-color: #eee; }
+    h2 { border-color: #ddd; }
+  }
+</style></head><body>
+<h1>KONZERTPLANER</h1>
+<div class="sub">Stand: ${new Date().toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}</div>
+${upcoming.length ? '<h2>Anstehende Events</h2>'+upcoming.map(evHtml).join('') : ''}
+${past.length ? '<h2>Vergangene Events</h2>'+past.map(evHtml).join('') : ''}
+</body></html>`;
+
+  dlBlob(html, `konzertplaner-${todayIso}.html`, 'text/html;charset=utf-8');
+}
+
+function dlBlob(data, filename, mime) {
+  const blob = new Blob([data], {type: mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 function parseDate(iso) {
   if (!iso) return { day:'?', month:'???', year:'????' };
   const d = new Date(iso+'T12:00:00');
@@ -2247,11 +2500,63 @@ function fmtDateLong(iso) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeLightbox(); closeDetail();
-    ['event-modal','artist-modal','artist-detail-modal','venue-modal','design-modal'].forEach(id => closeModal(id));
+    ['event-modal','artist-modal','artist-detail-modal','venue-modal','design-modal','export-modal'].forEach(id => closeModal(id));
     closeDrawer();
   }
 });
 </script>
+
+<!-- Export Modal -->
+<div class="modal-backdrop" id="export-modal" onclick="closeMbg('export-modal',event)">
+ <div class="modal" style="max-width:420px">
+  <div class="modal-title">
+    <span>Liste exportieren</span>
+    <button class="btn-close" onclick="closeModal('export-modal')">✕</button>
+  </div>
+  <div style="margin-bottom:20px">
+    <div class="sec-label" style="margin-bottom:10px">Inhalt</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label class="tag-check" style="font-size:14px">
+        <input type="checkbox" id="exp-tickets" checked>
+        <div class="check-box">✓</div>
+        <span>🎟 Tickets gekauft</span>
+      </label>
+      <label class="tag-check" style="font-size:14px">
+        <input type="checkbox" id="exp-watchlist" checked>
+        <div class="check-box">✓</div>
+        <span>🔖 Merkliste</span>
+      </label>
+      <label class="tag-check" style="font-size:14px">
+        <input type="checkbox" id="exp-untagged" checked>
+        <div class="check-box">✓</div>
+        <span>Ohne Tag</span>
+      </label>
+      <label class="tag-check" style="font-size:14px">
+        <input type="checkbox" id="exp-past" checked>
+        <div class="check-box">✓</div>
+        <span>Vergangene Events</span>
+      </label>
+    </div>
+  </div>
+  <div style="margin-bottom:24px">
+    <div class="sec-label" style="margin-bottom:10px">Format</div>
+    <div style="display:flex;gap:10px">
+      <label style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;transition:border-color .2s" id="fmt-html-lbl">
+        <input type="radio" name="exp-fmt" value="html" checked onchange="updateFmtLabels()" style="accent-color:var(--accent)">
+        <div><strong>HTML</strong><div style="color:var(--muted);font-size:11px">Formatiert, druckbar</div></div>
+      </label>
+      <label style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;transition:border-color .2s" id="fmt-csv-lbl">
+        <input type="radio" name="exp-fmt" value="csv" onchange="updateFmtLabels()" style="accent-color:var(--accent)">
+        <div><strong>CSV</strong><div style="color:var(--muted);font-size:11px">Für Excel / Tabellen</div></div>
+      </label>
+    </div>
+  </div>
+  <div class="form-actions" style="margin-top:0">
+    <button class="btn-cancel" onclick="closeModal('export-modal')">Abbrechen</button>
+    <button class="btn-save" onclick="runExport()">Herunterladen</button>
+  </div>
+ </div>
+</div>
 
 <!-- Lightbox -->
 <div class="lightbox-backdrop" id="lightbox" onclick="closeLightbox()">

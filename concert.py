@@ -74,7 +74,8 @@ class Tour(Event):
                     price=None, time: str | None = None,
                     end_date: str | None = None,
                     tags: list | None = None,
-                    support_present: list | None = None) -> "Concert":
+                    support_present: list | None = None,
+                    ticket_link: str | None = None) -> "Concert":
         """
         support_present: subset of self.support that plays this specific date.
         Defaults to all support acts when omitted.
@@ -85,6 +86,7 @@ class Tour(Event):
             tags=tags or [],
             tour_id=self.id, tour_name=self.tour_name, artist=self.artist,
             support_present=support_present if support_present is not None else list(self.support),
+            ticket_link=ticket_link,
         )
         self.concerts.append(concert)
         return concert
@@ -152,6 +154,7 @@ class Festival(Event):
     def __init__(self, name: str, city: str = "", venue: str = "",
                  date: str = "", end_date: str | None = None,
                  time: str | None = None, price=None,
+                 ticket_link: str | None = None,
                  bands_to_watch: list | None = None,
                  tags: list | None = None,
                  poster: str | None = None,
@@ -163,6 +166,7 @@ class Festival(Event):
         self.end_date: str | None = end_date
         self.time: str | None = time
         self.price = price
+        self.ticket_link: str | None = ticket_link
         self.bands_to_watch: list = bands_to_watch or []
         self.tags: list = tags or []
 
@@ -175,6 +179,7 @@ class Festival(Event):
             "end_date": self.end_date,
             "time": self.time,
             "price": self.price,
+            "ticket_link": self.ticket_link,
             "bands_to_watch": self.bands_to_watch,
             "tags": self.tags,
         })
@@ -190,6 +195,7 @@ class Festival(Event):
             end_date=data.get("end_date"),
             time=data.get("time"),
             price=data.get("price"),
+            ticket_link=data.get("ticket_link"),
             bands_to_watch=data.get("bands_to_watch", []),
             tags=data.get("tags", []),
             poster=data.get("poster"),
@@ -227,7 +233,8 @@ class Concert:
                  end_date: str | None = None, tags: list | None = None,
                  tour_id: str | None = None, tour_name: str | None = None,
                  artist: str | None = None,
-                 support_present: list | None = None):
+                 support_present: list | None = None,
+                 ticket_link: str | None = None):
         self.id: str = str(uuid.uuid4())
         self.date = date
         self.end_date = end_date
@@ -241,6 +248,7 @@ class Concert:
         self.artist = artist
         # which support acts are present at this specific date
         self.support_present: list = support_present if support_present is not None else []
+        self.ticket_link: str | None = ticket_link
 
     def to_dict(self) -> dict:
         return {
@@ -256,6 +264,7 @@ class Concert:
             "tour_name": self.tour_name,
             "artist": self.artist,
             "support_present": self.support_present,
+            "ticket_link": self.ticket_link,
         }
 
     @classmethod
@@ -267,6 +276,7 @@ class Concert:
             tour_id=data.get("tour_id"), tour_name=data.get("tour_name"),
             artist=data.get("artist"),
             support_present=data.get("support_present", []),
+            ticket_link=data.get("ticket_link"),
         )
         c.id = data["id"]
         return c
