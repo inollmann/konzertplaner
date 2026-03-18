@@ -160,6 +160,24 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .tag { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
 .tag-tickets  { background: color-mix(in srgb,var(--tickets-color) 12%,transparent); color: var(--tickets-color); border: 1px solid color-mix(in srgb,var(--tickets-color) 25%,transparent); }
 .tag-watchlist { background: color-mix(in srgb,var(--watch-color) 12%,transparent);  color: var(--watch-color);  border: 1px solid color-mix(in srgb,var(--watch-color) 25%,transparent); }
+/* Ticket link badge (inline in concert row) */
+.ticket-link-btn {
+  font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500;
+  background: color-mix(in srgb,var(--tickets-color) 12%,transparent);
+  color: var(--tickets-color); border: 1px solid color-mix(in srgb,var(--tickets-color) 25%,transparent);
+  text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center;
+  transition: background .15s;
+}
+.ticket-link-btn:hover { background: color-mix(in srgb,var(--tickets-color) 22%,transparent); }
+/* Icon-only variant when placed inside .event-actions */
+.event-actions .ticket-link-btn {
+  width: 32px; height: 32px; padding: 0; justify-content: center; font-size: 16px;
+  border-radius: 7px; background: var(--surface2); border-color: var(--border);
+}
+.event-actions .ticket-link-btn:hover {
+  border-color: var(--tickets-color);
+  background: color-mix(in srgb,var(--tickets-color) 12%,transparent);
+}
 
 /* ─── Concert items (list view) ────────────────────────────────────── */
 .concert-list { display: flex; flex-direction: column; }
@@ -799,6 +817,10 @@ input[type=color] {
           <label>Ticketpreis (€)</label>
           <input type="number" id="f-fest-price" placeholder="Optional" min="0" step="0.01">
         </div>
+        <div class="form-group">
+          <label>Ticketlink</label>
+          <input type="text" id="f-fest-ticketlink" placeholder="https://…">
+        </div>
         <div class="form-group full">
           <label>Tags</label>
           <div class="tag-checks">
@@ -1239,6 +1261,7 @@ function renderTourCard(tour, isPast) {
         ${tour.support.length ? `<div class="event-support"><span>Support: </span>${esc(tour.support.join(' · '))}</div>` : ''}
       </div>
       <div class="event-actions" onclick="event.stopPropagation()">
+        ${(tour.concerts||[]).some(c=>c.ticket_link) ? `<a href="${esc((tour.concerts.find(c=>c.ticket_link)||{}).ticket_link||'')}" target="_blank" rel="noopener" class="ticket-link-btn" onclick="event.stopPropagation()" title="Tickets">🎟</a>` : ''}
         <button class="btn-icon" onclick="openEventModal(getEvent('${tour.id}'))" title="Bearbeiten">✏️</button>
         <button class="btn-icon delete" onclick="deleteEvent('${tour.id}')" title="Löschen">🗑</button>
       </div>
@@ -1291,6 +1314,7 @@ function renderFestCard(fest, isPast) {
         <div class="event-title">${esc(fest.name)}</div>
       </div>
       <div class="event-actions" onclick="event.stopPropagation()">
+        ${fest.ticket_link ? `<a href="${esc(fest.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn" onclick="event.stopPropagation()" title="Tickets">🎟</a>` : ''}
         <button class="btn-icon" onclick="openEventModal(getEvent('${fest.id}'))" title="Bearbeiten">✏️</button>
         <button class="btn-icon delete" onclick="deleteEvent('${fest.id}')" title="Löschen">🗑</button>
       </div>
@@ -1589,7 +1613,8 @@ function openEventModal(ev) {
     document.getElementById('f-fest-venue').value    = ev?.venue || '';
     document.getElementById('f-fest-date').value     = ev?.date || '';
     document.getElementById('f-fest-time').value     = ev?.time || '';
-    document.getElementById('f-fest-price').value    = ev?.price != null ? ev.price : '';
+    document.getElementById('f-fest-price').value      = ev?.price != null ? ev.price : '';
+    document.getElementById('f-fest-ticketlink').value = ev?.ticket_link || '';
     document.getElementById('f-fest-enddate').value  = ev?.end_date || '';
     const multi = !!(ev?.end_date);
     document.getElementById('f-fest-multi').checked  = multi;
@@ -1732,6 +1757,11 @@ function addConcertBlock(prefill) {
           value="${prefill?.price!=null?prefill.price:''}">
       </div>
       <div class="form-group">
+        <label>Ticketlink</label>
+        <input type="text" class="cb-ticketlink" placeholder="https://…"
+          value="${prefill?.ticket_link||''}">
+      </div>
+      <div class="form-group">
         <label>Tags</label>
         <div class="tag-checks">
           <label class="tag-check"><input type="checkbox" class="cb-tag-tickets" ${prefill?.tags?.includes('tickets')?'checked':''}><div class="check-box">✓</div><span>🎟 Tickets</span></label>
@@ -1858,6 +1888,7 @@ async function saveEvent() {
         end_date: document.getElementById('f-fest-multi').checked ? document.getElementById('f-fest-enddate').value||null : null,
         time:  document.getElementById('f-fest-time').value||null,
         price: document.getElementById('f-fest-price').value||null,
+        ticket_link: document.getElementById('f-fest-ticketlink').value.trim()||null,
         bands_to_watch: [...pillState.bands.tags],
         tags, poster,
         comment: document.getElementById('f-fest-comment').value.trim(),
@@ -1881,6 +1912,7 @@ async function saveEvent() {
           time:     b.querySelector('.cb-time').value||null,
           end_date: b.querySelector('.cb-multi').checked ? b.querySelector('.cb-enddate').value||null : null,
           price:    b.querySelector('.cb-price').value||null,
+          ticket_link: b.querySelector('.cb-ticketlink')?.value?.trim()||null,
           tags, support_present: supPresent,
         });
       }
