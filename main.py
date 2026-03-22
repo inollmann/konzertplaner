@@ -40,8 +40,20 @@ def load_events() -> dict[str, Event]:
     return {}
 
 def save_events(evts: dict[str, Event]):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump([e.to_dict() for e in evts.values()], f, ensure_ascii=False, indent=2)
+    import tempfile, os
+    # Atomic write: write to temp file in same dir, then rename
+    # Avoids partial writes and permission issues with locked files
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=DATA_FILE.parent, suffix=".tmp")
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+            json.dump([e.to_dict() for e in evts.values()], f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, DATA_FILE)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 events: dict[str, Event] = load_events()
 
@@ -354,6 +366,192 @@ def delete_venue(vid):
     del catalogue["venues"][vid]
     save_catalogue()
     return jsonify({"ok": True})
+
+
+# ── Eventim API Proxy ────────────────────────────────────────────────────────
+# Routes as proxy to avoid CORS issues in the browser.
+# Uses requests library for proper session handling, cookie support,
+# and automatic decompression which urllib lacks.
+
+try:
+    import requests as _requests
+    _REQUESTS_AVAILABLE = True
+except ImportError:
+    import urllib.request
+    import urllib.parse
+    _REQUESTS_AVAILABLE = False
+
+EVENTIM_BASE = "https://public-api.eventim.com"
+
+# Full browser-like headers — Eventim checks Sec-Fetch-* and sec-ch-ua
+EVENTIM_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept":          "application/json, text/plain, */*",
+    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+    # Accept-Encoding intentionally omitted — requests handles gzip/br automatically
+    "Referer":         "https://www.eventim.de/",
+    "Origin":          "https://www.eventim.de",
+    "Connection":      "keep-alive",
+    # Sec-Fetch headers that Chrome sends automatically
+    "Sec-Fetch-Dest":  "empty",
+    "Sec-Fetch-Mode":  "cors",
+    "Sec-Fetch-Site":  "same-site",
+    # Client hints
+    "sec-ch-ua":          '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "sec-ch-ua-mobile":   "?0",
+    "sec-ch-ua-platform": '"Windows"',
+}
+
+# Persistent session so cookies (e.g. consent) are preserved across requests
+_session = None
+
+def _get_session():
+    global _session
+    if _REQUESTS_AVAILABLE and _session is None:
+        _session = _requests.Session()
+        _session.headers.update(EVENTIM_HEADERS)
+        # Prime the session: visit the main page once to pick up any cookies
+        try:
+            _session.get("https://www.eventim.de/", timeout=8)
+        except Exception:
+            pass
+    return _session
+
+def _eventim_get(path: str, params: dict) -> tuple[dict | list, int]:
+    """Fetch from Eventim public API, return (data, status_code)."""
+    url = f"{EVENTIM_BASE}{path}"
+    if _REQUESTS_AVAILABLE:
+        sess = _get_session()
+        try:
+            r = sess.get(url, params=params, timeout=12)
+            # r.json() uses requests' built-in decompression — never touch raw bytes
+            if r.status_code != 200:
+                try:
+                    body = r.json()
+                except Exception:
+                    body = {"error": f"HTTP {r.status_code}", "detail": r.text[:300]}
+                return body, r.status_code
+            return r.json(), 200
+        except Exception as e:
+            return {"error": str(e)}, 502
+    else:
+        # Fallback: urllib
+        import urllib.request, urllib.parse
+        qs = urllib.parse.urlencode(params, doseq=True)
+        req = urllib.request.Request(f"{url}?{qs}", headers=EVENTIM_HEADERS)
+        try:
+            with urllib.request.urlopen(req, timeout=12) as r:
+                return json.loads(r.read()), r.status
+        except Exception as e:
+            return {"error": str(e)}, 502
+
+
+@app.route("/api/eventim/search")
+def eventim_search():
+    """
+    Proxy: search Eventim for concerts by artist name.
+    Query params:
+      q       – search term (required)
+      page    – page number (default 1)
+    Returns filtered product list with relevant fields.
+    """
+    q    = request.args.get("q", "").strip()
+    page = request.args.get("page", "1")
+    if not q:
+        return jsonify({"error": "Missing search term"}), 400
+
+    data, status = _eventim_get(
+        "/websearch/search/api/exploration/v1/products",
+        {
+            "webId": "web__eventim-de",
+            "language": "de",
+            "page": page,
+            "sort": "DateAsc",
+            "top": "50",
+            "search_term": q,
+            "categories": "Konzerte",
+            "in_stock": "true",
+        },
+    )
+    if "error" in data:
+        return jsonify(data), status
+
+    # Group products by attraction (artist) → tour-like structure
+    # Each unique attraction+productGroupId combination = one "tour entry"
+    tours: dict[str, dict] = {}
+    for p in data.get("products", []):
+        attractions = p.get("attractions", [])
+        artist_name = attractions[0]["name"] if attractions else p.get("name", "")
+        group_id    = p.get("productGroupId") or p.get("productId", "")
+        key         = f"{artist_name}|{group_id}"
+
+        live = p.get("typeAttributes", {}).get("liveEntertainment", {})
+        location = live.get("location", {})
+        start_raw = live.get("startDate", "")
+
+        concert_entry = {
+            "productId":   p.get("productId"),
+            "name":        p.get("name", ""),
+            "date":        start_raw[:10] if start_raw else "",
+            "time":        start_raw[11:16] if len(start_raw) > 10 else "",
+            "city":        location.get("city", ""),
+            "venue":       location.get("name", ""),
+            "link":        p.get("link", ""),
+            "inStock":     p.get("inStock", False),
+            "status":      p.get("status", ""),
+        }
+
+        if key not in tours:
+            tours[key] = {
+                "artist":      artist_name,
+                "tour_name":   p.get("name", ""),  # may be overridden later
+                "group_id":    group_id,
+                "concerts":    [],
+            }
+        tours[key]["concerts"].append(concert_entry)
+        # Use shortest product name as tour name (usually the tour title)
+        if len(p.get("name", "")) < len(tours[key]["tour_name"]):
+            tours[key]["tour_name"] = p.get("name", "")
+
+    result = {
+        "tours":        list(tours.values()),
+        "totalResults": data.get("totalResults", 0),
+        "page":         data.get("page", 1),
+        "totalPages":   data.get("totalPages", 1),
+    }
+    return jsonify(result)
+
+
+@app.route("/api/eventim/prices")
+def eventim_prices():
+    """
+    Proxy: get min ticket price for a product.
+    Query params:
+      product_id – Eventim productId
+      city       – city name (uppercase)
+      date       – YYYY-MM-DD
+    """
+    product_id = request.args.get("product_id", "")
+    city       = request.args.get("city", "BERLIN").upper()
+    date       = request.args.get("date", "")
+    if not product_id or not date:
+        return jsonify({"error": "Missing params"}), 400
+
+    data, status = _eventim_get(
+        "/travel/flexhub/prod/api/v2/min-prices/",
+        {
+            "city": city,
+            "firstEventDate": date,
+            "lastEventDate":  date,
+            "language": "de",
+            "ids": product_id,
+        },
+    )
+    return jsonify(data), status
 
 
 if __name__ == "__main__":

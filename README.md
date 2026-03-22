@@ -20,7 +20,8 @@ konzertplaner/
 
 ---
 
-## Starten (ohne Docker)
+## Option 1: Starten (ohne Docker)
+Empfohlen: [uv](https://docs.astral.sh/uv/getting-started/installation/) für Paketmanagement installieren
 
 ```bash
 # Abhängigkeiten installieren (uv)
@@ -36,7 +37,7 @@ Dann im Browser: **http://localhost:5000**
 
 ---
 
-## Starten mit Docker
+## Option 2: Starten mit Docker
 
 ```bash
 # Bauen und starten
@@ -52,6 +53,7 @@ Dann im Browser: **http://localhost:5000**
 
 ## Features
 
+- **Eventim Suche** – Events direkt von Eventim speichern
 - **Konzertliste** – Alle Touren als Cards mit Poster, Artist-Info und einzelnen Konzertdaten
 - **Kalenderansicht** – Monatskalender mit Konzert-Events und Hover-Details
 - **Neues Konzert** – Modal zum Anlegen einer Tour mit:
