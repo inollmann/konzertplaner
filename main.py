@@ -119,6 +119,30 @@ def index():
     return send_from_directory(str(BASE_DIR / "static"), "index.html")
 
 
+@app.route("/design-tool")
+def design_tool():
+    return send_from_directory(str(BASE_DIR / "static"), "design_tool.html")
+
+
+@app.route("/api/design/export-css", methods=["GET"])
+def export_css():
+    """Export current CSS variable overrides as a downloadable .css snippet."""
+    vars_param = request.args.get("vars", "")
+    if not vars_param:
+        return jsonify({"error": "No vars"}), 400
+    import urllib.parse
+    lines = [":root {"]
+    for pair in vars_param.split(";"):
+        if ":" in pair:
+            k, v = pair.split(":", 1)
+            lines.append(f"  {k.strip()}: {v.strip()};")
+    lines.append("}")
+    css = "\n".join(lines)
+    from flask import Response
+    return Response(css, mimetype="text/css",
+        headers={"Content-Disposition": "attachment; filename=konzertplaner-theme.css"})
+
+
 # ── Image upload helpers ──────────────────────────────────────────────────────
 
 def _save_upload(file, dest_dir: Path) -> str:
@@ -168,6 +192,128 @@ def get_venues():
 
 
 # ── AI extraction stub ────────────────────────────────────────────────────────
+
+@app.route("/api/eventim/artist-search")
+def eventim_artist_search():
+    """
+    Search Eventim for an artist by name — returns unique attraction names
+    so the frontend can confirm which Eventim artist name matches a local artist.
+    Query params: q (required), top (default 10)
+    """
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"error": "Missing q"}), 400
+    data, status = _eventim_get(
+        "/websearch/search/api/exploration/v1/products",
+        {
+            "webId": "web__eventim-de",
+            "language": "de",
+            "page": "1",
+            "sort": "DateAsc",
+            "top": "50",          # larger set for better name matching
+            "search_term": q,
+            "categories": "Konzerte",
+            # NOTE: no in_stock filter — sold-out events still show artist info
+        },
+    )
+    if "error" in data:
+        return jsonify(data), status
+
+    # Collect unique artist names from two sources:
+    # 1. attractions[] field (large/verified artists)
+    # 2. product name itself (small artists often appear here without attractions)
+    seen: dict[str, dict] = {}
+    q_lower = q.lower()
+
+    def _add(name: str, group_id: str):
+        key = name.lower()
+        if not name:
+            return
+        if key not in seen:
+            seen[key] = {"name": name, "group_id": group_id, "event_count": 0}
+        seen[key]["event_count"] += 1
+
+    for p in data.get("products", []):
+        gid = p.get("productGroupId", "")
+        atts = p.get("attractions", [])
+        if atts:
+            for att in atts:
+                _add(att.get("name", ""), gid)
+        else:
+            # No attractions — use product name if it looks like an artist search hit
+            pname = p.get("name", "")
+            if pname and q_lower in pname.lower():
+                _add(pname, gid)
+
+    # Sort: exact match first, then starts-with, then by event count
+    def _rank(item):
+        n = item["name"].lower()
+        if n == q_lower:            return (0, -item["event_count"])
+        if n.startswith(q_lower):   return (1, -item["event_count"])
+        if q_lower in n:            return (2, -item["event_count"])
+        return                             (3, -item["event_count"])
+
+    artists_list = sorted(seen.values(), key=_rank)
+    return jsonify({"artists": artists_list[:15], "total": len(seen)})
+
+
+@app.route("/api/eventim/artist-events")
+def eventim_artist_events():
+    """
+    Fetch upcoming concerts for a specific Eventim artist name.
+    Query params: name (required), page (default 1)
+    """
+    name = request.args.get("name", "").strip()
+    page = request.args.get("page", "1")
+    if not name:
+        return jsonify({"error": "Missing name"}), 400
+    today = __import__("datetime").date.today().isoformat()
+    data, status = _eventim_get(
+        "/websearch/search/api/exploration/v1/products",
+        {
+            "webId": "web__eventim-de",
+            "language": "de",
+            "page": page,
+            "sort": "DateAsc",
+            "top": "50",
+            "search_term": name,
+            "categories": "Konzerte",
+            # no in_stock filter — artist may have future sold-out events
+            "date_from": today,
+        },
+    )
+    if "error" in data:
+        return jsonify(data), status
+
+    # Filter to products where this artist is an attraction
+    name_lower = name.lower()
+    concerts = []
+    for p in data.get("products", []):
+        atts = [a["name"] for a in p.get("attractions", [])]
+        if not any(a.lower() == name_lower or name_lower in a.lower() for a in atts):
+            continue
+        live = p.get("typeAttributes", {}).get("liveEntertainment", {})
+        loc  = live.get("location", {})
+        start = live.get("startDate", "")
+        concerts.append({
+            "productId":  p.get("productId"),
+            "name":       p.get("name", ""),
+            "date":       start[:10] if start else "",
+            "time":       start[11:16] if len(start) > 10 else "",
+            "city":       loc.get("city", ""),
+            "venue":      loc.get("name", ""),
+            "link":       p.get("link", ""),
+            "inStock":    p.get("inStock", False),
+            "attractions": atts,
+        })
+    return jsonify({
+        "artist": name,
+        "concerts": concerts,
+        "total": len(concerts),
+        "page": data.get("page", 1),
+        "totalPages": data.get("totalPages", 1),
+    })
+
 
 @app.route("/api/extract-poster", methods=["POST"])
 def extract_poster():
@@ -279,14 +425,19 @@ def get_artists():
     result = [a.to_dict() for a in catalogue["artists"].values()]
     for name in all_known_bands():
         if name.casefold() not in cat_names:
-            result.append({"id": None, "name": name, "logo": None, "derived": True})
+            result.append({"id": None, "name": name, "logo": None, "followed": False, "derived": True})
     result.sort(key=lambda x: x["name"].casefold())
     return jsonify(result)
 
 @app.route("/api/artists", methods=["POST"])
 def create_artist():
     data = request.get_json()
-    a = Artist(name=data["name"], logo=data.get("logo"), photo=data.get("photo"))
+    a = Artist(
+        name=data["name"], logo=data.get("logo"), photo=data.get("photo"),
+        followed=data.get("followed", False),
+        eventim_name=data.get("eventim_name"),
+        eventim_id=data.get("eventim_id"),
+    )
     catalogue["artists"][a.id] = a
     save_catalogue()
     return jsonify(a.to_dict()), 201
@@ -302,6 +453,12 @@ def update_artist(aid):
         a.logo = data["logo"]
     if "photo" in data:
         a.photo = data["photo"]
+    if "followed" in data:
+        a.followed = bool(data["followed"])
+    if "eventim_name" in data:
+        a.eventim_name = data["eventim_name"]
+    if "eventim_id" in data:
+        a.eventim_id = data["eventim_id"]
     save_catalogue()
     return jsonify(a.to_dict())
 

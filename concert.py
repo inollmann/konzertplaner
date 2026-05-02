@@ -285,19 +285,35 @@ class Concert:
 # ── Catalogue models ──────────────────────────────────────────────────────────
 
 class Artist:
-    """Stand-alone artist entry with optional logo and photo."""
-    def __init__(self, name: str, logo: str | None = None, photo: str | None = None):
+    """Stand-alone artist entry with optional logo, photo, follow state and Eventim mapping."""
+    def __init__(self, name: str, logo: str | None = None, photo: str | None = None,
+                 followed: bool = False, eventim_name: str | None = None,
+                 eventim_id: str | None = None):
         self.id: str = str(uuid.uuid4())
         self.name: str = name
         self.logo: str | None = logo
-        self.photo: str | None = photo   # separate band photo / live shot
+        self.photo: str | None = photo
+        self.followed: bool = followed          # star / follow toggle
+        self.eventim_name: str | None = eventim_name  # confirmed Eventim artist name
+        self.eventim_id: str | None = eventim_id      # Eventim productGroupId / attractionId
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "logo": self.logo, "photo": self.photo}
+        return {
+            "id": self.id, "name": self.name,
+            "logo": self.logo, "photo": self.photo,
+            "followed": self.followed,
+            "eventim_name": self.eventim_name,
+            "eventim_id": self.eventim_id,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Artist":
-        a = cls(name=data["name"], logo=data.get("logo"), photo=data.get("photo"))
+        a = cls(
+            name=data["name"], logo=data.get("logo"), photo=data.get("photo"),
+            followed=data.get("followed", False),
+            eventim_name=data.get("eventim_name"),
+            eventim_id=data.get("eventim_id"),
+        )
         a.id = data["id"]
         return a
 

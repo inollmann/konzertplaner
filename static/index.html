@@ -13,7 +13,7 @@
   --surface:   #161616;
   --surface2:  #1f1f1f;
   --surface3:  #272727;
-  --border:    #2a2a2a;
+  --border:    #2a2a2a00;
   --accent:    #e8ff47;
   --tour:      #38bdf8;
   --festival:  #a78bfa;
@@ -22,6 +22,16 @@
   --radius:    10px;
   --tickets-color: #4ade80;
   --watch-color:   #fb923c;
+}
+:root.light {
+  --bg:        #ececec;
+  --surface:   #ffffff;
+  --surface2:  #f0f0f0;
+  --surface3:  #e5e5e5;
+  --border:    #dddddd00;
+  --accent:    #006b66;
+  --text:      #1a1a1a;
+  --muted:     #666;
 }
 
 /* ─── Reset ────────────────────────────────────────────────────────── */
@@ -203,6 +213,15 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .concert-info  { padding: 0 14px; }
 .concert-venue { font-weight: 500; font-size: 15px; }
 .concert-city  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* Google Maps embed */
+.venue-map { margin-top: 10px; border-radius: var(--radius); overflow: hidden; }
+.venue-map iframe { width: 100%; height: 180px; border: none; border-radius: var(--radius); }
+.venue-map-controls { display: flex; gap: 8px; margin-top: 6px; }
+.venue-map-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+.venue-map-link:hover { text-decoration: underline; }
+.venue-map-zoom { font-size: 12px; color: var(--muted); text-decoration: none; cursor: pointer; }
+.venue-map-zoom:hover { color: var(--accent); }
 .concert-time  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .concert-support-acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 /* act-chip now defined in rating section above */
@@ -261,7 +280,7 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 /* ─── Generic Modal ────────────────────────────────────────────────── */
 .modal-backdrop {
   position: fixed; inset: 0; background: #000b; backdrop-filter: blur(4px);
-  z-index: 100; display: flex; align-items: flex-start; justify-content: center;
+  z-index: 300; display: flex; align-items: flex-start; justify-content: center;
   padding: 36px 16px; overflow-y: auto; opacity: 0; pointer-events: none; transition: opacity .2s;
 }
 .modal-backdrop.open { opacity: 1; pointer-events: all; }
@@ -277,6 +296,21 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 }
 .btn-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: color .15s; }
 .btn-close:hover { color: var(--text); }
+
+/* ─── Statistics ───────────────────────────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.stat-card { background: var(--surface2); border-radius: 10px; padding: 16px; text-align: center; }
+.stat-card.full { grid-column: span 2; }
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--accent); line-height: 1; }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.stat-list { text-align: left; margin-top: 8px; max-height: 200px; overflow-y: auto; }
+.stat-list-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.stat-list-item:last-child { border-bottom: none; }
+.stat-section { margin-top: 20px; }
+.stat-card { cursor: pointer; transition: background .15s; }
+.stat-card:hover { background: var(--surface3); }
+.stat-card .stat-value { pointer-events: none; }
+.stat-section-title { font-size: 14px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
 
 /* ─── Event type chooser ───────────────────────────────────────────── */
 .event-type-selector { display: flex; gap: 10px; margin-bottom: 22px; }
@@ -688,6 +722,8 @@ input[type=color] {
 .ev-conc-stock { font-size: 10px; margin-top: 3px; }
 .ev-conc-stock.in-stock  { color: var(--tickets-color); }
 .ev-conc-stock.out-stock { color: #f87171; }
+.ev-conc-divider { padding: 12px 0 8px; margin-top: 8px; border-top: 1px solid var(--border); text-align: center; position: relative; }
+.ev-conc-divider span { background: var(--surface); padding: 0 12px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; position: relative; top: -10px; }
 .ev-select-all { font-size: 12px; color: var(--muted); cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .ev-no-results { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 /* ─── Search results dropdown panel ───────────────────────────────── */
@@ -717,6 +753,96 @@ input[type=color] {
   font-size: 13px; padding: 0; display: flex; align-items: center; gap: 5px;
 }
 .srp-back:hover { color: var(--text); }
+/* ─── Favourites tab ──────────────────────────────────────────────── */
+.fav-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  margin-bottom: 14px; overflow: hidden; animation: fadeUp .3s ease both;
+  transition: border-color .2s;
+}
+.fav-card-header {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  cursor: pointer; user-select: none; transition: background .15s;
+}
+.fav-card-header:hover { background: var(--surface2); }
+.fav-artist-logo {
+  width: 48px; height: 48px; border-radius: 8px; background: var(--surface2);
+  object-fit: contain; flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; color: var(--muted); overflow: hidden;
+}
+.fav-artist-logo img { width: 100%; height: 100%; object-fit: contain; }
+.fav-artist-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 1.5px; flex: 1; }
+.fav-artist-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.fav-chevron { color: var(--muted); font-size: 14px; transition: transform .2s; flex-shrink: 0; }
+.fav-card.open .fav-chevron { transform: rotate(90deg); }
+.fav-events-body { display: none; border-top: 1px solid var(--border); }
+.fav-card.open .fav-events-body { display: block; }
+.fav-event-row {
+  display: grid; grid-template-columns: 72px 1fr auto;
+  padding: 11px 18px; border-bottom: 1px solid var(--border); align-items: start;
+  cursor: pointer; transition: background .12s;
+}
+.fav-event-row:last-child { border-bottom: none; }
+.fav-event-row:hover { background: var(--surface2); }
+.fav-event-actions { display: flex; gap: 6px; align-items: flex-start; }
+.fav-loading { padding: 18px; text-align: center; color: var(--muted); font-size: 13px; }
+.fav-empty { padding: 32px 18px; text-align: center; color: var(--muted); font-size: 14px; }
+.fav-no-match { padding: 10px 18px; }
+.fav-suggestion { display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.fav-suggestion:last-child { border-bottom: none; }
+/* Follow star button */
+.follow-btn {
+  background: none; border: none; cursor: pointer; font-size: 20px; line-height: 1;
+  padding: 2px 4px; transition: transform .15s;
+}
+.follow-btn:hover { transform: scale(1.2); }
+/* Theme toggle */
+.theme-toggle {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  width: 36px; height: 36px; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.theme-toggle:hover { border-color: var(--text); }
+
+/* Notification bell */
+.notif-btn {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); width: 36px; height: 36px; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center; position: relative;
+  transition: color .2s, border-color .2s;
+}
+.notif-btn:hover { color: var(--text); border-color: var(--text); }
+.notif-badge {
+  position: absolute; top: -5px; right: -5px; background: var(--accent); color: #000;
+  border-radius: 10px; font-size: 10px; font-weight: 700; padding: 1px 5px;
+  min-width: 16px; text-align: center; display: none;
+}
+.notif-badge.visible { display: block; }
+/* Notification panel */
+.notif-panel {
+  position: fixed; top: 60px; right: 16px; width: 340px; max-height: 70vh;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 32px #000a; z-index: 200; display: none; flex-direction: column;
+  overflow: hidden;
+}
+.notif-panel.open { display: flex; }
+.notif-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  font-size: 13px; font-weight: 600;
+}
+.notif-list { overflow-y: auto; flex: 1; }
+.notif-item {
+  padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background .12s;
+}
+.notif-item:hover { background: var(--surface2); }
+.notif-item:last-child { border-bottom: none; }
+.notif-item.unread { border-left: 3px solid var(--accent); }
+.notif-artist { font-weight: 600; font-size: 13px; color: var(--text); }
+.notif-event { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.notif-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
 /* ─── Scrollbar ────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -739,12 +865,16 @@ input[type=color] {
   </div>
   <div class="search-wrap">
     <input class="search-input" id="eventim-search" type="text"
-      placeholder="🔍 Artist auf Eventim suchen…"
+      placeholder="🔎 Artist auf Eventim suchen…"
       oninput="onSearchInput()" onkeydown="if(event.key==='Enter')doSearch()">
     <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
     <div class="search-spinner" id="search-spinner"></div>
   </div>
   <div class="header-right">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Design wechseln">☀️</button>
+    <button class="notif-btn" id="notif-btn" onclick="toggleNotifPanel()" title="Benachrichtigungen">
+      🔔<span class="notif-badge" id="notif-badge"></span>
+    </button>
     <button class="btn-export" onclick="openExportModal()">⬇ Liste exportieren</button>
     <button class="btn-new" onclick="openEventModal()">＋ Neues Event</button>
   </div>
@@ -766,8 +896,18 @@ input[type=color] {
         <span class="di-icon">🏟</span> Venues
       </button>
       <div class="drawer-sep"></div>
+      <button class="drawer-item" onclick="openLocationSettings()">
+        <span class="di-icon">📍</span> Standort
+      </button>
+      <button class="drawer-item" onclick="openStatistics()">
+        <span class="di-icon">📊</span> Statistiken
+      </button>
+      <div class="drawer-sep"></div>
       <button class="drawer-item" onclick="openDesignPanel()">
         <span class="di-icon">🎨</span> Design
+      </button>
+      <button class="drawer-item" onclick="window.open('/design-tool','_blank');closeDrawer()">
+        <span class="di-icon">🖌</span> Design Tool (extern)
       </button>
     </div>
   </nav>
@@ -777,6 +917,7 @@ input[type=color] {
 <div class="tabs">
   <button class="tab active" onclick="switchTab('list',this)">Konzertliste</button>
   <button class="tab" onclick="switchTab('calendar',this)">Kalender</button>
+  <button class="tab" onclick="switchTab('favourites',this)">Favoriten</button>
 </div>
 
 <!-- ── Filter bar ─────────────────────────────────────────────────── -->
@@ -835,7 +976,7 @@ input[type=color] {
         <div class="poster-upload" id="pu-tour"
              onclick="document.getElementById('fi-tour').click()"
              ondragover="event.preventDefault()" ondrop="handleDrop(event,'tour')">
-          <div class="pu-icon">🎨</div><div class="pu-label">Poster hochladen</div>
+          <div class="pu-icon">🖌</div><div class="pu-label">Poster hochladen</div>
         </div>
         <div class="paste-hint">Strg+V zum Einfügen</div>
         <input type="file" id="fi-tour" class="hidden" accept="image/*" onchange="handleFile(event,'tour')">
@@ -882,7 +1023,7 @@ input[type=color] {
         <div class="poster-upload" id="pu-festival"
              onclick="document.getElementById('fi-festival').click()"
              ondragover="event.preventDefault()" ondrop="handleDrop(event,'festival')">
-          <div class="pu-icon">🎨</div><div class="pu-label">Poster hochladen</div>
+          <div class="pu-icon">🖌</div><div class="pu-label">Poster hochladen</div>
         </div>
         <div class="paste-hint">Strg+V zum Einfügen</div>
         <input type="file" id="fi-festival" class="hidden" accept="image/*" onchange="handleFile(event,'festival')">
@@ -1065,7 +1206,7 @@ input[type=color] {
 
 <!-- ── Design modal ────────────────────────────────────────────────── -->
 <div class="modal-backdrop" id="design-modal" onclick="closeMbg('design-modal',event)">
- <div class="modal" style="max-width:500px">
+ <div class="modal" style="max-width:540px">
   <div class="modal-title">
     <span>Design</span>
     <button class="btn-close" onclick="closeModal('design-modal')">✕</button>
@@ -1075,6 +1216,41 @@ input[type=color] {
     <button class="btn-cancel" onclick="resetColors()">Zurücksetzen</button>
     <button class="btn-save" onclick="closeModal('design-modal')">Fertig</button>
   </div>
+ </div>
+</div>
+
+<!-- ── Location settings modal ────────────────────────────────────── -->
+<div class="modal-backdrop" id="location-modal" onclick="closeMbg('location-modal',event)">
+ <div class="modal" style="max-width:480px">
+   <div class="modal-title">
+     <span>Standort-Einstellungen</span>
+     <button class="btn-close" onclick="closeModal('location-modal')">✕</button>
+   </div>
+   <div style="padding:8px 0 16px">
+     <div class="form-group">
+       <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block">Dein Standort (Stadt)</label>
+       <input type="text" id="location-city" placeholder="z.B. Berlin" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
+     </div>
+     <div class="form-group" style="margin-top:16px">
+       <label style="font-size:13px;color:var(--muted);margin-bottom:6px;display:block">Bevorzugte Städte (kommagetrennt)</label>
+       <input type="text" id="location-preferred" placeholder="z.B. Hamburg, München, Köln" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
+     </div>
+   </div>
+   <div class="form-actions" style="margin-top:0">
+     <button class="btn-cancel" onclick="closeModal('location-modal')">Abbrechen</button>
+     <button class="btn-save" onclick="saveLocationSettings()">Speichern</button>
+   </div>
+ </div>
+</div>
+
+<!-- ── Statistics modal ───────────────────────────────────────────── -->
+<div class="modal-backdrop" id="stats-modal" onclick="closeMbg('stats-modal',event)">
+ <div class="modal" style="max-width:560px">
+   <div class="modal-title">
+     <span>Statistiken</span>
+     <button class="btn-close" onclick="closeModal('stats-modal')">✕</button>
+   </div>
+   <div id="stats-content" style="padding:8px 0;max-height:70vh;overflow-y:auto"></div>
  </div>
 </div>
 
@@ -1125,13 +1301,47 @@ const COLOR_VARS = [
   { key: '--bg',            label: 'Hintergrund' },
   { key: '--surface',       label: 'Oberfläche 1' },
   { key: '--surface2',      label: 'Oberfläche 2' },
+  { key: '--surface3',      label: 'Oberfläche 3' },
   { key: '--text',          label: 'Text' },
   { key: '--muted',         label: 'Gedämpft' },
   { key: '--border',        label: 'Rahmen' },
 ];
+
+const THEMES = {
+  dark: {
+    '--bg': '#0d0d0d', '--surface': '#161616', '--surface2': '#1f1f1f',
+    '--surface3': '#272727', '--border': '#2a2a2a', '--text': '#f0f0f0',
+    '--muted': '#777', '--accent': '#e8ff47', '--tour': '#38bdf8',
+    '--festival': '#a78bfa', '--tickets-color': '#4ade80', '--watch-color': '#fb923c',
+  },
+  light: {
+    '--bg': '#f5f5f5', '--surface': '#ffffff', '--surface2': '#f0f0f0',
+    '--surface3': '#e8e8e8', '--border': '#d0d0d0', '--text': '#111111',
+    '--muted': '#666666', '--accent': '#1a7a00', '--tour': '#0066cc',
+    '--festival': '#7c3aed', '--tickets-color': '#16a34a', '--watch-color': '#ea580c',
+  },
+  midnight: {
+    '--bg': '#04040f', '--surface': '#0d0d2b', '--surface2': '#131340',
+    '--surface3': '#1a1a55', '--border': '#252570', '--text': '#e8e8ff',
+    '--muted': '#6666aa', '--accent': '#00ffcc', '--tour': '#ff6b9d',
+    '--festival': '#ffd700', '--tickets-color': '#00e5ff', '--watch-color': '#ff9f43',
+  },
+};
+
 const DEFAULT_COLORS = {};
 COLOR_VARS.forEach(c => DEFAULT_COLORS[c.key] = getComputedStyle(document.documentElement).getPropertyValue(c.key).trim());
 
+function applyTheme(themeKey) {
+  const theme = THEMES[themeKey];
+  if (!theme) return;
+  const saved = JSON.parse(localStorage.getItem('kp-colors') || '{}');
+  Object.entries(theme).forEach(([k,v]) => {
+    document.documentElement.style.setProperty(k, v);
+    saved[k] = v;
+  });
+  localStorage.setItem('kp-colors', JSON.stringify(saved));
+  buildColorGrid();
+}
 function loadColors() {
   const saved = JSON.parse(localStorage.getItem('kp-colors') || '{}');
   Object.entries(saved).forEach(([k,v]) => document.documentElement.style.setProperty(k, v));
@@ -1149,7 +1359,13 @@ function resetColors() {
 }
 function buildColorGrid() {
   const grid = document.getElementById('color-grid');
-  grid.innerHTML = COLOR_VARS.map(c => {
+  const presets = `<div style="grid-column:1/-1;display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--muted);align-self:center">Preset:</span>
+    <button class="btn-sm" onclick="applyTheme('dark')">🌑 Dark (Standard)</button>
+    <button class="btn-sm" onclick="applyTheme('light')">☀️ Light</button>
+    <button class="btn-sm" onclick="applyTheme('midnight')">🌌 Midnight</button>
+  </div>`;
+  grid.innerHTML = presets + COLOR_VARS.map(c => {
     const val = getComputedStyle(document.documentElement).getPropertyValue(c.key).trim();
     return `<div class="color-row">
       <label>${c.label}</label>
@@ -1158,6 +1374,17 @@ function buildColorGrid() {
   }).join('');
 }
 loadColors();
+
+// ── Custom CSS from Design Tool ────────────────────────────────────────
+// Applies any custom CSS saved by the standalone design tool at /design-tool
+(function applyCustomCss() {
+  const css = localStorage.getItem('kp-custom-css');
+  if (!css || !css.trim()) return;
+  const style = document.createElement('style');
+  style.id = 'kp-custom-css';
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
 
 // ══════════════════════════════════════════════════════════════════════
 // Boot
@@ -1176,6 +1403,7 @@ async function fetchAll() {
   renderCalendar();
 }
 fetchAll();
+loadTheme();
 
 // ══════════════════════════════════════════════════════════════════════
 // Tabs / filters
@@ -1184,8 +1412,10 @@ function switchTab(tab, el) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('tab-list').style.display     = tab === 'list'     ? 'block' : 'none';
-  document.getElementById('tab-calendar').style.display = tab === 'calendar' ? 'block' : 'none';
+  document.getElementById('tab-list').style.display        = tab === 'list'        ? 'block' : 'none';
+  document.getElementById('tab-calendar').style.display    = tab === 'calendar'    ? 'block' : 'none';
+  document.getElementById('tab-favourites').style.display  = tab === 'favourites'  ? 'block' : 'none';
+  if (tab === 'favourites') renderFavourites();
 }
 function toggleFilter(tag) {
   const chip = document.getElementById('chip-' + tag);
@@ -1381,6 +1611,22 @@ function fmtPrice(p) {
   return Number.isInteger(n) ? `${n} €` : `${n.toFixed(2)} €`;
 }
 
+// ── Google Maps embed ─────────────────────────────────────────────────
+function venueMapHtml(venue, city, zoom = 15) {
+  if (!venue) return '';
+  const query = encodeURIComponent(`${venue}, ${city || ''}`.replace(/,\s*$/, ''));
+  const embedUrl = `https://maps.google.com/maps?q=${query}&t=&z=${zoom}&ie=UTF8&iwloc=&output=embed`;
+  const searchUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+  return `<div class="venue-map" data-zoom="${zoom}" data-query="${query}">
+    <iframe src="${embedUrl}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div class="venue-map-controls">
+      <a class="venue-map-zoom" onclick="event.stopPropagation();var m=this.closest('.venue-map');var z=Math.max(3,parseInt(m.dataset.zoom)-1);m.dataset.zoom=z;m.querySelector('iframe').src='https://maps.google.com/maps?q='+m.dataset.query+'&t=&z='+z+'&ie=UTF8&iwloc=&output=embed'">− Zoom out</a>
+      <a class="venue-map-zoom" onclick="event.stopPropagation();var m=this.closest('.venue-map');var z=Math.min(20,parseInt(m.dataset.zoom)+1);m.dataset.zoom=z;m.querySelector('iframe').src='https://maps.google.com/maps?q='+m.dataset.query+'&t=&z='+z+'&ie=UTF8&iwloc=&output=embed'">+ Zoom in</a>
+      <a class="venue-map-link" href="${searchUrl}" target="_blank">In Google Maps öffnen →</a>
+    </div>
+  </div>`;
+}
+
 // ── Poster clickable ──────────────────────────────────────────────────
 function posterEl(poster, placeholder) {
   if (!poster) return `<div class="event-poster-placeholder">${placeholder}</div>`;
@@ -1396,7 +1642,7 @@ function closeLightbox() { document.getElementById('lightbox').classList.remove(
 
 // ── Render helpers ────────────────────────────────────────────────────
 function renderTourCard(tour, isPast) {
-  const ps = posterEl(tour.poster, '🎵');
+  const ps = posterEl(tour.poster, '♪');
   const concerts = activeFilters.size
     ? tour.concerts.filter(c => [...activeFilters].some(f => c.tags.includes(f)))
     : tour.concerts;
@@ -1423,7 +1669,7 @@ function renderTourCard(tour, isPast) {
 
 function renderConcertRow(c, eventId, isPast) {
   const d = parseDate(c.date);
-  const tagHtml = (c.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+  const tagHtml = (c.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'✓ Tickets':'☆ Merkliste'}</span>`).join('');
   const actHtml = (c.support_present||[]).map(a => `<span class="act-chip">${esc(a)}</span>`).join('');
   const endLabel = c.end_date ? `<div class="date-end">→ ${fmtDateShort(c.end_date)}</div>` : '';
   return `<div class="concert-item">
@@ -1435,23 +1681,23 @@ function renderConcertRow(c, eventId, isPast) {
     </div>
     <div class="concert-info">
       <div class="concert-venue">${esc(c.venue)}</div>
-      <div class="concert-city">📍 ${esc(c.city)}</div>
-      ${c.time ? `<div class="concert-time">🕐 ${esc(c.time)} Uhr</div>` : ''}
+      <div class="concert-city">📌 ${esc(c.city)}</div>
+      ${c.time ? `<div class="concert-time">🕓 ${esc(c.time)} Uhr</div>` : ''}
       ${actHtml ? `<div class="concert-support-acts">${actHtml}</div>` : ''}
     </div>
     <div class="concert-right">
       ${c.price ? `<div class="concert-price">${fmtPrice(c.price)}</div>` : ''}
-      ${c.ticket_link ? `<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ticket-link-btn">🎟 Tickets</a>` : ''}
+      ${c.ticket_link ? `<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ticket-link-btn">✓ Tickets</a>` : ''}
       <div class="tags">${tagHtml}</div>
     </div>
   </div>`;
 }
 
 function renderFestCard(fest, isPast) {
-  const ps = posterEl(fest.poster, '🎪');
+  const ps = posterEl(fest.poster, '◉');
   const d = parseDate(fest.date);
   const endLabel = fest.end_date ? `<div class="date-end">→ ${fmtDateShort(fest.end_date)}</div>` : '';
-  const tagHtml = (fest.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+  const tagHtml = (fest.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'✓ Tickets':'☆ Merkliste'}</span>`).join('');
   const bandsHtml = (fest.bands_to_watch||[]).map(b => `<span class="band-chip">${esc(b)}</span>`).join('');
   const allBands = fest.bands_to_watch||[];
   const ratingsHtml = isPast ? allBands.map(b => ratingBarHtml(fest.id, b, true)).join('') : '';
@@ -1478,8 +1724,8 @@ function renderFestCard(fest, isPast) {
       </div>
       <div class="concert-info">
         <div class="concert-venue">${esc(fest.venue)||'–'}</div>
-        <div class="concert-city">📍 ${esc(fest.city)}</div>
-        ${fest.time ? `<div class="concert-time">🕐 ${esc(fest.time)} Uhr</div>` : ''}
+        <div class="concert-city">📌 ${esc(fest.city)}</div>
+        ${fest.time ? `<div class="concert-time">🕓 ${esc(fest.time)} Uhr</div>` : ''}
         ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
       </div>
       <div class="concert-right">
@@ -1515,7 +1761,7 @@ function buildDetailHTML(ev) {
     ? `<img class="detail-poster" src="/static/posters/${ev.poster}" alt=""
         onclick="openLightbox('/static/posters/${ev.poster}')"
         style="cursor:zoom-in" title="Poster vergrößern">`
-    : `<div class="detail-poster-ph">${ev.event_type==='festival'?'🎪':'🎵'}</div>`;
+    : `<div class="detail-poster-ph">${ev.event_type==='festival'?'◉':'♪'}</div>`;
 
   const commentBlock = ev.comment
     ? `<div class="detail-comment"><div class="detail-comment-label">Notiz</div>${esc(ev.comment)}</div>` : '';
@@ -1526,7 +1772,7 @@ function buildDetailHTML(ev) {
     const allBandsF = ev.bands_to_watch||[];
     const d = parseDate(ev.date);
     const endLabel = ev.end_date ? `<div class="date-end">→ ${fmtDateShort(ev.end_date)}</div>` : '';
-    const tagHtml = (ev.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+    const tagHtml = (ev.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'✓ Tickets':'☆ Merkliste'}</span>`).join('');
     const bandsHtml = allBandsF.map(b=>`<span class="band-chip">${esc(b)}</span>`).join('');
     return `
       <div class="detail-header">
@@ -1553,13 +1799,14 @@ function buildDetailHTML(ev) {
           </div>
           <div class="concert-info">
             <div class="concert-venue">${esc(ev.venue)||'–'}</div>
-            <div class="concert-city">📍 ${esc(ev.city)}</div>
-            ${ev.time ? `<div class="concert-time">🕐 ${esc(ev.time)} Uhr</div>` : ''}
+            <div class="concert-city">📌 ${esc(ev.city)}</div>
+            ${ev.time ? `<div class="concert-time">🕓 ${esc(ev.time)} Uhr</div>` : ''}
             ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
+            ${ev.venue ? venueMapHtml(ev.venue, ev.city) : ''}
           </div>
           <div class="concert-right">
             ${ev.price ? `<div class="concert-price">${fmtPrice(ev.price)}</div>` : ''}
-            ${ev.ticket_link ? `<a href="${esc(ev.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">🎟 Tickets</a>` : ''}
+            ${ev.ticket_link ? `<a href="${esc(ev.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">✓ Tickets</a>` : ''}
             <div class="tags">${tagHtml}</div>
           </div>
         </div>
@@ -1585,7 +1832,7 @@ function buildDetailHTML(ev) {
   const concHtml = concerts.map(c => {
     const d = parseDate(c.date);
     const endLabel = c.end_date ? `<div class="date-end">→ ${fmtDateShort(c.end_date)}</div>` : '';
-    const tagHtml = (c.tags||[]).map(t=>`<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'🎟 Tickets':'🔖 Merkliste'}</span>`).join('');
+    const tagHtml = (c.tags||[]).map(t=>`<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'✓ Tickets':'☆ Merkliste'}</span>`).join('');
     const actHtml = (c.support_present||[]).map(a=>`<span class="act-chip">${esc(a)}</span>`).join('');
     const allActs = [c.artist, ...(c.support_present||[])].filter(Boolean);
     const detailRatingsHtml = evIsPast2 ? renderDetailRatings(ev.id, allActs) : '';
@@ -1596,13 +1843,14 @@ function buildDetailHTML(ev) {
       </div>
       <div class="concert-info">
         <div class="concert-venue">${esc(c.venue)}</div>
-        <div class="concert-city">📍 ${esc(c.city)}</div>
-        ${c.time?`<div class="concert-time">🕐 ${esc(c.time)} Uhr</div>`:''}
+        <div class="concert-city">📌 ${esc(c.city)}</div>
+        ${c.time?`<div class="concert-time">🕓 ${esc(c.time)} Uhr</div>`:''}
         ${actHtml?`<div class="concert-support-acts">${actHtml}</div>`:''}
+        ${c.venue ? venueMapHtml(c.venue, c.city) : ''}
       </div>
       <div class="concert-right">
         ${c.price?`<div class="concert-price">${fmtPrice(c.price)}</div>`:''}
-        ${c.ticket_link?`<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">🎟 Tickets</a>`:''}
+        ${c.ticket_link?`<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">✓ Tickets</a>`:''}
         <div class="tags">
           <button class="tag-toggle ${c.tags.includes('tickets')?'active-tickets':''}"
             onclick="event.stopPropagation();setConcertTag('${ev.id}','${c.id}','tickets',${!c.tags.includes('tickets')});void 0">
@@ -1686,6 +1934,7 @@ function renderCalendar() {
       .forEach(e => {
         const el = document.createElement('div');
         const cls = e.type === 'festival' ? 'ev-festival'
+          : e.type === 'tour' ? 'ev-tour'
           : e.tags.includes('tickets') ? 'ev-tickets'
           : e.tags.includes('watchlist') ? 'ev-watchlist' : 'ev-tour';
         el.className = 'cal-event' + (cls ? ' '+cls : '');
@@ -1716,9 +1965,9 @@ function showPopover(e, c) {
   const p = document.getElementById('popover');
   p.innerHTML = `<div class="pop-title">${esc(c.artist||'')}</div>
     <div class="pop-row">📅 <span>${fmtDateLong(c.date)}${c.end_date?' – '+fmtDateLong(c.end_date):''}</span></div>
-    ${c.time?`<div class="pop-row">🕐 <span>${esc(c.time)} Uhr</span></div>`:''}
-    <div class="pop-row">📍 <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
-    ${c.price?`<div class="pop-row">💶 <span>${fmtPrice(c.price)}</span></div>`:''}`;
+    ${c.time?`<div class="pop-row">🕓 <span>${esc(c.time)} Uhr</span></div>`:''}
+    <div class="pop-row">📌 <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
+    ${c.price?`<div class="pop-row">€ <span>${fmtPrice(c.price)}</span></div>`:''}`;
   p.style.left = (e.clientX+12)+'px'; p.style.top = (e.clientY-10)+'px';
   p.classList.add('vis');
 }
@@ -1822,7 +2071,7 @@ function setPosterPreview(which, filename) {
     const img = document.createElement('img'); img.src = `/static/posters/${filename}`; el.appendChild(img);
   } else {
     savedPoster[which] = null;
-    el.innerHTML = '<div class="pu-icon">🎨</div><div class="pu-label">Poster hochladen</div>';
+    el.innerHTML = '<div class="pu-icon">🖌</div><div class="pu-label">Poster hochladen</div>';
   }
 }
 function previewBlob(which, blob) {
@@ -2209,11 +2458,15 @@ function renderArtistList() {
         ${ratingsSummary ? `<div style="width:100%;padding:6px 0 2px 60px">${ratingsSummary}</div>` : ''}
       </div>`;
     }
+    const followStar = a.followed ? '★' : '☆';
+    const followStyle = a.followed ? 'color:var(--accent)' : 'color:var(--muted)';
     return `<div class="cat-item" style="cursor:pointer;flex-wrap:wrap" onclick="openArtistDetailById(${_admStore.push(a)-1})">
       <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
         ${logoEl}${nameEl}
       </div>
       <div class="cat-item-actions" onclick="event.stopPropagation()">
+        <button class="follow-btn" title="${a.followed?'Entfolgen':'Folgen'}" style="${followStyle}"
+          onclick="toggleFollow('${a.id}',${!a.followed})">${followStar}</button>
         <button class="btn-sm danger" onclick="deleteArtist('${a.id}')">🗑</button>
       </div>
       ${ratingsSummary ? `<div style="width:100%;padding:6px 0 2px 60px;font-size:12px;color:var(--muted)">${ratingsSummary}</div>` : ''}
@@ -2483,10 +2736,256 @@ async function reloadCatalogue() {
 // ══════════════════════════════════════════════════════════════════════
 // Design panel
 // ══════════════════════════════════════════════════════════════════════
+// Location settings
+let _locationSettings = JSON.parse(localStorage.getItem('kp-location') || '{"city":"","preferred":[]}');
+
+function openLocationSettings() {
+  closeDrawer();
+  document.getElementById('location-city').value = _locationSettings.city || '';
+  document.getElementById('location-preferred').value = (_locationSettings.preferred || []).join(', ');
+  openModal('location-modal');
+}
+
+function saveLocationSettings() {
+  const city = document.getElementById('location-city').value.trim();
+  const preferredStr = document.getElementById('location-preferred').value;
+  const preferred = preferredStr.split(',').map(s => s.trim()).filter(s => s);
+  _locationSettings = { city, preferred };
+  localStorage.setItem('kp-location', JSON.stringify(_locationSettings));
+  closeModal('location-modal');
+}
+
+function getLocationCity() { return _locationSettings.city || ''; }
+function getPreferredCities() { return _locationSettings.preferred || []; }
+
+// ══════════════════════════════════════════════════════════════════════
+// Statistics
+function openStatistics() {
+  closeDrawer();
+  const stats = calculateStats();
+  _statEvents = stats.allTicketEvents;
+  document.getElementById('stats-content').innerHTML = renderStatsHtml(stats);
+  openModal('stats-modal');
+}
+
+function calculateStats() {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const lastYear = thisYear - 1;
+  const twoYearsAgo = thisYear - 2;
+  
+  let totalConcerts = 0;
+  let totalFestivals = 0;
+  let totalSpent = 0;
+  let byYear = {};
+  let byArtist = {};
+  let byVenue = {};
+  let upcoming = 0;
+  let past = 0;
+  let allTicketEvents = []; // Store all events with tickets for detail view
+  
+  allEvents.forEach(ev => {
+    const evTags = ev.tags || [];
+    const hasTickets = evTags.includes('tickets');
+    
+    if (ev.event_type === 'festival') {
+      if (hasTickets) {
+        totalFestivals++;
+        const year = ev.date ? ev.date.substring(0, 4) : 'unbekannt';
+        byYear[year] = (byYear[year] || 0) + 1;
+        if (ev.venue) byVenue[ev.venue] = (byVenue[ev.venue] || 0) + 1;
+        const price = parseFloat(ev.price) || 0;
+        if (price > 0) totalSpent += price;
+        if (ev.date && ev.date >= thisYear + '-01-01') upcoming++;
+        else past++;
+        allTicketEvents.push({...ev, _type: 'festival', _price: price});
+      }
+    } else if (ev.concerts) {
+      ev.concerts.forEach(c => {
+        const cTags = c.tags || [];
+        const cHasTickets = cTags.includes('tickets');
+        if (cHasTickets) {
+          totalConcerts++;
+          const year = c.date ? c.date.substring(0, 4) : 'unbekannt';
+          byYear[year] = (byYear[year] || 0) + 1;
+          if (ev.artist) byArtist[ev.artist] = (byArtist[ev.artist] || 0) + 1;
+          if (c.venue) byVenue[c.venue] = (byVenue[c.venue] || 0) + 1;
+          const price = parseFloat(c.price) || 0;
+          if (price > 0) totalSpent += price;
+          if (c.date && c.date >= thisYear + '-01-01') upcoming++;
+          else past++;
+          allTicketEvents.push({...ev, _type: 'tour', _concert: c, _price: price});
+        }
+      });
+    }
+  });
+  
+  // Top artists
+  const topArtists = Object.entries(byArtist).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topVenues = Object.entries(byVenue).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  
+  // This year vs last year
+  const thisYearCount = (byYear[thisYear] || 0);
+  const lastYearCount = (byYear[lastYear] || 0);
+  const twoYearCount = (byYear[twoYearsAgo] || 0);
+  
+  return {
+    totalConcerts,
+    totalFestivals,
+    totalEvents: totalConcerts + totalFestivals,
+    totalSpent,
+    byYear,
+    topArtists,
+    topVenues,
+    upcoming,
+    past,
+    thisYearCount,
+    lastYearCount,
+    twoYearCount,
+    yearChange: lastYearCount > 0 ? Math.round((thisYearCount - lastYearCount) / lastYearCount * 100) : 0,
+    allTicketEvents
+  };
+}
+
+function renderStatsHtml(s) {
+  const fmtPrice = (p) => p ? (Number(p) || 0).toFixed(2).replace('.', ',') + ' €' : '–';
+  const yearBars = Object.entries(s.byYear).sort((a,b) => b[0].localeCompare(a[0])).slice(0, 5);
+  const maxYear = Math.max(...Object.values(s.byYear), 1);
+  
+  let _statEvents = s.allTicketEvents;
+  return `<div class="stat-grid">
+    <div class="stat-card" onclick="showStatDetail('all')">
+      <div class="stat-value">${s.totalEvents}</div>
+      <div class="stat-label">Events gesamt</div>
+    </div>
+    <div class="stat-card" onclick="showStatDetail('concerts')">
+      <div class="stat-value">${s.totalConcerts}</div>
+      <div class="stat-label">Konzerte</div>
+    </div>
+    <div class="stat-card" onclick="showStatDetail('festivals')">
+      <div class="stat-value">${s.totalFestivals}</div>
+      <div class="stat-label">Festivals</div>
+    </div>
+    <div class="stat-card" onclick="showStatDetail('spent')">
+      <div class="stat-value">${fmtPrice(s.totalSpent)}</div>
+      <div class="stat-label">Geschätzt ausgegeben</div>
+    </div>
+    <div class="stat-card full" onclick="showStatDetail('year')">
+      <div class="stat-value">${s.thisYearCount}</div>
+      <div class="stat-label">${new Date().getFullYear()} ${s.yearChange !== 0 ? `(${s.yearChange > 0 ? '+' : ''}${s.yearChange}%)` : ''}</div>
+    </div>
+  </div>
+  
+  ${s.topArtists.length ? `<div class="stat-section">
+    <div class="stat-section-title">Top Künstler</div>
+    <div class="stat-list">
+      ${s.topArtists.map(([name, count]) => `<div class="stat-list-item"><span>${esc(name)}</span><span style="color:var(--accent)">${count}</span></div>`).join('')}
+    </div>
+  </div>` : ''}
+  
+  ${s.topVenues.length ? `<div class="stat-section">
+    <div class="stat-section-title">Top Venues</div>
+    <div class="stat-list">
+      ${s.topVenues.map(([name, count]) => `<div class="stat-list-item"><span>${esc(name)}</span><span style="color:var(--accent)">${count}</span></div>`).join('')}
+    </div>
+  </div>` : ''}
+  
+  <div class="stat-section">
+    <div class="stat-section-title">Termine nach Jahr</div>
+    <div class="stat-list">
+      ${yearBars.map(([year, count]) => {
+        const pct = Math.round(count / maxYear * 100);
+        return `<div class="stat-list-item"><span>${year}</span><span style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent)"></div></div>${count}</span></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+let _statEvents = [];
+
+function showStatDetail(type) {
+  const events = _statEvents;
+  const fmtPrice = (p) => p ? (Number(p) || 0).toFixed(2).replace('.', ',') + ' €' : '–';
+  const thisYear = new Date().getFullYear();
+  
+  let filtered = events;
+  let title = '';
+  
+  if (type === 'all') {
+    title = 'Alle Events mit Tickets';
+  } else if (type === 'concerts') {
+    filtered = events.filter(e => e._type === 'tour');
+    title = 'Alle Konzerte mit Tickets';
+  } else if (type === 'festivals') {
+    filtered = events.filter(e => e._type === 'festival');
+    title = 'Alle Festivals mit Tickets';
+  } else if (type === 'spent') {
+    filtered = events.filter(e => e._price > 0);
+    title = 'Alle Events mit Preis';
+  } else if (type === 'year') {
+    filtered = events.filter(e => {
+      const date = e._type === 'tour' ? (e._concert?.date || '') : (e.date || '');
+      return date.startsWith(thisYear);
+    });
+    title = `Events ${thisYear}`;
+  }
+  
+  // Sort by date
+  filtered.sort((a, b) => {
+    const dateA = a._type === 'tour' ? (a._concert?.date || '') : (a.date || '');
+    const dateB = b._type === 'tour' ? (b._concert?.date || '') : (b.date || '');
+    return dateA.localeCompare(dateB);
+  });
+  
+  const listHtml = filtered.map(e => {
+    const name = e._type === 'tour' ? (e.artist || 'Unbekannt') : (e.name || 'Unbekannt');
+    const date = e._type === 'tour' ? (e._concert?.date || '–') : (e.date || '–');
+    const venue = e._type === 'tour' ? (e._concert?.venue || '–') : (e.venue || '–');
+    const price = e._price || 0;
+    return `<div class="stat-list-item">
+      <div>
+        <div style="font-weight:500">${esc(name)}</div>
+        <div style="font-size:11px;color:var(--muted)">${esc(venue)} · ${esc(date)}</div>
+      </div>
+      <div style="color:var(--accent)">${fmtPrice(price)}</div>
+    </div>`;
+  }).join('');
+  
+  const total = filtered.reduce((sum, e) => sum + (e._price || 0), 0);
+  
+  document.getElementById('stats-content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <button class="btn-cancel" onclick="openStatistics()">← Zurück</button>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px">${title}</span>
+      <span style="color:var(--accent)">${fmtPrice(total)}</span>
+    </div>
+    <div class="stat-list" style="max-height:60vh">
+      ${listHtml || '<div style="text-align:center;color:var(--muted);padding:20px">Keine Events gefunden</div>'}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════════════
 function openDesignPanel() { closeDrawer(); buildColorGrid(); openModal('design-modal'); }
 
 // ══════════════════════════════════════════════════════════════════════
 // Utilities
+// ══════════════════════════════════════════════════════════════════════
+// Theme toggle
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('kp-theme', isLight ? 'light' : 'dark');
+  document.getElementById('theme-toggle').textContent = isLight ? '🌙' : '☀️';
+}
+
+function loadTheme() {
+  const theme = localStorage.getItem('kp-theme');
+  if (theme === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-toggle').textContent = '🌙';
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════
 function esc(s) {
   return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2575,7 +3074,7 @@ function exportHTML(upcoming, past, todayIso) {
     if (ev.event_type === 'festival') {
       const d = parseDate(ev.date);
       const endStr = ev.end_date ? ` – ${fmtDateShort(ev.end_date)}` : '';
-      const tagTxt = (ev.tags||[]).map(t => t==='tickets'?'🎟 Tickets':'🔖 Merkliste').join(' · ');
+      const tagTxt = (ev.tags||[]).map(t => t==='tickets'?'✓ Tickets':'☆ Merkliste').join(' · ');
       const bands  = (ev.bands_to_watch||[]).join(', ');
       return `<div class="ev-card">
         <div class="ev-header">
@@ -2587,8 +3086,8 @@ function exportHTML(upcoming, past, todayIso) {
           <div class="ev-main">
             <div class="ev-badge" style="color:${festCol};border-color:${festCol}">Festival</div>
             <div class="ev-title">${esc(ev.name)}</div>
-            <div class="ev-sub">📍 ${esc(ev.venue)}${ev.city?', '+esc(ev.city):''}${ev.time?' · 🕐 '+esc(ev.time)+' Uhr':''}</div>
-            ${ev.price||ev.ticket_link ? `<div class="ev-detail">${ev.price?'💶 '+fmtPrice(ev.price):''}${ev.ticket_link?` <a href="${esc(ev.ticket_link)}">🎟 Tickets</a>`:''}${tagTxt?' · '+tagTxt:''}</div>` : (tagTxt?`<div class="ev-detail">${tagTxt}</div>`:'')}
+            <div class="ev-sub">📌 ${esc(ev.venue)}${ev.city?', '+esc(ev.city):''}${ev.time?' · 🕓 '+esc(ev.time)+' Uhr':''}</div>
+            ${ev.price||ev.ticket_link ? `<div class="ev-detail">${ev.price?'€ '+fmtPrice(ev.price):''}${ev.ticket_link?` <a href="${esc(ev.ticket_link)}">✓ Tickets</a>`:''}${tagTxt?' · '+tagTxt:''}</div>` : (tagTxt?`<div class="ev-detail">${tagTxt}</div>`:'')}
             ${bands ? `<div class="ev-detail" style="color:#999">Bands: ${esc(bands)}</div>` : ''}
           </div>
         </div>
@@ -2598,7 +3097,7 @@ function exportHTML(upcoming, past, todayIso) {
       const d = parseDate(c.date);
       const endStr = c.end_date ? `–${new Date(c.end_date+'T12:00:00').getDate()}` : '';
       const acts = (c.support_present||[]).join(', ');
-      const tagIcons = (c.tags||[]).map(t=>t==='tickets'?'🎟':'🔖').join(' ');
+      const tagIcons = (c.tags||[]).map(t=>t==='tickets'?'✓':'☆').join(' ');
       return `<div class="conc-row">
         <div class="conc-date" style="color:${tourCol}">
           <span class="cd-day">${d.day}${endStr}</span>
@@ -2607,9 +3106,9 @@ function exportHTML(upcoming, past, todayIso) {
         </div>
         <div class="conc-info">
           <strong>${esc(c.venue)}</strong>, ${esc(c.city)}
-          ${c.time?' · 🕐 '+esc(c.time)+' Uhr':''}
-          ${c.price?' · 💶 '+fmtPrice(c.price):''}
-          ${c.ticket_link?` · <a href="${esc(c.ticket_link)}">🎟 Tickets</a>`:''}
+          ${c.time?' · 🕓 '+esc(c.time)+' Uhr':''}
+          ${c.price?' · € '+fmtPrice(c.price):''}
+          ${c.ticket_link?` · <a href="${esc(c.ticket_link)}">✓ Tickets</a>`:''}
           ${acts?`<br><span style="color:#777">${esc(acts)}</span>`:''}
         </div>
         <div class="conc-tags">${tagIcons}</div>
@@ -2710,13 +3209,312 @@ document.addEventListener('click', e => {
       !panel.contains(e.target) && e.target !== input) {
     closeSearchPanel();
   }
+  // Close notif panel on outside click
+  const notifPanel = document.getElementById('notif-panel');
+  const notifBtn   = document.getElementById('notif-btn');
+  if (notifPanel && notifPanel.classList.contains('open') &&
+      !notifPanel.contains(e.target) && notifBtn && !notifBtn.contains(e.target)) {
+    notifPanel.classList.remove('open');
+  }
 });
+
+// ══════════════════════════════════════════════════════════════════════
+// Follow / Favourites
+// ══════════════════════════════════════════════════════════════════════
+async function toggleFollow(artistId, follow) {
+  if (!artistId) {
+    // Derived artist (id=null) — cannot save follow state without a real catalogue entry
+    // This should not happen since derived artists don't show the follow button, but guard anyway
+    return;
+  }
+  await fetch('/api/artists/' + artistId, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ followed: follow }),
+  });
+  await reloadCatalogue();
+  renderArtistList();
+  if (currentTab === 'favourites') renderFavourites();
+}
+
+// ── Favourites tab ────────────────────────────────────────────────────
+let _favCardState = {};
+
+async function renderFavourites() {
+  const el = document.getElementById('fav-list');
+  const followed = artists.filter(a => a.followed && a.id);
+  if (!followed.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="icon">★</div><h3>Keine Favoriten</h3>
+      <p>Füge Artists über „＋ Artist hinzufügen" oder die Artist-Liste hinzu.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = followed.map(a => buildFavCard(a)).join('');
+}
+
+function buildFavCard(a) {
+  const state = _favCardState[a.id] || {};
+  const isOpen = !!state.open;
+  const logoHtml = a.logo
+    ? `<div class="fav-artist-logo"><img src="/static/logos/${a.logo}" alt=""></div>`
+    : `<div class="fav-artist-logo">🎤</div>`;
+  const evimLabel = a.eventim_name
+    ? `<div class="fav-artist-meta">Eventim: ${esc(a.eventim_name)}</div>` : '';
+  let bodyHtml = '';
+  if (isOpen) {
+    if (state.loading) {
+      bodyHtml = `<div class="fav-loading">⏳ Lade Eventim-Events…</div>`;
+    } else if (state.error) {
+      bodyHtml = `<div class="fav-empty">❌ ${esc(state.error)}</div>`;
+    } else if (state.suggestions && state.suggestions.length) {
+      bodyHtml = `<div class="fav-no-match">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+          Artist „${esc(a.name)}" nicht eindeutig auf Eventim gefunden. Ähnliche Treffer:
+        </div>
+        ${state.suggestions.map(s => `
+          <div class="fav-suggestion">
+            <span>${esc(s.name)} <span style="color:var(--muted);font-size:11px">(${s.event_count} Events)</span></span>
+            <button class="btn-sm" onclick="confirmEventimArtist('${a.id}','${s.name.replace(/'/g,"\'")}')">Als Eventim-Artist setzen</button>
+          </div>`).join('')}
+      </div>`;
+    } else if (state.concerts && state.concerts.length) {
+      bodyHtml = state.concerts.map(c => {
+        const d = parseDate(c.date);
+        const cJson = encodeURIComponent(JSON.stringify(c));
+        const aJson = encodeURIComponent(JSON.stringify(a.name));
+        return `<div class="fav-event-row" onclick="openNotifEventModalEnc('${cJson}','${aJson}')">
+          <div class="date-block" style="padding-top:0">
+            <div class="date-day" style="font-size:1.5rem">${d.day}</div>
+            <div class="date-month">${d.month}</div>
+            <div class="date-year">${d.year}</div>
+          </div>
+          <div class="concert-info">
+            <div class="concert-venue">${esc(c.venue||c.name||'–')}</div>
+            <div class="concert-city">📌 ${esc(c.city)}</div>
+            ${c.time ? `<div class="concert-time">🕓 ${esc(c.time)} Uhr</div>` : ''}
+          </div>
+          <div class="fav-event-actions">
+            ${c.link ? `<a href="${esc(c.link)}" target="_blank" rel="noopener" class="ticket-link-btn" onclick="event.stopPropagation()" style="font-size:11px">✓</a>` : ''}
+            ${c.inStock ? '<span style="font-size:10px;color:var(--tickets-color)">✓</span>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      bodyHtml = `<div class="fav-empty">Keine anstehenden Events auf Eventim gefunden.</div>`;
+    }
+  }
+  return `<div class="fav-card ${isOpen?'open':''}" id="fav-card-${a.id}">
+    <div class="fav-card-header" onclick="toggleFavCard('${a.id}','${(a.eventim_name||a.name).replace(/'/g,"\'")}')">
+      ${logoHtml}
+      <div style="flex:1;min-width:0">
+        <div class="fav-artist-name">${esc(a.name)}</div>
+        ${evimLabel}
+      </div>
+      <span class="fav-chevron">▶</span>
+    </div>
+    <div class="fav-events-body">${bodyHtml}</div>
+  </div>`;
+}
+
+function openNotifEventModalEnc(cEnc, aEnc) {
+  openNotifEventModal(JSON.parse(decodeURIComponent(cEnc)), JSON.parse(decodeURIComponent(aEnc)));
+}
+
+async function toggleFavCard(artistId, eventimName) {
+  const state = _favCardState[artistId] || {};
+  if (state.open) { _favCardState[artistId] = {...state, open:false}; renderFavourites(); return; }
+  const now = Date.now();
+  if (state.concerts !== undefined && state.loadedAt && (now - state.loadedAt) < 5*60*1000) {
+    _favCardState[artistId] = {...state, open:true}; renderFavourites(); return;
+  }
+  _favCardState[artistId] = {open:true, loading:true};
+  renderFavourites();
+  await loadFavArtistEvents(artistId, eventimName);
+}
+
+async function loadFavArtistEvents(artistId, searchName) {
+  try {
+    const r = await fetch(`/api/eventim/artist-search?q=${encodeURIComponent(searchName)}&top=8`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    const exactMatch = (data.artists||[]).find(a=>a.name.toLowerCase()===searchName.toLowerCase());
+    if (!exactMatch && (data.artists||[]).length > 0) {
+      _favCardState[artistId] = {open:true, loading:false, loadedAt:Date.now(), suggestions:data.artists.slice(0,5)};
+      renderFavourites(); return;
+    }
+    const confirmedName = exactMatch ? exactMatch.name : searchName;
+    const r2 = await fetch(`/api/eventim/artist-events?name=${encodeURIComponent(confirmedName)}`);
+    const d2 = await r2.json();
+    if (d2.error) throw new Error(d2.error);
+    _favCardState[artistId] = {open:true, loading:false, loadedAt:Date.now(), concerts:d2.concerts||[], confirmedName};
+    renderFavourites();
+  } catch(err) {
+    _favCardState[artistId] = {open:true, loading:false, error:err.message};
+    renderFavourites();
+  }
+}
+
+async function confirmEventimArtist(artistId, eventimName) {
+  await fetch('/api/artists/'+artistId, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventim_name:eventimName})});
+  await reloadCatalogue();
+  _favCardState[artistId] = {open:true, loading:true};
+  renderFavourites();
+  await loadFavArtistEvents(artistId, eventimName);
+}
+
+// ── Add Favourite modal ───────────────────────────────────────────────
+let _favSearchTimeout = null;
+
+function openAddFavouriteModal() {
+  document.getElementById('fav-search-input').value = '';
+  document.getElementById('fav-search-results').innerHTML = '';
+  openModal('add-fav-modal');
+  setTimeout(()=>document.getElementById('fav-search-input').focus(), 100);
+}
+function onFavSearchInput() {
+  const q = document.getElementById('fav-search-input').value.trim();
+  clearTimeout(_favSearchTimeout);
+  if (q.length < 2) return;
+  _favSearchTimeout = setTimeout(()=>doFavSearch(q), 400);
+}
+async function doFavSearch(q) {
+  const el = document.getElementById('fav-search-results');
+  el.innerHTML = `<div class="fav-loading">⏳ Suche auf Eventim…</div>`;
+  try {
+    const r = await fetch(`/api/eventim/artist-search?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    const found = data.artists || [];
+    if (!found.length) { el.innerHTML=`<div class="fav-empty">Keine Treffer für „${esc(q)}".</div>`; return; }
+    el.innerHTML = found.map(a=>`
+      <div class="fav-suggestion" style="padding:10px 0">
+        <div>
+          <div style="font-size:14px">${esc(a.name)}</div>
+          <div style="font-size:11px;color:var(--muted)">${a.event_count} anstehende Events</div>
+        </div>
+        <button class="btn-sm" onclick="addFavouriteArtist('${a.name.replace(/'/g,"\'")}')">★ Folgen</button>
+      </div>`).join('');
+  } catch(err) {
+    el.innerHTML = `<div class="fav-empty">Fehler: ${esc(err.message)}</div>`;
+  }
+}
+async function addFavouriteArtist(eventimName) {
+  const existing = artists.find(a=>a.name.toLowerCase()===eventimName.toLowerCase()&&a.id);
+  if (existing) {
+    await fetch('/api/artists/'+existing.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({followed:true,eventim_name:eventimName})});
+  } else {
+    await fetch('/api/artists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:eventimName,followed:true,eventim_name:eventimName})});
+  }
+  await reloadCatalogue();
+  closeModal('add-fav-modal');
+  const favTab = document.querySelector('.tab:nth-child(3)');
+  if (favTab) switchTab('favourites', favTab);
+}
+
+// ── Notifications ─────────────────────────────────────────────────────
+let _notifications = JSON.parse(localStorage.getItem('kp-notifs')||'[]');
+
+function saveNotifications() { _notifications=_notifications.slice(-50); localStorage.setItem('kp-notifs',JSON.stringify(_notifications)); }
+function updateNotifBadge() {
+  const unread = _notifications.filter(n=>!n.read).length;
+  const badge = document.getElementById('notif-badge');
+  badge.textContent = unread>9?'9+':String(unread);
+  badge.classList.toggle('visible', unread>0);
+}
+function toggleNotifPanel() {
+  const p = document.getElementById('notif-panel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) renderNotifPanel();
+}
+function renderNotifPanel() {
+  const el = document.getElementById('notif-list');
+  if (!_notifications.length) { el.innerHTML=`<div class="notif-empty">Keine Benachrichtigungen</div>`; return; }
+  el.innerHTML = [..._notifications].reverse().map(n=>`
+    <div class="notif-item ${n.read?'':'unread'}" onclick="onNotifClick('${n.id}')">
+      <div class="notif-artist">★ ${esc(n.artistName)}</div>
+      <div class="notif-event">📅 ${n.date?fmtDateShort(n.date):'?'} · ${esc(n.venue||'')}${n.city?', '+esc(n.city):''}</div>
+    </div>`).join('');
+}
+function onNotifClick(notifId) {
+  const notif = _notifications.find(n=>n.id===notifId);
+  if (!notif) return;
+  notif.read=true; saveNotifications(); updateNotifBadge(); renderNotifPanel();
+  openNotifEventModal(notif.concertData, notif.artistName);
+  document.getElementById('notif-panel').classList.remove('open');
+}
+function markAllNotifRead() { _notifications.forEach(n=>n.read=true); saveNotifications(); updateNotifBadge(); renderNotifPanel(); }
+
+let _notifImportData = null;
+function openNotifEventModal(concertData, artistName) {
+  _notifImportData = {concertData, artistName};
+  const d = parseDate(concertData.date);
+  document.getElementById('notif-event-title').textContent = `${esc(artistName)} – Event speichern`;
+  document.getElementById('notif-event-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:72px 1fr;gap:14px;padding:4px 0 16px">
+      <div class="date-block" style="padding-top:0">
+        <div class="date-day">${d.day}</div><div class="date-month">${d.month}</div><div class="date-year">${d.year}</div>
+      </div>
+      <div class="concert-info">
+        <div class="concert-venue" style="font-size:15px">${esc(concertData.venue||concertData.name||'–')}</div>
+        <div class="concert-city">📌 ${esc(concertData.city||'')}</div>
+        ${concertData.venue ? venueMapHtml(concertData.venue, concertData.city) : ''}
+        ${concertData.time?`<div class="concert-time">🕓 ${esc(concertData.time)} Uhr</div>`:''}
+        ${concertData.inStock!==undefined?`<div style="margin-top:6px;font-size:12px;color:${concertData.inStock?'var(--tickets-color)':'#f87171'}">${concertData.inStock?'✓ Verfügbar':'✗ Ausverkauft'}</div>`:''}
+      </div>
+    </div>
+    ${concertData.link?`<a href="${esc(concertData.link)}" target="_blank" rel="noopener" class="ticket-link-btn" style="margin-bottom:10px;display:inline-flex">↗ Auf Eventim ansehen</a>`:''}`;
+  openModal('notif-event-modal');
+}
+async function importNotifEvent() {
+  if (!_notifImportData) return;
+  const {concertData:c, artistName} = _notifImportData;
+  const r = await fetch('/api/events',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({event_type:'tour',artist:artistName,tour_name:c.name||artistName,
+      support:[],poster:null,comment:'',concerts:[{date:c.date||'',time:c.time||null,end_date:null,
+      city:c.city||'',venue:c.venue||c.name||'',price:null,ticket_link:c.link||null,tags:[],support_present:[]}]})});
+  if (!r.ok){alert('Fehler beim Speichern.');return;}
+  closeModal('notif-event-modal');
+  await fetchAll();
+}
+
+// ── Background polling ────────────────────────────────────────────────
+let _lastEventimCheck = {}, _pollInterval = null;
+function startFavPolling() {
+  if (_pollInterval) return;
+  _pollInterval = setInterval(checkFavArtistEvents, 30*60*1000);
+}
+async function checkFavArtistEvents() {
+  const followed = artists.filter(a=>a.followed&&a.id&&(a.eventim_name||a.name));
+  for (const a of followed) {
+    const searchName = a.eventim_name||a.name;
+    try {
+      const r = await fetch(`/api/eventim/artist-events?name=${encodeURIComponent(searchName)}`);
+      const data = await r.json();
+      if (data.error||!data.concerts) continue;
+      const seen = _lastEventimCheck[a.id]||new Set();
+      const newC = data.concerts.filter(c=>c.productId&&!seen.has(c.productId));
+      if (newC.length && seen.size>0) {
+        newC.forEach(c=>{
+          _notifications.push({id:`${a.id}-${c.productId}-${Date.now()}`,artistName:a.name,
+            concertName:c.name||'',date:c.date,city:c.city,venue:c.venue,link:c.link,read:false,concertData:c});
+        });
+        saveNotifications(); updateNotifBadge();
+        if (_favCardState[a.id]) {_favCardState[a.id].concerts=data.concerts;_favCardState[a.id].loadedAt=Date.now();}
+      }
+      _lastEventimCheck[a.id] = new Set(data.concerts.map(c=>c.productId).filter(Boolean));
+    } catch(e){}
+  }
+}
+setTimeout(()=>{checkFavArtistEvents();startFavPolling();}, 5000);
+updateNotifBadge();
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeLightbox(); closeDetail();
     ['event-modal','artist-modal','artist-detail-modal','venue-modal','design-modal',
-     'export-modal','eventim-concerts-modal'].forEach(id => closeModal(id)); closeSearchPanel();
+     'export-modal','eventim-concerts-modal','add-fav-modal','notif-event-modal'].forEach(id => closeModal(id));
+    closeSearchPanel(); const np=document.getElementById('notif-panel'); if(np)np.classList.remove('open');
     closeDrawer();
   }
 });
@@ -2838,7 +3636,7 @@ function closeSearchPanel() {
 // ── Concert selection modal ───────────────────────────────────────────
 function showConcertsModal(tourIndex) {
   _currentTour = window._eventimTours[tourIndex];
-  _selectedConcerts = new Set(_currentTour.concerts.map((_, i) => i)); // all selected by default
+  _selectedConcerts = new Set(); // default: none selected
 
   document.getElementById('eventim-concerts-title').textContent =
     `${esc(_currentTour.artist)} – Termine auswählen`;
@@ -2849,10 +3647,37 @@ function showConcertsModal(tourIndex) {
 
 function renderConcertSelection() {
   const list = document.getElementById('eventim-concert-list');
-  list.innerHTML = _currentTour.concerts.map((c, i) => {
+  const myCity = getLocationCity().toLowerCase();
+  const preferred = getPreferredCities().map(c => c.toLowerCase());
+  
+  // Sort concerts: priority (my city + preferred) first, then chronologically
+  const sorted = [..._currentTour.concerts].map((c, i) => ({...c, _origIdx: i})).sort((a, b) => {
+    const aCity = (a.city || '').toLowerCase();
+    const bCity = (b.city || '').toLowerCase();
+    const aIsMyCity = aCity === myCity;
+    const bIsMyCity = bCity === myCity;
+    const aIsPreferred = preferred.includes(aCity);
+    const bIsPreferred = preferred.includes(bCity);
+    // Priority: my city > preferred cities > others
+    if (aIsMyCity && !bIsMyCity) return -1;
+    if (!aIsMyCity && bIsMyCity) return 1;
+    if (aIsPreferred && !bIsPreferred && !bIsMyCity) return -1;
+    if (!aIsPreferred && bIsPreferred && !aIsMyCity) return 1;
+    // Then by date
+    return (a.date || '').localeCompare(b.date || '');
+  });
+  
+  // Find the split point (first non-priority item)
+  let splitIdx = sorted.findIndex(c => {
+    const city = (c.city || '').toLowerCase();
+    return city !== myCity && !preferred.includes(city);
+  });
+  if (splitIdx === -1) splitIdx = sorted.length;
+  
+  const renderItem = (c, i) => {
     const d = parseDate(c.date);
-    const sel = _selectedConcerts.has(i);
-    return `<div class="ev-conc-item ${sel ? 'selected' : ''}" onclick="toggleConcert(${i})">
+    const sel = _selectedConcerts.has(c._origIdx);
+    return `<div class="ev-conc-item ${sel ? 'selected' : ''}" onclick="toggleConcert(${c._origIdx})">
       <div class="ev-conc-check"><div class="check-box">${sel ? '✓' : ''}</div></div>
       <div class="ev-conc-date">
         <div class="date-day">${d.day || '?'}</div>
@@ -2861,17 +3686,22 @@ function renderConcertSelection() {
       </div>
       <div class="ev-conc-info">
         <div class="ev-conc-venue">${esc(c.venue || '–')}</div>
-        <div class="ev-conc-city">📍 ${esc(c.city || '')}</div>
-        ${c.time ? `<div class="ev-conc-time">🕐 ${esc(c.time)} Uhr</div>` : ''}
+        <div class="ev-conc-city">📌 ${esc(c.city || '')}</div>
+        ${c.time ? `<div class="ev-conc-time">🕓 ${esc(c.time)} Uhr</div>` : ''}
       </div>
       <div class="ev-conc-right">
         <div class="ev-conc-stock ${c.inStock ? 'in-stock' : 'out-stock'}">
           ${c.inStock ? '✓ Verfügbar' : '✗ Ausverkauft'}
         </div>
-        ${c.link ? `<div style="margin-top:4px"><a href="${esc(c.link)}" target="_blank" rel="noopener" class="ticket-link-btn" onclick="event.stopPropagation()" style="font-size:10px;padding:2px 7px">🎟 Eventim</a></div>` : ''}
+        ${c.link ? `<div style="margin-top:4px"><a href="${esc(c.link)}" target="_blank" rel="noopener" class="ticket-link-btn" onclick="event.stopPropagation()" style="font-size:10px;padding:2px 7px">✓ Eventim</a></div>` : ''}
       </div>
     </div>`;
-  }).join('');
+  };
+  
+  const priorityHtml = sorted.slice(0, splitIdx).map(renderItem).join('');
+  const otherHtml = sorted.slice(splitIdx).map(renderItem).join('');
+  
+  list.innerHTML = priorityHtml + (otherHtml ? `<div class="ev-conc-divider"><span>Weitere Termine</span></div>` + otherHtml : '');
 }
 
 function toggleConcert(i) {
@@ -2933,6 +3763,27 @@ async function importEventimTour() {
   }
 }
 </script>
+
+<!-- Favourites tab -->
+<main id="tab-favourites" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Gefolgte Artists</div>
+    <button class="btn-new" style="padding:7px 16px;font-size:13px" onclick="openAddFavouriteModal()">＋ Artist hinzufügen</button>
+  </div>
+  <div id="fav-list"></div>
+</main>
+
+<!-- Notification panel -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-panel-header">
+    <span>🔔 Benachrichtigungen</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-sm" onclick="markAllNotifRead()" style="font-size:11px">Alle gelesen</button>
+      <button class="btn-close" onclick="toggleNotifPanel()">✕</button>
+    </div>
+  </div>
+  <div class="notif-list" id="notif-list"></div>
+</div>
 
 <!-- Export Modal -->
 <div class="modal-backdrop" id="export-modal" onclick="closeMbg('export-modal',event)">
@@ -3015,6 +3866,40 @@ async function importEventimTour() {
   <div class="form-actions">
     <button class="btn-cancel" onclick="closeModal('eventim-concerts-modal')">Abbrechen</button>
     <button class="btn-save" onclick="importEventimTour()">In Eventliste speichern</button>
+  </div>
+ </div>
+</div>
+
+<!-- Add Favourite Artist modal -->
+<div class="modal-backdrop" id="add-fav-modal" onclick="closeMbg('add-fav-modal',event)">
+ <div class="modal" style="max-width:480px">
+  <div class="modal-title">
+    <span>Artist zu Favoriten hinzufügen</span>
+    <button class="btn-close" onclick="closeModal('add-fav-modal')">✕</button>
+  </div>
+  <div class="form-group" style="margin-bottom:16px">
+    <label>Artist suchen</label>
+    <div class="pill-wrap">
+      <input type="text" id="fav-search-input" placeholder="Artist-Name…" autocomplete="off"
+        oninput="onFavSearchInput()" onkeydown="if(event.key==='Enter')onFavSearchInput()">
+      <div class="ac-drop" id="fav-search-drop"></div>
+    </div>
+  </div>
+  <div id="fav-search-results" style="max-height:280px;overflow-y:auto"></div>
+ </div>
+</div>
+
+<!-- Quick-import event card modal (from notification) -->
+<div class="modal-backdrop" id="notif-event-modal" onclick="closeMbg('notif-event-modal',event)">
+ <div class="modal" style="max-width:560px">
+  <div class="modal-title">
+    <span id="notif-event-title">Event speichern</span>
+    <button class="btn-close" onclick="closeModal('notif-event-modal')">✕</button>
+  </div>
+  <div id="notif-event-body"></div>
+  <div class="form-actions">
+    <button class="btn-cancel" onclick="closeModal('notif-event-modal')">Abbrechen</button>
+    <button class="btn-save" onclick="importNotifEvent()">In Eventliste speichern</button>
   </div>
  </div>
 </div>
