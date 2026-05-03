@@ -6,6 +6,8 @@
 <title>Konzertplaner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ─── CSS Variables (themeable) ────────────────────────────────────── */
 :root {
@@ -26,7 +28,7 @@
 :root.light {
   --bg:        #ececec;
   --surface:   #ffffff;
-  --surface2:  #f0f0f0;
+  --surface2:  #f3f3f3;
   --surface3:  #e5e5e5;
   --border:    #dddddd00;
   --accent:    #006b66;
@@ -198,12 +200,12 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .concert-list { display: flex; flex-direction: column; }
 .concert-item {
   display: grid; grid-template-columns: 80px 1fr auto;
-  padding: 13px 22px; border-bottom: 1px solid var(--border); align-items: start;
+  padding: 13px 22px; border-bottom: 1px solid var(--border); align-items: center;
 }
 .concert-item:last-child { border-bottom: none; }
 
 /* shared date block */
-.date-block { text-align: center; padding-top: 2px; }
+.date-block { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .date-day   { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; line-height: 1; color: var(--tour); }
 .festival-date .date-day { color: var(--festival); }
 .date-month { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
@@ -270,6 +272,61 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .cal-event.ev-watchlist { background: color-mix(in srgb,var(--watch-color) 10%,transparent);   color: var(--watch-color);   border-left-color: var(--watch-color); }
 .cal-event.ev-tour      { background: color-mix(in srgb,var(--tour) 10%,transparent);         color: var(--tour);         border-left-color: var(--tour); }
 .cal-event.ev-festival  { background: color-mix(in srgb,var(--festival) 10%,transparent);      color: var(--festival);      border-left-color: var(--festival); }
+
+/* ─── Map ─────────────────────────────────────────────────────────── */
+#tab-map { min-height: 500px; padding-bottom: 20px; }
+#map-container { height: 500px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+#map { width: 100%; height: 100%; background: var(--surface); }
+#map-legend {
+  display: flex; gap: 16px; align-items: center; padding: 12px 0; flex-wrap: wrap;
+  border-top: 1px solid var(--border); margin-top: 12px;
+}
+.map-legend-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.venue-marker-sample {
+  width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: bold; color: #fff; border: 2px solid #fff;
+}
+.venue-marker-sample.tour { background: var(--tour); }
+.venue-marker-sample.festival { background: var(--festival); }
+.venue-marker-sample.mixed { background: linear-gradient(135deg, var(--tour) 50%, var(--festival) 50%); }
+.map-marker { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.map-marker.tour { background: var(--tour); }
+.map-marker.festival { background: var(--festival); }
+.map-marker-icon { display: flex; align-items: center; justify-content: center; }
+.map-marker-icon.tour { background: var(--tour); border-radius: 50%; border: 2px solid #fff; }
+.map-marker-icon.festival { background: var(--festival); border-radius: 50%; border: 2px solid #fff; }
+/* Venue markers with count badges */
+.venue-marker { background: transparent; border: none; }
+.venue-marker-inner {
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: bold; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.venue-marker-inner.tour { background: var(--tour); }
+.venue-marker-inner.festival { background: var(--festival); }
+.venue-marker-inner.mixed { background: linear-gradient(135deg, var(--tour) 50%, var(--festival) 50%); }
+/* Venue popup */
+.venue-popup { min-width: 200px; }
+.venue-popup-header { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+.venue-popup-city { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.venue-popup-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.venue-popup-concert { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px; background: var(--surface2); border-radius: 4px; }
+.venue-popup-type { font-size: 10px; }
+.venue-popup-type.tour { color: var(--tour); }
+.venue-popup-type.festival { color: var(--festival); }
+.venue-popup-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.venue-popup-date { color: var(--muted); font-size: 11px; }
+.venue-popup-edit {
+  margin-top: 10px; width: 100%; padding: 8px; background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer; transition: background .15s;
+}
+.venue-popup-edit:hover { background: var(--border); }
+/* Leaflet overrides for dark mode */
+.leaflet-container { background: var(--surface); }
+.leaflet-popup-content-wrapper { background: var(--surface); color: var(--text); border-radius: 8px; }
+.leaflet-popup-tip { background: var(--surface); }
+.leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
+.leaflet-control-zoom a:hover { background: var(--surface2) !important; }
 
 /* ─── Empty state ──────────────────────────────────────────────────── */
 .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); }
@@ -663,7 +720,7 @@ input[type=color] {
   position: relative; flex: 1; max-width: 320px;
 }
 .search-input {
-  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface) !important; border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); padding: 8px 36px 8px 14px; font-family: 'DM Sans', sans-serif;
   font-size: 14px; outline: none; width: 100%; transition: border-color .2s;
 }
@@ -902,6 +959,9 @@ input[type=color] {
       <button class="drawer-item" onclick="openStatistics()">
         <span class="di-icon">📊</span> Statistiken
       </button>
+      <button class="drawer-item" onclick="openBackupModal()">
+        <span class="di-icon">💾</span> Backup
+      </button>
       <div class="drawer-sep"></div>
       <button class="drawer-item" onclick="openDesignPanel()">
         <span class="di-icon">🎨</span> Design
@@ -917,6 +977,7 @@ input[type=color] {
 <div class="tabs">
   <button class="tab active" onclick="switchTab('list',this)">Konzertliste</button>
   <button class="tab" onclick="switchTab('calendar',this)">Kalender</button>
+  <button class="tab" onclick="switchTab('map',this)">Karte</button>
   <button class="tab" onclick="switchTab('favourites',this)">Favoriten</button>
 </div>
 
@@ -942,6 +1003,23 @@ input[type=color] {
     <div class="cal-day-name">Mi</div><div class="cal-day-name">Do</div>
     <div class="cal-day-name">Fr</div><div class="cal-day-name">Sa</div>
     <div class="cal-day-name">So</div>
+  </div>
+</main>
+
+<!-- ── Map Tab ───────────────────────────────────────────────────── -->
+<main id="tab-map" style="display:none">
+  <div id="map-container">
+    <div id="map">
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted)">
+        Lade Karte...
+      </div>
+    </div>
+  </div>
+  <div id="map-legend">
+    <div class="map-legend-title">Legende</div>
+    <div class="map-legend-item"><span class="venue-marker-sample tour">1</span> Tour</div>
+    <div class="map-legend-item"><span class="venue-marker-sample festival">2</span> Festival</div>
+    <div class="map-legend-item"><span class="venue-marker-sample mixed">3+</span> Gemischt</div>
   </div>
 </main>
 
@@ -1182,6 +1260,8 @@ input[type=color] {
   <!-- Ratings (read-only, shown if any exist) -->
   <div id="adm-ratings"></div>
   <div class="form-actions" style="margin-top:16px">
+    <button class="btn-cancel" style="color:#f87171;border-color:#f87171" onclick="deleteCurrentArtist()">Löschen</button>
+    <div style="flex:1"></div>
     <button class="btn-cancel" onclick="closeModal('artist-detail-modal')">Abbrechen</button>
     <button class="btn-save" onclick="saveArtistDetail()">Speichern</button>
   </div>
@@ -1251,6 +1331,31 @@ input[type=color] {
      <button class="btn-close" onclick="closeModal('stats-modal')">✕</button>
    </div>
    <div id="stats-content" style="padding:8px 0;max-height:70vh;overflow-y:auto"></div>
+ </div>
+</div>
+
+<!-- ── Backup modal ───────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="backup-modal" onclick="closeMbg('backup-modal',event)">
+ <div class="modal" style="max-width:480px">
+   <div class="modal-title">
+     <span>Backup & Restore</span>
+     <button class="btn-close" onclick="closeModal('backup-modal')">✕</button>
+   </div>
+   <div style="padding:8px 0 16px">
+     <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Exportiere deine Events, Künstler und Einstellungen als JSON-Datei oder stelle sie aus einem Backup wieder her.</p>
+     
+     <div style="display:flex;flex-direction:column;gap:12px">
+       <button class="btn-save" onclick="exportBackup()">📥 Backup exportieren</button>
+       
+       <div style="border-top:1px solid var(--border);padding-top:12px">
+         <label style="font-size:13px;color:var(--muted);margin-bottom:8px;display:block">Backup importieren</label>
+         <input type="file" id="backup-file" accept=".json" style="display:none" onchange="importBackup(this)">
+         <button class="btn-cancel" onclick="document.getElementById('backup-file').click()">📤 Backup auswählen</button>
+       </div>
+     </div>
+     
+     <div id="backup-status" style="margin-top:16px;font-size:13px"></div>
+   </div>
  </div>
 </div>
 
@@ -1414,8 +1519,10 @@ function switchTab(tab, el) {
   el.classList.add('active');
   document.getElementById('tab-list').style.display        = tab === 'list'        ? 'block' : 'none';
   document.getElementById('tab-calendar').style.display    = tab === 'calendar'    ? 'block' : 'none';
+  document.getElementById('tab-map').style.display         = tab === 'map'         ? 'block' : 'none';
   document.getElementById('tab-favourites').style.display  = tab === 'favourites'  ? 'block' : 'none';
   if (tab === 'favourites') renderFavourites();
+  if (tab === 'map') initMap();
 }
 function toggleFilter(tag) {
   const chip = document.getElementById('chip-' + tag);
@@ -1427,6 +1534,19 @@ function toggleFilter(tag) {
     chip.className = 'filter-chip active-' + tag;
   }
   renderList(); renderCalendar();
+  // Refresh map if initialized and visible
+  if (mapInstance && currentTab === 'map') {
+    // Remove existing map and markers
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+    if (mapInstance) {
+      mapInstance.remove();
+      mapInstance = null;
+    }
+    mapInitialized = false;
+    // Reinitialize after a short delay
+    setTimeout(() => initMap(), 100);
+  }
 }
 function eventVisible(ev) {
   if (!activeFilters.size) return true;
@@ -1647,6 +1767,8 @@ function renderTourCard(tour, isPast) {
     ? tour.concerts.filter(c => [...activeFilters].some(f => c.tags.includes(f)))
     : tour.concerts;
   const concertsHtml = concerts.map(c => renderConcertRow(c, tour.id, isPast)).join('');
+  // Get earliest date for header display
+  const earliest = concerts.length ? concerts.reduce((min, c) => !min || c.date < min ? c.date : min, null) : null;
   return `<div class="event-card" onclick="openDetail('${tour.id}')">
     <div class="event-header">
       ${ps}
@@ -1657,10 +1779,6 @@ function renderTourCard(tour, isPast) {
         <div class="event-title">${esc(tour.artist)}</div>
         <div class="event-subtitle">${esc(tour.tour_name)}</div>
         ${tour.support.length ? `<div class="event-support"><span>Support: </span>${esc(tour.support.join(' · '))}</div>` : ''}
-      </div>
-      <div class="event-actions" onclick="event.stopPropagation()">
-        <button class="btn-icon" onclick="openEventModal(getEvent('${tour.id}'))" title="Bearbeiten">✏️</button>
-        <button class="btn-icon delete" onclick="deleteEvent('${tour.id}')" title="Löschen">🗑</button>
       </div>
     </div>
     <div class="concert-list">${concertsHtml}</div>
@@ -1681,7 +1799,7 @@ function renderConcertRow(c, eventId, isPast) {
     </div>
     <div class="concert-info">
       <div class="concert-venue">${esc(c.venue)}</div>
-      <div class="concert-city">📌 ${esc(c.city)}</div>
+      <div class="concert-city">📍 ${esc(c.city)}</div>
       ${c.time ? `<div class="concert-time">🕓 ${esc(c.time)} Uhr</div>` : ''}
       ${actHtml ? `<div class="concert-support-acts">${actHtml}</div>` : ''}
     </div>
@@ -1701,7 +1819,7 @@ function renderFestCard(fest, isPast) {
   const bandsHtml = (fest.bands_to_watch||[]).map(b => `<span class="band-chip">${esc(b)}</span>`).join('');
   const allBands = fest.bands_to_watch||[];
   const ratingsHtml = isPast ? allBands.map(b => ratingBarHtml(fest.id, b, true)).join('') : '';
-  return `<div class="event-card" onclick="openDetail('${fest.id}')">
+  return `<div class="event-card festival" onclick="openDetail('${fest.id}')">
     <div class="event-header">
       ${ps}
       <div class="event-meta">
@@ -1709,10 +1827,6 @@ function renderFestCard(fest, isPast) {
           <span class="type-badge festival">Festival</span>
         </div>
         <div class="event-title">${esc(fest.name)}</div>
-      </div>
-      <div class="event-actions" onclick="event.stopPropagation()">
-        <button class="btn-icon" onclick="openEventModal(getEvent('${fest.id}'))" title="Bearbeiten">✏️</button>
-        <button class="btn-icon delete" onclick="deleteEvent('${fest.id}')" title="Löschen">🗑</button>
       </div>
     </div>
     <div class="concert-item">
@@ -1724,7 +1838,7 @@ function renderFestCard(fest, isPast) {
       </div>
       <div class="concert-info">
         <div class="concert-venue">${esc(fest.venue)||'–'}</div>
-        <div class="concert-city">📌 ${esc(fest.city)}</div>
+        <div class="concert-city">📍 ${esc(fest.city)}</div>
         ${fest.time ? `<div class="concert-time">🕓 ${esc(fest.time)} Uhr</div>` : ''}
         ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
       </div>
@@ -1786,6 +1900,7 @@ function buildDetailHTML(ev) {
         </div>
         <div class="detail-close-row">
           <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
+          <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}">🗑</button>
           <button class="btn-close" onclick="closeDetail()">✕</button>
         </div>
       </div>
@@ -1799,7 +1914,7 @@ function buildDetailHTML(ev) {
           </div>
           <div class="concert-info">
             <div class="concert-venue">${esc(ev.venue)||'–'}</div>
-            <div class="concert-city">📌 ${esc(ev.city)}</div>
+            <div class="concert-city">📍 ${esc(ev.city)}</div>
             ${ev.time ? `<div class="concert-time">🕓 ${esc(ev.time)} Uhr</div>` : ''}
             ${bandsHtml ? `<div class="concert-support-acts">${bandsHtml}</div>` : ''}
             ${ev.venue ? venueMapHtml(ev.venue, ev.city) : ''}
@@ -1843,7 +1958,7 @@ function buildDetailHTML(ev) {
       </div>
       <div class="concert-info">
         <div class="concert-venue">${esc(c.venue)}</div>
-        <div class="concert-city">📌 ${esc(c.city)}</div>
+        <div class="concert-city">📍 ${esc(c.city)}</div>
         ${c.time?`<div class="concert-time">🕓 ${esc(c.time)} Uhr</div>`:''}
         ${actHtml?`<div class="concert-support-acts">${actHtml}</div>`:''}
         ${c.venue ? venueMapHtml(c.venue, c.city) : ''}
@@ -1877,11 +1992,224 @@ function buildDetailHTML(ev) {
       </div>
       <div class="detail-close-row">
         <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
+        <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}">🗑</button>
         <button class="btn-close" onclick="closeDetail()">✕</button>
       </div>
     </div>
     <div class="detail-concerts">${concHtml}</div>
     ${commentBlock}`;
+}
+
+let mapInstance = null;
+let mapMarkers = [];
+
+// ══════════════════════════════════════════════════════════════════════
+// Map
+// ══════════════════════════════════════════════════════════════════════
+function getVenueCache() {
+  try { return JSON.parse(localStorage.getItem('kp-venue-cache') || '{}'); }
+  catch { return {}; }
+}
+function saveVenueCache(cache) {
+  localStorage.setItem('kp-venue-cache', JSON.stringify(cache));
+}
+async function getVenueCoords(venue, city) {
+  const cache = getVenueCache();
+  const key = `${venue}|${city}`;
+  if (cache[key]) return cache[key];
+  // Use Nominatim for geocoding (free, no API key needed)
+  const query = encodeURIComponent(`${venue}, ${city || ''}`.replace(/,\s*$/, ''));
+  try {
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
+      headers: { 'User-Agent': 'Konzertplaner/1.0' }
+    });
+    const data = await resp.json();
+    if (data && data.length > 0) {
+      const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      cache[key] = coords;
+      saveVenueCache(cache);
+      return coords;
+    }
+  } catch (e) { console.error('Geocoding error:', e); }
+  return null;
+}
+let mapInitialized = false;
+async function initMap() {
+  console.log('initMap called, mapInitialized:', mapInitialized);
+  if (mapInitialized) {
+    setTimeout(() => mapInstance?.invalidateSize(), 100);
+    return;
+  }
+  // Check if Leaflet is loaded
+  if (typeof L === 'undefined') {
+    console.error('Leaflet not loaded');
+    document.getElementById('map').innerHTML = '<div style="padding:20px;color:red">Leaflet konnte nicht geladen werden. Bitte Seite neu laden.</div>';
+    return;
+  }
+  console.log('Leaflet loaded, L:', typeof L);
+  mapInitialized = true;
+  // Wait for tab to be visible
+  await new Promise(r => setTimeout(r, 100));
+  const mapEl = document.getElementById('map');
+  if (!mapEl) return;
+  
+  // Clean up any existing map instance
+  if (mapInstance) {
+    try { mapInstance.remove(); } catch(e) {}
+    mapInstance = null;
+  }
+  
+  try {
+    mapInstance = L.map('map').setView([51.1657, 10.4515], 6);
+    console.log('Map created, mapInstance:', mapInstance);
+  } catch (e) {
+    console.error('Error initializing map:', e);
+    document.getElementById('map').innerHTML = '<div style="padding:20px;color:red">Fehler beim Erstellen der Karte: ' + e.message + '</div>';
+    return;
+  }
+  try {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 18
+    }).addTo(mapInstance);
+    console.log('Tile layer added');
+  } catch (e) {
+    console.error('Error adding tile layer:', e);
+  }
+  // Add markers for all events - group by venue
+  const events = allEvents.filter(ev => eventVisible(ev));
+  const venueGroups = {};
+  for (const ev of events) {
+    if (ev.event_type === 'festival') {
+      if (ev.venue && ev.city) {
+        const coords = await getVenueCoords(ev.venue, ev.city);
+        if (coords) {
+          const key = `${coords.lat},${coords.lon}`;
+          if (!venueGroups[key]) {
+            venueGroups[key] = { lat: coords.lat, lon: coords.lon, venue: ev.venue, city: ev.city, concerts: [] };
+          }
+          venueGroups[key].concerts.push({ title: ev.name, date: ev.date, type: 'festival' });
+        }
+      }
+    } else {
+      for (const c of ev.concerts || []) {
+        if (c.venue && c.city) {
+          const coords = await getVenueCoords(c.venue, c.city);
+          if (coords) {
+            const key = `${coords.lat},${coords.lon}`;
+            if (!venueGroups[key]) {
+              venueGroups[key] = { lat: coords.lat, lon: coords.lon, venue: c.venue, city: c.city, concerts: [] };
+            }
+            venueGroups[key].concerts.push({ title: ev.artist, date: c.date, type: 'tour' });
+          }
+        }
+      }
+    }
+  }
+  // Add markers for each venue group
+  Object.values(venueGroups).forEach(vg => {
+    const count = vg.concerts.length;
+    const isMixed = vg.concerts.some(c => c.type === 'festival');
+    const typeClass = isMixed ? 'mixed' : vg.concerts[0].type;
+    // Create marker with count badge
+    const icon = L.divIcon({
+      className: 'venue-marker',
+      html: `<div class="venue-marker-inner ${typeClass}"><span>${count}</span></div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+    const marker = L.marker([vg.lat, vg.lon], {
+      icon,
+      venueKey: `${vg.venue}|${vg.city}`,
+      draggable: true
+    }).addTo(mapInstance);
+    
+    // Disable dragging initially
+    if (marker.dragging) {
+      marker.dragging.disable();
+    }
+    
+    // Build popup content with all concerts
+    const concertsList = vg.concerts.map(c =>
+      `<div class="venue-popup-concert">
+        <span class="venue-popup-type ${c.type}">${c.type === 'festival' ? '◉' : '♪'}</span>
+        <span class="venue-popup-title">${esc(c.title)}</span>
+        <span class="venue-popup-date">${c.date}</span>
+      </div>`
+    ).join('');
+    const popupContent = `
+      <div class="venue-popup">
+        <div class="venue-popup-header">${esc(vg.venue)}</div>
+        <div class="venue-popup-city">📍 ${esc(vg.city)}</div>
+        <div class="venue-popup-list">${concertsList}</div>
+        <button class="venue-popup-edit" onclick="editVenueMarker(this, '${esc(vg.venue)}', '${esc(vg.city)}')">📍 Position bearbeiten</button>
+      </div>
+    `;
+    marker.bindPopup(popupContent);
+    
+    // Save marker for later reference
+    marker.venueKey = `${vg.venue}|${vg.city}`;
+    mapMarkers.push(marker);
+  });
+  // Fit bounds
+  if (mapMarkers.length > 0) {
+    const group = L.featureGroup(mapMarkers);
+    mapInstance.fitBounds(group.getBounds().pad(0.1));
+  }
+  // Remove loading message
+  if (mapEl && mapEl.firstChild && mapEl.firstChild.tagName === 'DIV') {
+    mapEl.innerHTML = '';
+  }
+  setTimeout(() => mapInstance?.invalidateSize(), 300);
+  console.log('initMap completed, markers:', mapMarkers.length);
+}
+
+// Edit venue marker position
+function editVenueMarker(btn, venue, city) {
+  const marker = mapMarkers.find(m => m.venueKey === `${venue}|${city}`);
+  if (!marker) {
+    console.error('Marker not found for:', venue, city);
+    return;
+  }
+  
+  // Close popup
+  mapInstance.closePopup();
+  
+  // Enable dragging
+  if (marker.dragging) {
+    marker.dragging.enable();
+  }
+  
+  // Show instruction
+  alert(`Verschiebe den Marker für "${venue}" und klicke dann auf die Karte, um die Position zu bestätigen.`);
+  
+  // Listen for drag end
+  const onDragEnd = function() {
+    const newLat = this.getLatLng().lat;
+    const newLon = this.getLatLng().lng;
+    // Update cache
+    const cache = getVenueCache();
+    cache[`${venue}|${city}`] = { lat: newLat, lon: newLon };
+    saveVenueCache(cache);
+    // Show confirmation
+    alert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
+    // Disable dragging
+    if (marker.dragging) {
+      marker.dragging.disable();
+    }
+    // Remove listeners
+    marker.off('dragend', onDragEnd);
+    mapInstance.off('click', onMapClick);
+  };
+  
+  // Listen for map click to confirm
+  const onMapClick = function(e) {
+    marker.setLatLng(e.latlng);
+    marker.fireEvent('dragend');
+  };
+  
+  marker.on('dragend', onDragEnd);
+  mapInstance.on('click', onMapClick);
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1966,7 +2294,7 @@ function showPopover(e, c) {
   p.innerHTML = `<div class="pop-title">${esc(c.artist||'')}</div>
     <div class="pop-row">📅 <span>${fmtDateLong(c.date)}${c.end_date?' – '+fmtDateLong(c.end_date):''}</span></div>
     ${c.time?`<div class="pop-row">🕓 <span>${esc(c.time)} Uhr</span></div>`:''}
-    <div class="pop-row">📌 <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
+    <div class="pop-row">📍 <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
     ${c.price?`<div class="pop-row">€ <span>${fmtPrice(c.price)}</span></div>`:''}`;
   p.style.left = (e.clientX+12)+'px'; p.style.top = (e.clientY-10)+'px';
   p.classList.add('vis');
@@ -2450,11 +2778,16 @@ function renderArtistList() {
     const nameEl = `<span style="flex:1;font-size:14px">${esc(a.name)}</span>`;
     const ratingsSummary = artistRatingsSummary(a.name);
     if (a.derived) {
+      const followStar = a.followed ? '★' : '☆';
+      const followStyle = a.followed ? 'color:var(--accent)' : 'color:var(--muted)';
       return `<div class="cat-item" style="cursor:pointer;flex-wrap:wrap" onclick="openArtistDetailById(${_admStore.push(a)-1})">
         <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
           ${logoEl}${nameEl}
         </div>
-        <span style="font-size:11px;color:var(--border);white-space:nowrap">aus Events</span>
+        <div class="cat-item-actions" onclick="event.stopPropagation()">
+          <button class="follow-btn" title="${a.followed?'Entfolgen':'Folgen'}" style="${followStyle}"
+            onclick="toggleFollow('${a.id}',${!a.followed})">${followStar}</button>
+        </div>
         ${ratingsSummary ? `<div style="width:100%;padding:6px 0 2px 60px">${ratingsSummary}</div>` : ''}
       </div>`;
     }
@@ -2467,7 +2800,6 @@ function renderArtistList() {
       <div class="cat-item-actions" onclick="event.stopPropagation()">
         <button class="follow-btn" title="${a.followed?'Entfolgen':'Folgen'}" style="${followStyle}"
           onclick="toggleFollow('${a.id}',${!a.followed})">${followStar}</button>
-        <button class="btn-sm danger" onclick="deleteArtist('${a.id}')">🗑</button>
       </div>
       ${ratingsSummary ? `<div style="width:100%;padding:6px 0 2px 60px;font-size:12px;color:var(--muted)">${ratingsSummary}</div>` : ''}
     </div>`;
@@ -2547,6 +2879,20 @@ async function uploadArtistImg(blob) {
   const fd = new FormData(); fd.append('logo', blob);
   const r = await fetch('/api/upload-logo', { method:'POST', body: fd });
   return (await r.json()).filename;
+}
+
+async function deleteCurrentArtist() {
+  const a = _admCurrentArtist;
+  if (!a || a.derived) {
+    // For derived artists, just close the modal (they don't exist in the database)
+    closeModal('artist-detail-modal');
+    return;
+  }
+  if (!confirm(`Artist "${a.name}" löschen?`)) return;
+  await fetch('/api/artists/'+a.id, { method:'DELETE' });
+  await reloadCatalogue();
+  renderArtistList();
+  closeModal('artist-detail-modal');
 }
 
 async function saveArtistDetail() {
@@ -2757,6 +3103,133 @@ function saveLocationSettings() {
 
 function getLocationCity() { return _locationSettings.city || ''; }
 function getPreferredCities() { return _locationSettings.preferred || []; }
+
+// ══════════════════════════════════════════════════════════════════════
+// Backup & Restore
+function openBackupModal() {
+  closeDrawer();
+  document.getElementById('backup-status').innerHTML = '';
+  openModal('backup-modal');
+}
+
+async function exportBackup() {
+  const [evR, aR, vcR] = await Promise.all([
+    fetch('/api/events'), fetch('/api/artists'), fetch('/api/venues-catalogue')
+  ]);
+  const events = await evR.json();
+  const artists = await aR.json();
+  const venues = await vcR.json();
+  
+  const backup = {
+    version: 2,
+    exported: new Date().toISOString(),
+    events,
+    artists,
+    venues,
+    settings: {
+      location: _locationSettings,
+      theme: localStorage.getItem('kp-theme'),
+      colors: JSON.parse(localStorage.getItem('kp-colors') || '{}'),
+      customCss: localStorage.getItem('kp-custom-css') || ''
+    },
+    // Additional local data
+    ratings: JSON.parse(localStorage.getItem('kp-ratings') || '{}'),
+    notifications: JSON.parse(localStorage.getItem('kp-notifs') || '[]')
+  };
+  
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `konzertplaner-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  document.getElementById('backup-status').innerHTML = '<span style="color:var(--tickets-color)">✓ Backup erfolgreich heruntergeladen</span>';
+}
+
+async function importBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  try {
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    
+    if (!backup.version || !backup.events) {
+      throw new Error('Ungültiges Backup-Format');
+    }
+    
+    // Import events
+    for (const ev of backup.events) {
+      await fetch('/api/events', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(ev)
+      });
+    }
+    
+    // Import artists
+    for (const a of (backup.artists || [])) {
+      await fetch('/api/artists', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: a.name, logo: a.logo, photo: a.photo, eventim_name: a.eventim_name})
+      });
+    }
+    
+    // Import venues
+    for (const v of (backup.venues || [])) {
+      await fetch('/api/venues-catalogue', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: v.name, city: v.city})
+      });
+    }
+    
+    // Import settings
+    if (backup.settings) {
+      if (backup.settings.location) {
+        _locationSettings = backup.settings.location;
+        localStorage.setItem('kp-location', JSON.stringify(_locationSettings));
+      }
+      if (backup.settings.theme) {
+        localStorage.setItem('kp-theme', backup.settings.theme);
+        loadTheme();
+      }
+      if (backup.settings.colors) {
+        localStorage.setItem('kp-colors', JSON.stringify(backup.settings.colors));
+        loadColors();
+      }
+      if (backup.settings.customCss) {
+        localStorage.setItem('kp-custom-css', backup.settings.customCss);
+      }
+    }
+    
+    // Import ratings (version 2+)
+    if (backup.ratings) {
+      localStorage.setItem('kp-ratings', JSON.stringify(backup.ratings));
+      ratings = backup.ratings;
+    }
+    
+    // Import notifications (version 2+)
+    if (backup.notifications) {
+      localStorage.setItem('kp-notifs', JSON.stringify(backup.notifications.slice(-50)));
+      _notifications = backup.notifications.slice(-50);
+      updateNotifBadge();
+    }
+    
+    document.getElementById('backup-status').innerHTML = '<span style="color:var(--tickets-color)">✓ Backup erfolgreich importiert</span>';
+    
+    // Reload data
+    await fetchAll();
+    
+  } catch (err) {
+    document.getElementById('backup-status').innerHTML = '<span style="color:#f87171">Fehler: ' + err.message + '</span>';
+  }
+  
+  input.value = '';
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // Statistics
@@ -3001,6 +3474,7 @@ function updateFmtLabels() {
   const fmt = document.querySelector('input[name="exp-fmt"]:checked')?.value || 'html';
   document.getElementById('fmt-html-lbl').style.borderColor = fmt === 'html' ? 'var(--accent)' : 'var(--border)';
   document.getElementById('fmt-csv-lbl').style.borderColor  = fmt === 'csv'  ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('fmt-ical-lbl').style.borderColor = fmt === 'ical' ? 'var(--accent)' : 'var(--border)';
 }
 
 function runExport() {
@@ -3032,6 +3506,8 @@ function runExport() {
 
   if (fmt === 'csv') {
     exportCSV(upcoming, past, todayIso);
+  } else if (fmt === 'ical') {
+    exportICS(upcoming, past, todayIso);
   } else {
     exportHTML(upcoming, past, todayIso);
   }
@@ -3064,6 +3540,83 @@ function exportCSV(upcoming, past, todayIso) {
   dlBlob(csv, `konzertplaner-${todayIso}.csv`, 'text/csv;charset=utf-8');
 }
 
+// ── iCal export ───────────────────────────────────────────────────────
+function exportICS(upcoming, past, todayIso) {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Konzertplaner//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Konzertplaner'
+  ];
+
+  function addEv(ev, status) {
+    if (ev.event_type === 'festival') {
+      // Festival: single multi-day event
+      if (!ev.date) return;
+      const uid = `festival-${ev.id || ev.name.replace(/\W/g,'')}@konzertplaner`;
+      const dtstart = ev.date.replace(/-/g, '');
+      const dtend = (ev.end_date || ev.date).replace(/-/g, '');
+      const summary = ev.name || 'Festival';
+      const location = [ev.venue, ev.city].filter(Boolean).join(', ');
+      const desc = [
+        'Festival',
+        ev.bands_to_watch?.length ? 'Bands: ' + ev.bands_to_watch.join(', ') : '',
+        ev.ticket_link ? 'Tickets: ' + ev.ticket_link : ''
+      ].filter(Boolean).join('\\n');
+      lines.push(
+        'BEGIN:VEVENT',
+        'UID:' + uid,
+        'DTSTAMP:' + todayIso.replace(/[-:]/g,'').replace('.','Z'),
+        'DTSTART;VALUE=DATE:' + dtstart,
+        'DTEND;VALUE=DATE:' + dtend,
+        'SUMMARY:' + summary,
+        location ? 'LOCATION:' + location : '',
+        desc ? 'DESCRIPTION:' + desc : '',
+        'STATUS:' + (status === 'vergangen' ? 'CONFIRMED' : 'TENTATIVE'),
+        'END:VEVENT'
+      );
+    } else {
+      // Tour: one event per concert
+      (ev.concerts||[]).forEach(c => {
+        if (!c.date) return;
+        const uid = `concert-${c.id || c.date + '-' + (c.city||'').replace(/\W/g,'') + '-' + (ev.artist||'').replace(/\W/g,'')}@konzertplaner`;
+        const dtstart = (c.date + (c.time ? 'T' + c.time.replace(':','') + '00' : '')).replace(/[-:]/g,'');
+        const dtend = (c.end_date || c.date + (c.time ? 'T' + c.time.replace(':','') + '00' : '')).replace(/[-:]/g,'');
+        const summary = ev.artist + (ev.tour_name ? ' - ' + ev.tour_name : '');
+        const location = [c.venue, c.city].filter(Boolean).join(', ');
+        const desc = [
+          ev.tour_name ? 'Tour: ' + ev.tour_name : '',
+          c.support_present?.length ? 'Support: ' + c.support_present.join(', ') : '',
+          c.ticket_link ? 'Tickets: ' + c.ticket_link : ''
+        ].filter(Boolean).join('\\n');
+        lines.push(
+          'BEGIN:VEVENT',
+          'UID:' + uid,
+          'DTSTAMP:' + todayIso.replace(/[-:]/g,'').replace('.','Z'),
+          c.time ? 'DTSTART:' + dtstart : 'DTSTART;VALUE=DATE:' + c.date.replace(/-/g,''),
+          c.time ? 'DTEND:' + dtend : 'DTEND;VALUE=DATE:' + (c.end_date || c.date).replace(/-/g,''),
+          'SUMMARY:' + summary,
+          location ? 'LOCATION:' + location : '',
+          desc ? 'DESCRIPTION:' + desc : '',
+          'STATUS:' + (status === 'vergangen' ? 'CONFIRMED' : 'TENTATIVE'),
+          'END:VEVENT'
+        );
+      });
+    }
+  }
+
+  upcoming.forEach(ev => addEv(ev, 'anstehend'));
+  past.forEach(ev => addEv(ev, 'vergangen'));
+
+  lines.push('END:VCALENDAR');
+
+  // Filter out empty lines
+  const ics = lines.filter(l => l.trim()).join('\r\n');
+  dlBlob(ics, `konzertplaner-${todayIso}.ics`, 'text/calendar;charset=utf-8');
+}
+
 // ── HTML export ───────────────────────────────────────────────────────
 function exportHTML(upcoming, past, todayIso) {
   const accentCol = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8ff47';
@@ -3086,7 +3639,7 @@ function exportHTML(upcoming, past, todayIso) {
           <div class="ev-main">
             <div class="ev-badge" style="color:${festCol};border-color:${festCol}">Festival</div>
             <div class="ev-title">${esc(ev.name)}</div>
-            <div class="ev-sub">📌 ${esc(ev.venue)}${ev.city?', '+esc(ev.city):''}${ev.time?' · 🕓 '+esc(ev.time)+' Uhr':''}</div>
+            <div class="ev-sub">📍 ${esc(ev.venue)}${ev.city?', '+esc(ev.city):''}${ev.time?' · 🕓 '+esc(ev.time)+' Uhr':''}</div>
             ${ev.price||ev.ticket_link ? `<div class="ev-detail">${ev.price?'€ '+fmtPrice(ev.price):''}${ev.ticket_link?` <a href="${esc(ev.ticket_link)}">✓ Tickets</a>`:''}${tagTxt?' · '+tagTxt:''}</div>` : (tagTxt?`<div class="ev-detail">${tagTxt}</div>`:'')}
             ${bands ? `<div class="ev-detail" style="color:#999">Bands: ${esc(bands)}</div>` : ''}
           </div>
@@ -3291,7 +3844,7 @@ function buildFavCard(a) {
           </div>
           <div class="concert-info">
             <div class="concert-venue">${esc(c.venue||c.name||'–')}</div>
-            <div class="concert-city">📌 ${esc(c.city)}</div>
+            <div class="concert-city">📍 ${esc(c.city)}</div>
             ${c.time ? `<div class="concert-time">🕓 ${esc(c.time)} Uhr</div>` : ''}
           </div>
           <div class="fav-event-actions">
@@ -3457,7 +4010,7 @@ function openNotifEventModal(concertData, artistName) {
       </div>
       <div class="concert-info">
         <div class="concert-venue" style="font-size:15px">${esc(concertData.venue||concertData.name||'–')}</div>
-        <div class="concert-city">📌 ${esc(concertData.city||'')}</div>
+        <div class="concert-city">📍 ${esc(concertData.city||'')}</div>
         ${concertData.venue ? venueMapHtml(concertData.venue, concertData.city) : ''}
         ${concertData.time?`<div class="concert-time">🕓 ${esc(concertData.time)} Uhr</div>`:''}
         ${concertData.inStock!==undefined?`<div style="margin-top:6px;font-size:12px;color:${concertData.inStock?'var(--tickets-color)':'#f87171'}">${concertData.inStock?'✓ Verfügbar':'✗ Ausverkauft'}</div>`:''}
@@ -3686,7 +4239,7 @@ function renderConcertSelection() {
       </div>
       <div class="ev-conc-info">
         <div class="ev-conc-venue">${esc(c.venue || '–')}</div>
-        <div class="ev-conc-city">📌 ${esc(c.city || '')}</div>
+        <div class="ev-conc-city">📍 ${esc(c.city || '')}</div>
         ${c.time ? `<div class="ev-conc-time">🕓 ${esc(c.time)} Uhr</div>` : ''}
       </div>
       <div class="ev-conc-right">
@@ -3827,6 +4380,10 @@ async function importEventimTour() {
       <label style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;transition:border-color .2s" id="fmt-csv-lbl">
         <input type="radio" name="exp-fmt" value="csv" onchange="updateFmtLabels()" style="accent-color:var(--accent)">
         <div><strong>CSV</strong><div style="color:var(--muted);font-size:11px">Für Excel / Tabellen</div></div>
+      </label>
+      <label style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;transition:border-color .2s" id="fmt-ical-lbl">
+        <input type="radio" name="exp-fmt" value="ical" onchange="updateFmtLabels()" style="accent-color:var(--accent)">
+        <div><strong>📅 iCal</strong><div style="color:var(--muted);font-size:11px">Kalender-Apps</div></div>
       </label>
     </div>
   </div>
