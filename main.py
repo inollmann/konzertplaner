@@ -114,6 +114,78 @@ def all_known_venues() -> list[dict]:
 
 # ── SPA ───────────────────────────────────────────────────────────────────────
 
+@app.route("/invite/<eid>/<code>")
+def handle_invite(eid, code):
+    """Handle invite URL - import and redirect to events."""
+    # Import the event
+    import base64, json
+    try:
+        json_str = base64.urlsafe_b64decode(code.encode("utf-8")).decode("utf-8")
+        invite_data = json.loads(json_str)
+        
+        if invite_data.get("v") != 1:
+            return "Unbekannte Einladungsversion", 400
+        
+        event_type = invite_data.get("t", "tour")
+        
+        if event_type == "tour":
+            from concert import Tour
+            ev = Tour(
+                artist=invite_data.get("a", ""),
+                name=invite_data.get("n", ""),
+                poster=invite_data.get("pt"),
+            )
+            for support in invite_data.get("s", []):
+                ev.support.append(support)
+            for c in invite_data.get("c", []):
+                ev.add_concert(
+                    date=c.get("d", ""),
+                    city=c.get("y", ""),
+                    venue=c.get("v", ""),
+                    price=c.get("p"),
+                    end_date=c.get("e"),
+                )
+        else:
+            from concert import Festival
+            ev = Festival(
+                name=invite_data.get("n", ""),
+                city=invite_data.get("c", [{}])[0].get("y", "") if invite_data.get("c") else "",
+                venue=invite_data.get("c", [{}])[0].get("v", "") if invite_data.get("c") else "",
+                poster=invite_data.get("pt"),
+            )
+            if invite_data.get("c"):
+                first_concert = invite_data["c"][0]
+                ev.date = first_concert.get("d", "")
+                ev.time = first_concert.get("tm", "")
+                if len(invite_data["c"]) > 1:
+                    ev.end_date = invite_data["c"][-1].get("d", "")
+        
+        # Save the event
+        import uuid
+        new_eid = str(uuid.uuid4())[:8]
+        events[new_eid] = ev
+        save_events(events)
+        
+        # Redirect to main page with success message
+        from flask import make_response
+        resp = make_response("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta http-equiv="refresh" content="0;url=/">
+                <script>localStorage.setItem('invite_success', 'Event wurde importiert!');</script>
+            </head>
+            <body>
+                <p>Event wird importiert... <a href="/">Weiter</a></p>
+            </body>
+            </html>
+        """)
+        return resp
+        
+    except Exception as e:
+        return f"Import fehlgeschlagen: {str(e)}", 400
+
+
 @app.route("/")
 def index():
     return send_from_directory(str(BASE_DIR / "static"), "index.html")
@@ -409,6 +481,127 @@ def delete_event(eid):
     del events[eid]
     save_events(events)
     return jsonify({"ok": True})
+
+
+@app.route("/api/events/<eid>/invite", methods=["GET"])
+def get_event_invite(eid):
+    """Generate an invitation link for an event."""
+    if eid not in events:
+        return jsonify({"error": "Event nicht gefunden"}), 404
+    
+    ev = events[eid]
+    ev_dict = ev.to_dict()
+    
+    # Create a compact invitation payload
+    invite_data = {
+        "v": 1,  # version
+        "t": ev.event_type,
+        "n": ev.name if ev.event_type == "festival" else "",
+        "a": ev.artist if ev.event_type == "tour" else "",
+        "s": ev.support if ev.event_type == "tour" else [],
+        "c": [
+            {
+                "d": c.date,
+                "y": c.city,
+                "v": c.venue,
+                "p": c.price,
+                "e": c.end_date,
+            }
+            for c in ev.concerts
+        ],
+        "pt": ev.poster,
+    }
+    
+    # Encode as base64 URL-safe string
+    import base64
+    import json
+    json_str = json.dumps(invite_data, separators=(",", ":"))
+    encoded = base64.urlsafe_b64encode(json_str.encode("utf-8")).decode("utf-8")
+    
+    # Generate the invite URL
+    invite_url = f"/invite/{eid}/{encoded}"
+    
+    return jsonify({
+        "invite_url": invite_url,
+        "event_name": ev.name if ev.event_type == "festival" else ev.artist,
+    })
+
+
+@app.route("/api/invite/import", methods=["POST"])
+def import_event_invite():
+    """Import an event from an invitation."""
+    data = request.get_json()
+    invite_code = data.get("code", "").strip()
+    
+    if not invite_code:
+        return jsonify({"error": "Kein Einladungscode angegeben"}), 400
+    
+    try:
+        import base64
+        import json
+        
+        # Decode the invitation
+        # Handle both formats: /invite/eid/code and just the code
+        if "/" in invite_code:
+            # Extract the code part after the last /
+            invite_code = invite_code.split("/")[-1]
+        
+        json_str = base64.urlsafe_b64decode(invite_code.encode("utf-8")).decode("utf-8")
+        invite_data = json.loads(json_str)
+        
+        # Validate version
+        if invite_data.get("v") != 1:
+            return jsonify({"error": "Unbekannte Einladungsversion"}), 400
+        
+        event_type = invite_data.get("t", "tour")
+        
+        # Create the event
+        if event_type == "tour":
+            from concert import Tour
+            ev = Tour(
+                artist=invite_data.get("a", ""),
+                name=invite_data.get("n", ""),
+                poster=invite_data.get("pt"),
+            )
+            for support in invite_data.get("s", []):
+                ev.support.append(support)
+            for c in invite_data.get("c", []):
+                ev.add_concert(
+                    date=c.get("d", ""),
+                    city=c.get("y", ""),
+                    venue=c.get("v", ""),
+                    price=c.get("p"),
+                    end_date=c.get("e"),
+                )
+        else:  # festival
+            from concert import Festival
+            ev = Festival(
+                name=invite_data.get("n", ""),
+                city=invite_data.get("c", [{}])[0].get("y", "") if invite_data.get("c") else "",
+                venue=invite_data.get("c", [{}])[0].get("v", "") if invite_data.get("c") else "",
+                poster=invite_data.get("pt"),
+            )
+            if invite_data.get("c"):
+                first_concert = invite_data["c"][0]
+                ev.date = first_concert.get("d", "")
+                ev.time = first_concert.get("tm", "")
+                if len(invite_data["c"]) > 1:
+                    ev.end_date = invite_data["c"][-1].get("d", "")
+        
+        # Save the event
+        import uuid
+        eid = str(uuid.uuid4())[:8]
+        events[eid] = ev
+        save_events(events)
+        
+        return jsonify({
+            "ok": True,
+            "event_id": eid,
+            "event": ev.to_dict(),
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Import fehlgeschlagen: {str(e)}"}), 400
 
 
 # ── Catalogue: Artists ────────────────────────────────────────────────────────

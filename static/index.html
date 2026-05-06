@@ -274,8 +274,8 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .cal-event.ev-festival  { background: color-mix(in srgb,var(--festival) 10%,transparent);      color: var(--festival);      border-left-color: var(--festival); }
 
 /* ─── Map ─────────────────────────────────────────────────────────── */
-#tab-map { min-height: 500px; padding-bottom: 20px; }
-#map-container { height: 500px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+#tab-map { height: calc(100vh - 140px); display: flex; flex-direction: column; }
+#map-container { height: calc(100% - 80px); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; }
 #map { width: 100%; height: 100%; background: var(--surface); }
 #map-legend {
   display: flex; gap: 16px; align-items: center; padding: 12px 0; flex-wrap: wrap;
@@ -283,9 +283,9 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 }
 .map-legend-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.map-legend-sep { width: 1px; height: 20px; background: var(--border); margin: 0 8px; }
 .venue-marker-sample {
-  width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: bold; color: #fff; border: 2px solid #fff;
+  width: 16px; height: 16px; border-radius: 50%; display: inline-block; border: 2px solid #fff;
 }
 .venue-marker-sample.tour { background: var(--tour); }
 .venue-marker-sample.festival { background: var(--festival); }
@@ -1016,10 +1016,12 @@ input[type=color] {
     </div>
   </div>
   <div id="map-legend">
-    <div class="map-legend-title">Legende</div>
-    <div class="map-legend-item"><span class="venue-marker-sample tour">1</span> Tour</div>
-    <div class="map-legend-item"><span class="venue-marker-sample festival">2</span> Festival</div>
-    <div class="map-legend-item"><span class="venue-marker-sample mixed">3+</span> Gemischt</div>
+    <div class="map-legend-title">Marker</div>
+    <div class="map-legend-item"><span class="venue-marker-sample tour"></span> Konzert</div>
+    <div class="map-legend-item"><span class="venue-marker-sample festival"></span> Festival</div>
+    <div class="map-legend-item"><span class="venue-marker-sample mixed"></span> Gemischt</div>
+    <div class="map-legend-sep"></div>
+    <div class="map-legend-title">Zahl = Anzahl Events</div>
   </div>
 </main>
 
@@ -1392,6 +1394,12 @@ const pillState = {
   bands:   { tags: [], hi: -1 },
 };
 
+function updatePillDisplay(fieldId, inputId, tags) {
+  const which = fieldId.replace('-field', '');
+  pillState[which].tags = [...tags];
+  renderPills(which);
+}
+
 const today = new Date();
 calYear  = today.getFullYear();
 calMonth = today.getMonth();
@@ -1509,6 +1517,13 @@ async function fetchAll() {
 }
 fetchAll();
 loadTheme();
+
+// Check for invite success message
+const inviteSuccess = localStorage.getItem('invite_success');
+if (inviteSuccess) {
+  localStorage.removeItem('invite_success');
+  setTimeout(() => alert(inviteSuccess), 500);
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // Tabs / filters
@@ -1870,6 +1885,31 @@ function closeDetailOnBg(e) {
   if (e.target === document.getElementById('detail-bd')) closeDetail();
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// Event Invitation
+// ══════════════════════════════════════════════════════════════════════
+async function generateInvite(eventId) {
+  try {
+    const resp = await fetch('/api/events/' + eventId + '/invite');
+    const data = await resp.json();
+    
+    if (!resp.ok) {
+      alert(data.error || 'Einladung konnte nicht erstellt werden');
+      return;
+    }
+    
+    // Build full URL
+    const fullUrl = window.location.origin + data.invite_url;
+    
+    // Copy to clipboard
+    await navigator.clipboard.writeText(fullUrl);
+    alert('Einladungslink wurde in die Zwischenablage kopiert!\n\n' + fullUrl);
+    
+  } catch (err) {
+    alert('Fehler: ' + err.message);
+  }
+}
+
 function buildDetailHTML(ev) {
   const ps = ev.poster
     ? `<img class="detail-poster" src="/static/posters/${ev.poster}" alt=""
@@ -1900,6 +1940,7 @@ function buildDetailHTML(ev) {
         </div>
         <div class="detail-close-row">
           <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
+          <button class="btn-icon" onclick="generateInvite('${ev.id}')" title="Einladung erstellen">🔗</button>
           <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}">🗑</button>
           <button class="btn-close" onclick="closeDetail()">✕</button>
         </div>
@@ -1992,6 +2033,7 @@ function buildDetailHTML(ev) {
       </div>
       <div class="detail-close-row">
         <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
+        <button class="btn-icon" onclick="generateInvite('${ev.id}')" title="Einladung erstellen">🔗</button>
         <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}">🗑</button>
         <button class="btn-close" onclick="closeDetail()">✕</button>
       </div>
