@@ -462,13 +462,17 @@ def update_event(eid):
         if "concerts" in data:
             ev.concerts = []
             for c in data["concerts"]:
-                ev.add_concert(
+                # Preserve existing concert ID if provided
+                concert = ev.add_concert(
                     date=c["date"], city=c["city"], venue=c["venue"],
                     price=c.get("price"), time=c.get("time"),
                     end_date=c.get("end_date"), tags=c.get("tags", []),
                     support_present=c.get("support_present"),
                     ticket_link=c.get("ticket_link"),
                 )
+                # Use existing ID if provided, otherwise keep the new one
+                if "id" in c:
+                    concert.id = c["id"]
     if "poster" in data:
         ev.poster = data["poster"]
     save_events(events)

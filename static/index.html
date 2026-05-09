@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konzertplaner</title>
+<link rel="icon" type="image/x-icon" href="/konzertplaner.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -15,7 +16,7 @@
   --surface:   #161616;
   --surface2:  #1f1f1f;
   --surface3:  #272727;
-  --border:    #2a2a2a00;
+  --border:    #2e2e2e44;
   --accent:    #e8ff47;
   --tour:      #38bdf8;
   --festival:  #a78bfa;
@@ -30,7 +31,7 @@
   --surface:   #ffffff;
   --surface2:  #f3f3f3;
   --surface3:  #e5e5e5;
-  --border:    #dddddd00;
+  --border:    #dddddddd;
   --accent:    #006b66;
   --text:      #1a1a1a;
   --muted:     #666;
@@ -63,7 +64,7 @@ header {
 
 /* ─── Drawer ───────────────────────────────────────────────────────── */
 .drawer-backdrop {
-  position: fixed; inset: 0; z-index: 200; pointer-events: none;
+  position: fixed; inset: 0; z-index: 1000; pointer-events: none;
 }
 .drawer-backdrop.open { pointer-events: all; }
 .drawer-overlay {
@@ -74,6 +75,7 @@ header {
   position: absolute; top: 0; left: 0; bottom: 0; width: 280px;
   background: var(--surface); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; transform: translateX(-100%); transition: transform .25s ease;
+  z-index: 10000;
 }
 .drawer-backdrop.open .drawer { transform: translateX(0); }
 .drawer-header {
@@ -121,8 +123,15 @@ header {
   padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
   background: none; color: var(--muted); font-size: 13px; cursor: pointer; transition: all .2s;
 }
-.filter-chip.active-tickets  { border-color: var(--tickets-color); color: var(--tickets-color); background: color-mix(in srgb,var(--tickets-color) 8%,transparent); }
-.filter-chip.active-watchlist { border-color: var(--watch-color);   color: var(--watch-color);   background: color-mix(in srgb,var(--watch-color) 8%,transparent); }
+.filter-chip.active-tickets   { border-color: var(--tickets-color);  color: var(--tickets-color);  background: color-mix(in srgb,var(--tickets-color) 8%,transparent); }
+.filter-chip.active-watchlist { border-color: var(--watch-color);    color: var(--watch-color);    background: color-mix(in srgb,var(--watch-color) 8%,transparent); }
+.filter-chip.active-past      { border-color: var(--accent);         color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
+.filter-chip.active-upcoming  { border-color: #38bdf8;              color: #38bdf8;              background: color-mix(in srgb,#38bdf8 8%,transparent); }
+.filter-chip.active-tour      { border-color: var(--tour);           color: var(--tour);           background: color-mix(in srgb,var(--tour) 8%,transparent); }
+.filter-chip.active-festival  { border-color: var(--festival);       color: var(--festival);       background: color-mix(in srgb,var(--festival) 8%,transparent); }
+.filter-sep {
+  width: 1px; height: 24px; background: var(--border); margin: 0 6px;
+}
 
 /* ─── Main content ─────────────────────────────────────────────────── */
 main { padding: 24px 32px; min-height: calc(100vh - 130px); }
@@ -176,24 +185,25 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .ticket-link-btn {
   font-size: 12px; padding: 3px 10px; border-radius: 6px; font-weight: 500;
   background: var(--surface3);
-  color: var(--tickets-color); border: 1px solid var(--border);
+  color: #99aecc; border: 1px solid var(--border);
   text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center;
   gap: 4px; transition: border-color .15s, background .15s;
 }
-.ticket-link-btn::before { content: "↗"; font-size: 10px; opacity: .7; }
+.ticket-link-btn::before { content: "🔗"; font-size: 10px; }
 .ticket-link-btn:hover {
-  border-color: var(--tickets-color);
-  background: color-mix(in srgb,var(--tickets-color) 8%,transparent);
+  border-color: #64748b;
+  background: color-mix(in srgb,#64748b 8%,transparent);
 }
 /* Icon-only variant when placed inside .event-actions */
 .event-actions .ticket-link-btn {
   width: 32px; height: 32px; padding: 0; justify-content: center; font-size: 16px;
   border-radius: 7px; background: var(--surface2); border-color: var(--border);
+  color: #64748b;
 }
 .event-actions .ticket-link-btn::before { display: none; }
 .event-actions .ticket-link-btn:hover {
-  border-color: var(--tickets-color);
-  background: color-mix(in srgb,var(--tickets-color) 8%,transparent);
+  border-color: #64748b;
+  background: color-mix(in srgb,#64748b 8%,transparent);
 }
 
 /* ─── Concert items (list view) ────────────────────────────────────── */
@@ -275,7 +285,7 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 
 /* ─── Map ─────────────────────────────────────────────────────────── */
 #tab-map { height: calc(100vh - 140px); display: flex; flex-direction: column; }
-#map-container { height: calc(100% - 80px); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+#map-container { height: calc(100% - 80px); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); position: relative; z-index: 1; }
 #map { width: 100%; height: 100%; background: var(--surface); }
 #map-legend {
   display: flex; gap: 16px; align-items: center; padding: 12px 0; flex-wrap: wrap;
@@ -317,10 +327,20 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .venue-popup-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .venue-popup-date { color: var(--muted); font-size: 11px; }
 .venue-popup-edit {
-  margin-top: 10px; width: 100%; padding: 8px; background: var(--surface3); border: 1px solid var(--border);
+  flex: 1; padding: 8px; background: var(--surface3); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer; transition: background .15s;
 }
 .venue-popup-edit:hover { background: var(--border); }
+.venue-popup-delete {
+  flex: 1; padding: 8px; background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 6px; color: #f87171; font-size: 12px; cursor: pointer; transition: all .15s;
+}
+.venue-popup-delete:hover { background: #f87171; color: #fff; border-color: #f87171; }
+.btn-save-marker {
+  padding: 8px 20px; background: var(--accent); border: none; border-radius: 6px;
+  color: #000; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+.btn-save-marker:hover { opacity: 0.9; }
 /* Leaflet overrides for dark mode */
 .leaflet-container { background: var(--surface); }
 .leaflet-popup-content-wrapper { background: var(--surface); color: var(--text); border-radius: 8px; }
@@ -691,6 +711,13 @@ input[type=color] {
   background: color-mix(in srgb,var(--tour) 10%,transparent);
   color: var(--tour); border: 1px solid color-mix(in srgb,var(--tour) 25%,transparent);
 }
+.btn-add-support {
+  font-size: 11px; padding: 3px 8px; border-radius: 4px;
+  background: var(--surface2); border: 1px dashed var(--muted);
+  color: var(--muted); cursor: pointer; margin-top: 4px;
+  transition: all .2s;
+}
+.btn-add-support:hover { border-color: var(--tour); color: var(--tour); }
 /* Poster lightbox */
 .lightbox-backdrop {
   position: fixed; inset: 0; background: #000d; backdrop-filter: blur(6px);
@@ -928,11 +955,9 @@ input[type=color] {
     <div class="search-spinner" id="search-spinner"></div>
   </div>
   <div class="header-right">
-    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Design wechseln">☀️</button>
     <button class="notif-btn" id="notif-btn" onclick="toggleNotifPanel()" title="Benachrichtigungen">
       🔔<span class="notif-badge" id="notif-badge"></span>
     </button>
-    <button class="btn-export" onclick="openExportModal()">⬇ Liste exportieren</button>
     <button class="btn-new" onclick="openEventModal()">＋ Neues Event</button>
   </div>
 </header>
@@ -962,9 +987,17 @@ input[type=color] {
       <button class="drawer-item" onclick="openBackupModal()">
         <span class="di-icon">💾</span> Backup
       </button>
+      <button class="drawer-item" onclick="openExportModal();closeDrawer()">
+        <span class="di-icon">⬇</span> Export
+      </button>
       <div class="drawer-sep"></div>
+      <!--
+      <button class="drawer-item" onclick="toggleTheme();closeDrawer()">
+        <span class="di-icon">☀️</span> Light Mode / Dark Mode
+      </button>
+      -->
       <button class="drawer-item" onclick="openDesignPanel()">
-        <span class="di-icon">🎨</span> Design
+        <span class="di-icon">🎨</span> Design anpassen
       </button>
       <button class="drawer-item" onclick="window.open('/design-tool','_blank');closeDrawer()">
         <span class="di-icon">🖌</span> Design Tool (extern)
@@ -984,6 +1017,12 @@ input[type=color] {
 <!-- ── Filter bar ─────────────────────────────────────────────────── -->
 <div class="filter-bar">
   <span>Filter:</span>
+  <button class="filter-chip active-upcoming" id="chip-upcoming" onclick="toggleDateFilter('upcoming')">📅 Anstehende Events</button>
+  <button class="filter-chip active-past" id="chip-past" onclick="toggleDateFilter('past')">📅 Vergangene Events</button>
+  <div class="filter-sep"></div>
+  <button class="filter-chip active-tour" id="chip-tour" onclick="toggleEventTypeFilter('tour')">🎸 Konzerte</button>
+  <button class="filter-chip active-festival" id="chip-festival" onclick="toggleEventTypeFilter('festival')">🎪 Festivals</button>
+  <div class="filter-sep"></div>
   <button class="filter-chip" id="chip-tickets"   onclick="toggleFilter('tickets')">🎟 Tickets gekauft</button>
   <button class="filter-chip" id="chip-watchlist" onclick="toggleFilter('watchlist')">🔖 Merkliste</button>
 </div>
@@ -1023,6 +1062,20 @@ input[type=color] {
     <div class="map-legend-sep"></div>
     <div class="map-legend-title">Zahl = Anzahl Events</div>
   </div>
+  <div id="unrecognized-venues" style="display:none; padding: 12px 0; border-top: 1px solid var(--border); margin-top: 12px;">
+    <div class="map-legend-title" style="margin-bottom:8px">Diese Locations konnten nicht gefunden werden. Füge sie manuell hinzu:</div>
+    <div id="unrecognized-venues-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+  <style>
+    #unrecognized-venues { background: var(--surface); }
+    #unrecognized-venues-list .unrecognized-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: var(--surface2); border-radius: 6px;
+    }
+    #unrecognized-venues-list .unrecognized-info { font-size: 13px; }
+    #unrecognized-venues-list .unrecognized-info span:first-child { font-weight: 500; }
+    #unrecognized-venues-list .unrecognized-info span:last-child { color: var(--muted); margin-left: 6px; }
+  </style>
 </main>
 
 <!-- ── Event edit/create modal ────────────────────────────────────── -->
@@ -1380,7 +1433,9 @@ let artists     = [];     // catalogue
 let venuesCat   = [];     // catalogue
 
 let activeFilters = new Set();
+let dateFilter = 'both'; // 'past', 'upcoming', or 'both' - default to show all
 let currentTab    = 'list';
+let eventTypeFilter = 'both'; // 'tour', 'festival', or 'both'
 let calYear, calMonth;
 
 let editingId      = null;
@@ -1536,8 +1591,70 @@ function switchTab(tab, el) {
   document.getElementById('tab-calendar').style.display    = tab === 'calendar'    ? 'block' : 'none';
   document.getElementById('tab-map').style.display         = tab === 'map'         ? 'block' : 'none';
   document.getElementById('tab-favourites').style.display  = tab === 'favourites'  ? 'block' : 'none';
+  
+  // Set default filters per tab
+  if (tab === 'list' || tab === 'calendar') {
+    // Konzertliste & Kalender: show all events (no filters active)
+    dateFilter = 'both';
+    eventTypeFilter = 'both';
+    activeFilters.clear();
+    updateAllFilterVisuals();
+  } else if (tab === 'map') {
+    // Karte: show past events with purchased tickets
+    dateFilter = 'past';
+    eventTypeFilter = 'both';
+    activeFilters.clear();
+    activeFilters.add('tickets');
+    updateAllFilterVisuals();
+  }
+  
   if (tab === 'favourites') renderFavourites();
   if (tab === 'map') initMap();
+}
+
+function updateAllFilterVisuals() {
+  const chipPast = document.getElementById('chip-past');
+  const chipUpcoming = document.getElementById('chip-upcoming');
+  const chipTour = document.getElementById('chip-tour');
+  const chipFestival = document.getElementById('chip-festival');
+  const chipTickets = document.getElementById('chip-tickets');
+  const chipWatchlist = document.getElementById('chip-watchlist');
+  
+  // Date filter visuals
+  if (dateFilter === 'past') {
+    chipPast.className = 'filter-chip active-past';
+    chipUpcoming.className = 'filter-chip';
+  } else if (dateFilter === 'upcoming') {
+    chipPast.className = 'filter-chip';
+    chipUpcoming.className = 'filter-chip active-upcoming';
+  } else {
+    chipPast.className = 'filter-chip active-past';
+    chipUpcoming.className = 'filter-chip active-upcoming';
+  }
+  
+  // Event type filter visuals
+  if (eventTypeFilter === 'both') {
+    chipTour.className = 'filter-chip active-tour';
+    chipFestival.className = 'filter-chip active-festival';
+  } else if (eventTypeFilter === 'tour') {
+    chipTour.className = 'filter-chip active-tour';
+    chipFestival.className = 'filter-chip';
+  } else {
+    chipTour.className = 'filter-chip';
+    chipFestival.className = 'filter-chip active-festival';
+  }
+  
+  // Tag filter visuals
+  if (activeFilters.has('tickets')) {
+    chipTickets.className = 'filter-chip active-tickets';
+  } else {
+    chipTickets.className = 'filter-chip';
+  }
+  if (activeFilters.has('watchlist')) {
+    chipWatchlist.className = 'filter-chip active-watchlist';
+  } else {
+    chipWatchlist.className = 'filter-chip';
+  }
 }
 function toggleFilter(tag) {
   const chip = document.getElementById('chip-' + tag);
@@ -1548,6 +1665,8 @@ function toggleFilter(tag) {
     activeFilters.add(tag);
     chip.className = 'filter-chip active-' + tag;
   }
+  // Update visual state: if no filters active, neither should be highlighted
+  updateFilterVisualState();
   renderList(); renderCalendar();
   // Refresh map if initialized and visible
   if (mapInstance && currentTab === 'map') {
@@ -1563,7 +1682,135 @@ function toggleFilter(tag) {
     setTimeout(() => initMap(), 100);
   }
 }
+
+function updateFilterVisualState() {
+  // Tag filters: if none active, neither chip should be highlighted
+  const chipTickets = document.getElementById('chip-tickets');
+  const chipWatchlist = document.getElementById('chip-watchlist');
+  if (activeFilters.size === 0) {
+    chipTickets.className = 'filter-chip';
+    chipWatchlist.className = 'filter-chip';
+  } else if (!activeFilters.has('tickets') && !activeFilters.has('watchlist')) {
+    // This shouldn't happen but just in case
+    chipTickets.className = 'filter-chip';
+    chipWatchlist.className = 'filter-chip';
+  }
+}
+
+function toggleEventTypeFilter(type) {
+  const chipTour = document.getElementById('chip-tour');
+  const chipFestival = document.getElementById('chip-festival');
+  
+  if (eventTypeFilter === 'both') {
+    // First click: switch to the selected type
+    eventTypeFilter = type;
+    if (type === 'tour') {
+      chipTour.className = 'filter-chip active-tour';
+      chipFestival.className = 'filter-chip';
+    } else {
+      chipTour.className = 'filter-chip';
+      chipFestival.className = 'filter-chip active-festival';
+    }
+  } else if (eventTypeFilter === type) {
+    // Clicking same type again: switch to "both" (all highlighted)
+    eventTypeFilter = 'both';
+    chipTour.className = 'filter-chip active-tour';
+    chipFestival.className = 'filter-chip active-festival';
+  } else {
+    // Switching from one type to the other
+    eventTypeFilter = type;
+    if (type === 'tour') {
+      chipTour.className = 'filter-chip active-tour';
+      chipFestival.className = 'filter-chip';
+    } else {
+      chipTour.className = 'filter-chip';
+      chipFestival.className = 'filter-chip active-festival';
+    }
+  }
+  renderList(); renderCalendar();
+  // Refresh map if initialized and visible
+  if (mapInstance && currentTab === 'map') {
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+    if (mapInstance) {
+      mapInstance.remove();
+      mapInstance = null;
+    }
+    mapInitialized = false;
+    setTimeout(() => initMap(), 100);
+  }
+}
+function toggleDateFilter(type) {
+  const chipPast = document.getElementById('chip-past');
+  const chipUpcoming = document.getElementById('chip-upcoming');
+  
+  if (type === 'past') {
+    if (dateFilter === 'past') {
+      // If already showing past, also show upcoming (toggle behavior)
+      dateFilter = 'both';
+      chipPast.className = 'filter-chip active-past';
+      chipUpcoming.className = 'filter-chip active-upcoming';
+    } else if (dateFilter === 'both') {
+      // Switch to upcoming only
+      dateFilter = 'upcoming';
+      chipPast.className = 'filter-chip';
+      chipUpcoming.className = 'filter-chip active-upcoming';
+    } else {
+      // Switch to past only
+      dateFilter = 'past';
+      chipPast.className = 'filter-chip active-past';
+      chipUpcoming.className = 'filter-chip';
+    }
+  } else if (type === 'upcoming') {
+    if (dateFilter === 'upcoming') {
+      // If already showing upcoming, also show past
+      dateFilter = 'both';
+      chipPast.className = 'filter-chip active-past';
+      chipUpcoming.className = 'filter-chip active-upcoming';
+    } else if (dateFilter === 'both') {
+      // Switch to past only
+      dateFilter = 'past';
+      chipPast.className = 'filter-chip active-past';
+      chipUpcoming.className = 'filter-chip';
+    } else {
+      // Switch to upcoming only
+      dateFilter = 'upcoming';
+      chipPast.className = 'filter-chip';
+      chipUpcoming.className = 'filter-chip active-upcoming';
+    }
+  }
+  // Only refresh list/calendar if not on map tab (date filter only applies to map)
+  if (currentTab !== 'map') {
+    renderList(); renderCalendar();
+  }
+  // Always refresh map if initialized and visible
+  if (mapInstance && currentTab === 'map') {
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+    if (mapInstance) {
+      mapInstance.remove();
+      mapInstance = null;
+    }
+    mapInitialized = false;
+    setTimeout(() => initMap(), 100);
+  }
+}
 function eventVisible(ev) {
+  // Event type filter - always apply
+  if (eventTypeFilter !== 'both' && ev.event_type !== eventTypeFilter) return false;
+  
+  // Date filter - only apply to Map tab
+  if (currentTab === 'map') {
+    const todayIso = localIso(new Date());
+    const latestDate = eventLatestDate(ev);
+    const isPast = latestDate && latestDate < todayIso;
+    
+    if (dateFilter === 'past' && !isPast) return false;
+    if (dateFilter === 'upcoming' && isPast) return false;
+    // dateFilter === 'both' shows all events regardless of date
+  }
+  
+  // Tag filter - only apply if any tag filters are active
   if (!activeFilters.size) return true;
   const tags = ev.event_type === 'festival' ? (ev.tags||[])
     : (ev.concerts||[]).flatMap(c => c.tags||[]);
@@ -1671,6 +1918,56 @@ async function setFestivalTag(eventId, tag, add) {
   if (add) { if (!ev.tags.includes(tag)) ev.tags.push(tag); }
   else      { ev.tags = ev.tags.filter(t => t !== tag); }
   await patchEvent(ev);
+}
+
+// ── Add support act to past event ─────────────────────────────────────
+async function promptAddSupport(eventId, concertId) {
+  const name = prompt('Support-Act Name:');
+  if (!name || !name.trim()) return;
+  
+  const ev = getEvent(eventId);
+  if (!ev || ev.event_type !== 'tour') return;
+  const conc = (ev.concerts||[]).find(c => c.id === concertId);
+  if (!conc) return;
+  
+  // Add the support act
+  if (!conc.support_present) conc.support_present = [];
+  if (!conc.support_present.includes(name.trim())) {
+    conc.support_present.push(name.trim());
+  }
+  
+  await patchEvent(ev);
+  
+  // Refresh the detail view to show the new support act in ratings
+  // Get the updated event from allEvents (patchEvent reloads from server)
+  const updatedEv = getEvent(eventId);
+  if (updatedEv && document.getElementById('detail-bd').classList.contains('open')) {
+    document.getElementById('detail-panel').innerHTML = buildDetailHTML(updatedEv);
+  }
+}
+
+// ── Add band to past festival ─────────────────────────────────────────
+async function promptAddFestivalBand(eventId) {
+  const name = prompt('Band Name:');
+  if (!name || !name.trim()) return;
+  
+  const ev = getEvent(eventId);
+  if (!ev || ev.event_type !== 'festival') return;
+  
+  // Add the band to bands_to_watch
+  if (!ev.bands_to_watch) ev.bands_to_watch = [];
+  if (!ev.bands_to_watch.includes(name.trim())) {
+    ev.bands_to_watch.push(name.trim());
+  }
+  
+  await patchEvent(ev);
+  
+  // Refresh the detail view to show the new band in ratings
+  // Get the updated event from allEvents (patchEvent reloads from server)
+  const updatedEv = getEvent(eventId);
+  if (updatedEv && document.getElementById('detail-bd').classList.contains('open')) {
+    document.getElementById('detail-panel').innerHTML = buildDetailHTML(updatedEv);
+  }
 }
 
 async function patchEvent(ev) {
@@ -1820,7 +2117,7 @@ function renderConcertRow(c, eventId, isPast) {
     </div>
     <div class="concert-right">
       ${c.price ? `<div class="concert-price">${fmtPrice(c.price)}</div>` : ''}
-      ${c.ticket_link ? `<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ticket-link-btn">✓ Tickets</a>` : ''}
+      ${c.ticket_link ? `<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ticket-link-btn">Ticketlink</a>` : ''}
       <div class="tags">${tagHtml}</div>
     </div>
   </div>`;
@@ -1869,6 +2166,7 @@ function renderFestCard(fest, isPast) {
 // Detail view
 // ══════════════════════════════════════════════════════════════════════
 function openDetail(id) {
+  // Always get fresh data from allEvents to ensure we have the latest
   const ev = getEvent(id);
   if (!ev) return;
   const bd = document.getElementById('detail-bd');
@@ -1939,9 +2237,9 @@ function buildDetailHTML(ev) {
           <div class="detail-subtitle">${esc(ev.tour_name||'')}</div>
         </div>
         <div class="detail-close-row">
-          <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">✏️</button>
-          <button class="btn-icon" onclick="generateInvite('${ev.id}')" title="Einladung erstellen">🔗</button>
-          <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}">🗑</button>
+          <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()" title="Event bearbeiten">✏️</button>
+          <button class="btn-icon" onclick="generateInvite('${ev.id}')" title="Event-Einladung erstellen">🔗</button>
+          <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}" title="Event löschen">🗑</button>
           <button class="btn-close" onclick="closeDetail()">✕</button>
         </div>
       </div>
@@ -1962,7 +2260,7 @@ function buildDetailHTML(ev) {
           </div>
           <div class="concert-right">
             ${ev.price ? `<div class="concert-price">${fmtPrice(ev.price)}</div>` : ''}
-            ${ev.ticket_link ? `<a href="${esc(ev.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">✓ Tickets</a>` : ''}
+            ${ev.ticket_link ? `<a href="${esc(ev.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">Ticketlink</a>` : ''}
             <div class="tags">${tagHtml}</div>
           </div>
         </div>
@@ -2006,7 +2304,7 @@ function buildDetailHTML(ev) {
       </div>
       <div class="concert-right">
         ${c.price?`<div class="concert-price">${fmtPrice(c.price)}</div>`:''}
-        ${c.ticket_link?`<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">✓ Tickets</a>`:''}
+        ${c.ticket_link?`<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">Ticketlink</a>`:''}
         <div class="tags">
           <button class="tag-toggle ${c.tags.includes('tickets')?'active-tickets':''}"
             onclick="event.stopPropagation();setConcertTag('${ev.id}','${c.id}','tickets',${!c.tags.includes('tickets')});void 0">
@@ -2121,6 +2419,7 @@ async function initMap() {
   // Add markers for all events - group by venue
   const events = allEvents.filter(ev => eventVisible(ev));
   const venueGroups = {};
+  const unrecognizedVenues = []; // Track venues that couldn't be geocoded
   for (const ev of events) {
     if (ev.event_type === 'festival') {
       if (ev.venue && ev.city) {
@@ -2131,6 +2430,12 @@ async function initMap() {
             venueGroups[key] = { lat: coords.lat, lon: coords.lon, venue: ev.venue, city: ev.city, concerts: [] };
           }
           venueGroups[key].concerts.push({ title: ev.name, date: ev.date, type: 'festival' });
+        } else {
+          // Track unrecognized venue
+          const key = `${ev.venue}|${ev.city}`;
+          if (!unrecognizedVenues.some(v => `${v.venue}|${v.city}` === key)) {
+            unrecognizedVenues.push({ venue: ev.venue, city: ev.city });
+          }
         }
       }
     } else {
@@ -2143,16 +2448,47 @@ async function initMap() {
               venueGroups[key] = { lat: coords.lat, lon: coords.lon, venue: c.venue, city: c.city, concerts: [] };
             }
             venueGroups[key].concerts.push({ title: ev.artist, date: c.date, type: 'tour' });
+          } else {
+            // Track unrecognized venue
+            const key = `${c.venue}|${c.city}`;
+            if (!unrecognizedVenues.some(v => `${v.venue}|${v.city}` === key)) {
+              unrecognizedVenues.push({ venue: c.venue, city: c.city });
+            }
           }
         }
       }
     }
   }
+  
+  // Display unrecognized venues list
+  const unrecognizedDiv = document.getElementById('unrecognized-venues');
+  const unrecognizedList = document.getElementById('unrecognized-venues-list');
+  if (unrecognizedVenues.length > 0) {
+    unrecognizedDiv.style.display = 'block';
+    unrecognizedList.innerHTML = unrecognizedVenues.map(v =>
+      `<div class="unrecognized-item">
+        <div class="unrecognized-info"><span>${esc(v.venue)}</span> <span>${esc(v.city)}</span></div>
+        <button class="btn-sm" onclick="addUnrecognizedVenueMarker('${esc(v.venue)}', '${esc(v.city)}')">📍 Markieren</button>
+      </div>`
+    ).join('');
+  } else {
+    unrecognizedDiv.style.display = 'none';
+    unrecognizedList.innerHTML = '';
+  }
   // Add markers for each venue group
   Object.values(venueGroups).forEach(vg => {
     const count = vg.concerts.length;
-    const isMixed = vg.concerts.some(c => c.type === 'festival');
-    const typeClass = isMixed ? 'mixed' : vg.concerts[0].type;
+    // Determine marker type: only show "mixed" if there are BOTH tours AND festivals
+    const hasTours = vg.concerts.some(c => c.type === 'tour');
+    const hasFestivals = vg.concerts.some(c => c.type === 'festival');
+    let typeClass;
+    if (hasTours && hasFestivals) {
+      typeClass = 'mixed';
+    } else if (hasFestivals) {
+      typeClass = 'festival';
+    } else {
+      typeClass = 'tour';
+    }
     // Create marker with count badge
     const icon = L.divIcon({
       className: 'venue-marker',
@@ -2184,7 +2520,10 @@ async function initMap() {
         <div class="venue-popup-header">${esc(vg.venue)}</div>
         <div class="venue-popup-city">📍 ${esc(vg.city)}</div>
         <div class="venue-popup-list">${concertsList}</div>
-        <button class="venue-popup-edit" onclick="editVenueMarker(this, '${esc(vg.venue)}', '${esc(vg.city)}')">📍 Position bearbeiten</button>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button class="venue-popup-edit" onclick="editVenueMarker(this, '${esc(vg.venue)}', '${esc(vg.city)}')">📍 Bearbeiten</button>
+          <button class="venue-popup-delete" onclick="deleteVenueMarker('${esc(vg.venue)}', '${esc(vg.city)}')">🗑️ Löschen</button>
+        </div>
       </div>
     `;
     marker.bindPopup(popupContent);
@@ -2206,7 +2545,12 @@ async function initMap() {
   console.log('initMap completed, markers:', mapMarkers.length);
 }
 
-// Edit venue marker position
+// Edit venue marker position - manual save
+let pendingEditMarker = null;
+let pendingEditVenue = null;
+let pendingEditCity = null;
+let editMarkerClickHandler = null;
+
 function editVenueMarker(btn, venue, city) {
   const marker = mapMarkers.find(m => m.venueKey === `${venue}|${city}`);
   if (!marker) {
@@ -2214,44 +2558,214 @@ function editVenueMarker(btn, venue, city) {
     return;
   }
   
+  // Clean up any existing edit state
+  if (editMarkerClickHandler) {
+    mapInstance.off('click', editMarkerClickHandler);
+    editMarkerClickHandler = null;
+  }
+  if (pendingEditMarker && pendingEditMarker.dragging) {
+    pendingEditMarker.dragging.disable();
+  }
+  
   // Close popup
   mapInstance.closePopup();
+  
+  // Store pending edit
+  pendingEditMarker = marker;
+  pendingEditVenue = venue;
+  pendingEditCity = city;
   
   // Enable dragging
   if (marker.dragging) {
     marker.dragging.enable();
   }
   
-  // Show instruction
-  alert(`Verschiebe den Marker für "${venue}" und klicke dann auf die Karte, um die Position zu bestätigen.`);
+  // Create popup with Save button
+  const popupContent = `
+    <div style="min-width: 150px; text-align: center;">
+      <b>${venue}</b><br>
+      <span style="color: #666; font-size: 12px;">${city}</span><br><br>
+      <span style="font-size: 11px; color: var(--muted);">Ziehe den Marker oder klicke auf die Karte</span><br><br>
+      <button class="btn-save-marker" onclick="saveEditedVenueMarker()">💾 Speichern</button>
+    </div>
+  `;
+  marker.bindPopup(popupContent).openPopup();
   
-  // Listen for drag end
-  const onDragEnd = function() {
-    const newLat = this.getLatLng().lat;
-    const newLon = this.getLatLng().lng;
-    // Update cache
-    const cache = getVenueCache();
-    cache[`${venue}|${city}`] = { lat: newLat, lon: newLon };
-    saveVenueCache(cache);
-    // Show confirmation
-    alert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
-    // Disable dragging
-    if (marker.dragging) {
-      marker.dragging.disable();
-    }
-    // Remove listeners
-    marker.off('dragend', onDragEnd);
-    mapInstance.off('click', onMapClick);
-  };
-  
-  // Listen for map click to confirm
-  const onMapClick = function(e) {
+  // Listen for map click to update position (but not save)
+  editMarkerClickHandler = function(e) {
     marker.setLatLng(e.latlng);
-    marker.fireEvent('dragend');
   };
   
-  marker.on('dragend', onDragEnd);
-  mapInstance.on('click', onMapClick);
+  mapInstance.on('click', editMarkerClickHandler);
+}
+
+// Save the edited venue marker
+function saveEditedVenueMarker() {
+  if (!pendingEditMarker || !pendingEditVenue || !pendingEditCity) {
+    console.error('No pending edit to save');
+    return;
+  }
+  
+  const { venue, city } = { venue: pendingEditVenue, city: pendingEditCity };
+  const latLng = pendingEditMarker.getLatLng();
+  const newLat = latLng.lat;
+  const newLon = latLng.lng;
+  
+  // Update cache
+  const cache = getVenueCache();
+  cache[`${venue}|${city}`] = { lat: newLat, lon: newLon };
+  saveVenueCache(cache);
+  
+  // Clean up
+  if (editMarkerClickHandler) {
+    mapInstance.off('click', editMarkerClickHandler);
+    editMarkerClickHandler = null;
+  }
+  if (pendingEditMarker.dragging) {
+    pendingEditMarker.dragging.disable();
+  }
+  pendingEditMarker.closePopup();
+  pendingEditMarker = null;
+  pendingEditVenue = null;
+  pendingEditCity = null;
+  
+  // Show confirmation
+  alert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
+  
+  // Refresh the map
+  mapInitialized = false;
+  initMap();
+}
+
+// Add marker for unrecognized venue - click on map to place
+let pendingUnrecognizedVenue = null;
+let tempMarkerInstance = null;
+let tempMarkerClickHandler = null;
+
+async function addUnrecognizedVenueMarker(venue, city) {
+  if (!mapInstance) {
+    alert('Bitte wechsle zuerst zur Karten-Ansicht.');
+    return;
+  }
+  
+  // Clean up any existing pending marker
+  if (tempMarkerInstance) {
+    if (tempMarkerClickHandler) {
+      mapInstance.off('click', tempMarkerClickHandler);
+      tempMarkerClickHandler = null;
+    }
+    tempMarkerInstance.remove();
+    tempMarkerInstance = null;
+  }
+  
+  // Close any popups
+  mapInstance.closePopup();
+  
+  // Store pending venue
+  pendingUnrecognizedVenue = { venue, city };
+  
+  // Try Google Maps geocoding first (using Places API via direct fetch)
+  let initialLatLng = null;
+  const query = encodeURIComponent(`${venue}, ${city || ''}`.replace(/,\s*$/, ''));
+  
+  // Try Google Maps geocoding (no API key needed for basic geocoding)
+  try {
+    const googleResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&sensor=false`);
+    const googleData = await googleResp.json();
+    if (googleData.status === 'OK' && googleData.results && googleData.results.length > 0) {
+      initialLatLng = {
+        lat: googleData.results[0].geometry.location.lat,
+        lng: googleData.results[0].geometry.location.lng
+      };
+      console.log('Google geocoding found:', initialLatLng);
+    }
+  } catch (e) {
+    console.log('Google geocoding failed, trying manual placement:', e);
+  }
+  
+  // If no Google result, use map center
+  if (!initialLatLng) {
+    initialLatLng = mapInstance.getCenter();
+  }
+  
+  // Add a temporary marker at the position
+  tempMarkerInstance = L.marker(initialLatLng, { draggable: true }).addTo(mapInstance);
+  
+  // Create popup with Save button
+  const popupContent = `
+    <div style="min-width: 150px; text-align: center;">
+      <b>${venue}</b><br>
+      <span style="color: #666; font-size: 12px;">${city}</span><br><br>
+      <button class="btn-save-marker" onclick="saveUnrecognizedVenueMarker()">💾 Speichern</button>
+    </div>
+  `;
+  tempMarkerInstance.bindPopup(popupContent).openPopup();
+  
+  // Listen for clicks to update position (but not save)
+  tempMarkerClickHandler = function(e) {
+    tempMarkerInstance.setLatLng(e.latlng);
+  };
+  
+  mapInstance.on('click', tempMarkerClickHandler);
+}
+
+// Save the pending unrecognized venue marker
+function saveUnrecognizedVenueMarker() {
+  if (!pendingUnrecognizedVenue || !tempMarkerInstance) {
+    console.error('No pending venue to save');
+    return;
+  }
+  
+  const { venue, city } = pendingUnrecognizedVenue;
+  const latLng = tempMarkerInstance.getLatLng();
+  const newLat = latLng.lat;
+  const newLon = latLng.lng;
+  
+  // Save to cache
+  const cache = getVenueCache();
+  cache[`${venue}|${city}`] = { lat: newLat, lon: newLon };
+  saveVenueCache(cache);
+  
+  // Clean up
+  if (tempMarkerClickHandler) {
+    mapInstance.off('click', tempMarkerClickHandler);
+    tempMarkerClickHandler = null;
+  }
+  tempMarkerInstance.closePopup();
+  tempMarkerInstance.remove();
+  tempMarkerInstance = null;
+  pendingUnrecognizedVenue = null;
+  
+  // Show confirmation
+  alert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
+  
+  // Refresh the map to show the new marker
+  mapInitialized = false;
+  initMap();
+}
+
+// Delete a known venue marker and add it back to the unknown list
+function deleteVenueMarker(venue, city) {
+  if (!confirm(`Möchtest du den Marker für "${venue}" in ${city} wirklich löschen? Der Veranstaltungsort wird wieder in die Liste der unbekannten Orte aufgenommen.`)) {
+    return;
+  }
+  
+  // Remove from cache
+  const cache = getVenueCache();
+  delete cache[`${venue}|${city}`];
+  saveVenueCache(cache);
+  
+  // Find and remove the marker from the map
+  const markerIndex = mapMarkers.findIndex(m => m.venueKey === `${venue}|${city}`);
+  if (markerIndex !== -1) {
+    const marker = mapMarkers[markerIndex];
+    mapInstance.removeLayer(marker);
+    mapMarkers.splice(markerIndex, 1);
+  }
+  
+  // Refresh the map
+  mapInitialized = false;
+  initMap();
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2478,8 +2992,12 @@ function addConcertBlock(prefill) {
   const id = 'cb-'+blockCount;
   const div = document.createElement('div');
   div.className = 'concert-block'; div.id = id;
+  // Store concert ID for later use
+  if (prefill?.id) {
+    div.dataset.concertId = prefill.id;
+  }
 
-  // support checkboxes
+  // support checkboxes - use existing support_present if editing, otherwise select all
   const currentSupport = pillState.support.tags;
   const presentList = prefill?.support_present ?? [...currentSupport];
   const supChecks = currentSupport.length
@@ -2695,7 +3213,9 @@ async function saveEvent() {
         if (b.querySelector('.cb-tag-tickets').checked)   tags.push('tickets');
         if (b.querySelector('.cb-tag-watchlist').checked) tags.push('watchlist');
         const supPresent = [...b.querySelectorAll('.cb-sup:checked')].map(cb => cb.dataset.act);
+        const concertId = b.dataset.concertId || null;
         concerts.push({
+          id: concertId,
           date, city, venue,
           time:     b.querySelector('.cb-time').value||null,
           end_date: b.querySelector('.cb-multi').checked ? b.querySelector('.cb-enddate').value||null : null,
@@ -2718,6 +3238,15 @@ async function saveEvent() {
     if (!r.ok) throw new Error('Server error');
     closeModal('event-modal');
     await fetchAll();
+    // Small delay to ensure data is fully processed
+    await new Promise(resolve => setTimeout(resolve, 50));
+    // Re-open detail view with updated event
+    if (editingId) {
+      // Close detail view first to force complete re-render
+      closeDetail();
+      // Open detail view with fresh data
+      openDetail(editingId);
+    }
   } catch(err) {
     alert('Fehler: '+err.message);
   } finally {
@@ -2746,6 +3275,41 @@ function renderPills(which) {
     const pill = document.createElement('div'); pill.className = 'pill';
     pill.innerHTML = `${esc(tag)}<button type="button" class="p-rm" onclick="removePill('${which}',${i})">✕</button>`;
     field.insertBefore(pill, input);
+  });
+  // Update concert blocks when support pills change
+  if (which === 'support') {
+    updateConcertBlockSupportChecks();
+  }
+}
+
+function updateConcertBlockSupportChecks() {
+  const currentSupport = pillState.support.tags;
+  document.querySelectorAll('.concert-block').forEach(block => {
+    // Remove existing support checks
+    const existingGroup = block.querySelector('.form-group.full');
+    if (existingGroup && existingGroup.querySelector('.support-checks')) {
+      existingGroup.remove();
+    }
+    // Add new support checks if there are any
+    if (currentSupport.length > 0) {
+      const presentList = [...currentSupport];
+      const supChecks = `<div class="form-group full">
+        <label>Support bei diesem Termin</label>
+        <div class="support-checks">
+          ${currentSupport.map(act => `
+            <label class="sup-check">
+              <input type="checkbox" class="cb-sup" data-act="${esc(act)}" ${presentList.includes(act)?'checked':''}>
+              <div class="check-box">✓</div>
+              <span>${esc(act)}</span>
+            </label>`).join('')}
+        </div>
+      </div>`;
+      // Insert after the first form-group in the grid
+      const firstFormGroup = block.querySelector('.form-grid > .form-group');
+      if (firstFormGroup) {
+        firstFormGroup.insertAdjacentHTML('afterend', supChecks);
+      }
+    }
   });
 }
 function removePill(which, i) { pillState[which].tags.splice(i,1); renderPills(which); }
