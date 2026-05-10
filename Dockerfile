@@ -41,6 +41,11 @@ if [ -d /app/static/posters ]; then\n\
     chown -R appuser:appuser /app/static/posters 2>&1 || true\n\
     chmod -R u+rw /app/static/posters 2>&1 || true\n\
 fi\n\
+if [ -d /app/static/logos ]; then\n\
+    echo "Entrypoint: Fixing permissions on /app/static/logos..."\n\
+    chown -R appuser:appuser /app/static/logos 2>&1 || true\n\
+    chmod -R u+rw /app/static/logos 2>&1 || true\n\
+fi\n\
 echo "Entrypoint: Permissions fixed, switching to appuser and starting main.py..."\n\
 exec gosu appuser python main.py' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 

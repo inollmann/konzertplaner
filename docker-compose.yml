@@ -8,4 +8,5 @@ services:
     volumes:
       - ./data:/app/data
       - ./static/posters:/app/static/posters
+      - ./static/logos:/app/static/logos
     restart: unless-stopped

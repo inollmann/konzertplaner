@@ -3540,9 +3540,11 @@ document.addEventListener('paste', async e => {
   }
 }, true);
 
-async function uploadArtistImg(blob) {
+async function uploadArtistImg(blob, artistName = null, imgType = 'logo') {
   if (!blob) return null;
   const fd = new FormData(); fd.append('logo', blob);
+  if (artistName) fd.append('artist', artistName);
+  fd.append('type', imgType);
   const r = await fetch('/api/upload-logo', { method:'POST', body: fd });
   return (await r.json()).filename;
 }
@@ -3565,8 +3567,8 @@ async function saveArtistDetail() {
   const name = document.getElementById('adm-name').value.trim();
   if (!name) { alert('Bitte einen Namen eingeben.'); return; }
   const a = _admCurrentArtist;
-  const logoFilename  = _admPendingBlob.logo  ? await uploadArtistImg(_admPendingBlob.logo)  : (a.logo  || null);
-  const photoFilename = _admPendingBlob.photo ? await uploadArtistImg(_admPendingBlob.photo) : (a.photo || null);
+  const logoFilename  = _admPendingBlob.logo  ? await uploadArtistImg(_admPendingBlob.logo, name, 'logo')  : (a.logo  || null);
+  const photoFilename = _admPendingBlob.photo ? await uploadArtistImg(_admPendingBlob.photo, name, 'photo') : (a.photo || null);
   const payload = { name, logo: logoFilename, photo: photoFilename };
   if (a.derived || !a.id) {
     await fetch('/api/artists', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });

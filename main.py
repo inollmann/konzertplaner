@@ -221,9 +221,18 @@ def export_css():
 
 # ── Image upload helpers ──────────────────────────────────────────────────────
 
-def _save_upload(file, dest_dir: Path) -> str:
+def _save_upload(file, dest_dir: Path, base_name: str | None = None, suffix: str = "") -> str:
     ext = file.filename.rsplit(".", 1)[1].lower() if "." in file.filename else "png"
-    filename = f"{uuid.uuid4()}.{ext}"
+    if base_name:
+        # Sanitize filename: lowercase, replace spaces/special chars with hyphens
+        sanitized = base_name.lower().strip()
+        for ch in " _/\\":
+            sanitized = sanitized.replace(ch, "-")
+        # Remove any non-alphanumeric except hyphens
+        sanitized = "".join(c if c.isalnum() or c == "-" else "" for c in sanitized)
+        filename = f"{sanitized}{suffix}.{ext}"
+    else:
+        filename = f"{uuid.uuid4()}.{ext}"
     file.save(dest_dir / filename)
     return filename
 
@@ -243,7 +252,12 @@ def upload_logo():
         return jsonify({"error": "No file"}), 400
     if not allowed_file(f.filename):
         return jsonify({"error": "Type not allowed"}), 400
-    return jsonify({"filename": _save_upload(f, LOGO_DIR)})
+    # Optional: artist name for named file
+    artist = request.form.get("artist")
+    # Type can be "logo" or "photo" to differentiate
+    img_type = request.form.get("type", "logo")
+    suffix = f"_{img_type}" if img_type else ""
+    return jsonify({"filename": _save_upload(f, LOGO_DIR, artist, suffix)})
 
 
 # ── Autocomplete ──────────────────────────────────────────────────────────────
