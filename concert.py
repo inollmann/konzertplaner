@@ -61,11 +61,20 @@ class Event:
 class Tour(Event):
     event_type = "tour"
 
-    def __init__(self, artist: str, support: list | None = None,
+    def __init__(self, artist: str | list | None = None, support: list | None = None,
                  tour_name: str = "Tour", poster: str | None = None,
                  comment: str = ""):
-        super().__init__(name=artist, poster=poster, comment=comment)
-        self.artist: str = artist
+        # Handle both single artist (string) and multiple artists (list)
+        if artist is None:
+            artist_list = []
+        elif isinstance(artist, list):
+            artist_list = artist
+        else:
+            artist_list = [artist] if artist else []
+        
+        # Use first artist as name for backward compatibility
+        super().__init__(name=artist_list[0] if artist_list else "", poster=poster, comment=comment)
+        self.artist: list = artist_list  # list of artist names (for co-headlining)
         self.support: list = support or []   # list of act-name strings
         self.tour_name: str = tour_name
         self.concerts: list = []
@@ -80,11 +89,13 @@ class Tour(Event):
         support_present: subset of self.support that plays this specific date.
         Defaults to all support acts when omitted.
         """
+        # Get first artist for backward compatibility
+        main_artist = self.artist[0] if self.artist else ""
         concert = Concert(
             date=date, city=city, venue=venue,
             price=price, time=time, end_date=end_date,
             tags=tags or [],
-            tour_id=self.id, tour_name=self.tour_name, artist=self.artist,
+            tour_id=self.id, tour_name=self.tour_name, artist=main_artist,
             support_present=support_present if support_present is not None else list(self.support),
             ticket_link=ticket_link,
         )
@@ -103,8 +114,17 @@ class Tour(Event):
 
     @classmethod
     def from_dict(cls, data: dict) -> "Tour":
+        # Handle both old format (single artist string) and new format (artist list)
+        artist_data = data.get("artist")
+        if isinstance(artist_data, list):
+            artist_list = artist_data
+        elif artist_data:
+            artist_list = [artist_data]
+        else:
+            artist_list = [data.get("name", "")]
+        
         tour = cls(
-            artist=data.get("artist", data.get("name", "")),
+            artist=artist_list,
             support=data.get("support", []),
             tour_name=data.get("tour_name", "Tour"),
             poster=data.get("poster"),
@@ -120,7 +140,7 @@ class Tour(Event):
         Stub for AI poster extraction.
 
         Expected keys in `extracted` (all optional):
-          artist, tour_name, support (list), poster (filename),
+          artist (string or list), tour_name, support (list), poster (filename),
           concerts (list of dicts: date, city, venue, time, end_date, tags,
                     support_present)
 
@@ -130,8 +150,17 @@ class Tour(Event):
             events[tour.id] = tour
             save_events(events)
         """
+        # Handle both single artist (string) and multiple artists (list)
+        artist_data = extracted.get("artist")
+        if isinstance(artist_data, list):
+            artist_list = artist_data
+        elif artist_data:
+            artist_list = [artist_data]
+        else:
+            artist_list = []
+        
         tour = cls(
-            artist=extracted.get("artist", ""),
+            artist=artist_list,
             support=extracted.get("support", []),
             tour_name=extracted.get("tour_name", "Tour"),
             poster=extracted.get("poster"),

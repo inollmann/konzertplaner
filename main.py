@@ -87,7 +87,11 @@ def all_known_bands() -> list[str]:
     names: set[str] = {a.name for a in catalogue["artists"].values()}
     for ev in events.values():
         if isinstance(ev, Tour):
-            names.add(ev.artist)
+            # Handle both single artist (string) and multiple artists (list)
+            if isinstance(ev.artist, list):
+                names.update(ev.artist)
+            else:
+                names.add(ev.artist)
             names.update(ev.support)
         elif isinstance(ev, Festival):
             names.update(ev.bands_to_watch)
@@ -418,8 +422,17 @@ def create_event():
             comment=data.get("comment", ""),
         )
     else:
+        # Handle both single artist (string) and multiple artists (list)
+        artist_data = data.get("artist")
+        if isinstance(artist_data, list):
+            artist_list = artist_data
+        elif artist_data:
+            artist_list = [artist_data]
+        else:
+            artist_list = []
+        
         ev = Tour(
-            artist=data["artist"], support=data.get("support", []),
+            artist=artist_list, support=data.get("support", []),
             tour_name=data.get("tour_name", "Tour"),
             poster=data.get("poster"), comment=data.get("comment", ""),
         )
@@ -454,8 +467,15 @@ def update_event(eid):
         ev.tags   = data.get("tags",   ev.tags)
         ev.comment = data.get("comment", ev.comment)
     else:
-        ev.artist    = data.get("artist",    ev.artist)
-        ev.name      = ev.artist
+        # Handle both single artist (string) and multiple artists (list)
+        artist_data = data.get("artist")
+        if artist_data is not None:
+            if isinstance(artist_data, list):
+                ev.artist = artist_data
+            else:
+                ev.artist = [artist_data]
+        # Update name to first artist for backward compatibility
+        ev.name = ev.artist[0] if ev.artist else ""
         ev.support   = data.get("support",   ev.support)
         ev.tour_name = data.get("tour_name", ev.tour_name)
         ev.comment   = data.get("comment",   ev.comment)
@@ -497,11 +517,16 @@ def get_event_invite(eid):
     ev_dict = ev.to_dict()
     
     # Create a compact invitation payload
+    # Handle artist as list (for co-headlining) or string (backward compatibility)
+    artist_for_invite = ev.artist if ev.event_type == "tour" else ""
+    if isinstance(artist_for_invite, list):
+        artist_for_invite = artist_for_invite[0] if artist_for_invite else ""
+    
     invite_data = {
         "v": 1,  # version
         "t": ev.event_type,
         "n": ev.name if ev.event_type == "festival" else "",
-        "a": ev.artist if ev.event_type == "tour" else "",
+        "a": artist_for_invite,
         "s": ev.support if ev.event_type == "tour" else [],
         "c": [
             {

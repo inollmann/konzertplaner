@@ -488,7 +488,10 @@ textarea { resize: vertical; min-height: 72px; }
 .pill {
   display: flex; align-items: center; gap: 4px; background: var(--surface3);
   border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; font-size: 13px; white-space: nowrap;
+  cursor: grab; user-select: none;
 }
+.pill.dragging { opacity: 0.5; cursor: grabbing; }
+.pill.drag-over { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 15%,var(--surface3)); }
 .pill .p-rm { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; line-height: 1; padding: 0; }
 .pill .p-rm:hover { color: #f87171; }
 .pill-input {
@@ -1116,8 +1119,15 @@ input[type=color] {
       </div>
       <div class="form-grid">
         <div class="form-group full">
-          <label>Artist *</label>
-          <input type="text" id="f-artist" placeholder="Bandname oder Künstler">
+          <label>Artist(s) *</label>
+          <div class="pill-wrap">
+            <div class="pill-field" id="artist-field" onclick="focusPill('artist-input')">
+              <input class="pill-input" id="artist-input" autocomplete="off" placeholder="Bandname oder Künstler eingeben…"
+                oninput="onPillInput('artist')" onkeydown="onPillKey(event,'artist')"
+                onfocus="onPillFocus('artist')" onblur="onPillBlur('artist')">
+            </div>
+            <div class="ac-drop" id="artist-drop"></div>
+          </div>
         </div>
         <div class="form-group">
           <label>Tourname</label>
@@ -1445,6 +1455,7 @@ let savedPoster    = { tour: null, festival: null };
 
 // pill state
 const pillState = {
+  artist:  { tags: [], hi: -1 },
   support: { tags: [], hi: -1 },
   bands:   { tags: [], hi: -1 },
 };
@@ -2325,7 +2336,7 @@ function buildDetailHTML(ev) {
       ${ps}
       <div class="detail-meta">
         <div style="display:flex;gap:7px;margin-bottom:4px"><span class="type-badge tour">Tour</span></div>
-        <div class="detail-title">${esc(ev.artist)}</div>
+        <div class="detail-title">${Array.isArray(ev.artist) ? esc(ev.artist.join(' + ')) : esc(ev.artist)}</div>
         <div class="detail-subtitle">${esc(ev.tour_name)}</div>
         ${ev.support.length?`<div class="detail-support"><span style="color:var(--muted)">Support: </span>${esc(ev.support.join(' · '))}</div>`:''}
       </div>
@@ -2447,7 +2458,7 @@ async function initMap() {
             if (!venueGroups[key]) {
               venueGroups[key] = { lat: coords.lat, lon: coords.lon, venue: c.venue, city: c.city, concerts: [] };
             }
-            venueGroups[key].concerts.push({ title: ev.artist, date: c.date, type: 'tour' });
+            venueGroups[key].concerts.push({ title: Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist, date: c.date, type: 'tour' });
           } else {
             // Track unrecognized venue
             const key = `${c.venue}|${c.city}`;
@@ -2790,7 +2801,8 @@ function renderCalendar() {
       entries.push({ iso: ev.date, end_iso: ev.end_date, label: ev.name, type: 'festival', tags: ev.tags||[], id: ev.id });
     } else {
       (ev.concerts||[]).forEach(c => {
-        entries.push({ iso: c.date, end_iso: c.end_date, label: ev.artist, type: 'tour', tags: c.tags||[], data: c, id: ev.id });
+        const artistLabel = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
+        entries.push({ iso: c.date, end_iso: c.end_date, label: artistLabel, type: 'tour', tags: c.tags||[], data: c, id: ev.id });
       });
     }
   });
@@ -2900,7 +2912,16 @@ function openEventModal(ev) {
   selectType(ev ? ev.event_type : 'tour', false);
 
   if (!ev || ev.event_type === 'tour') {
-    document.getElementById('f-artist').value   = ev?.artist || '';
+    // Handle both single artist (string) and multiple artists (list)
+    const artistData = ev?.artist;
+    if (Array.isArray(artistData)) {
+      pillState.artist.tags = [...artistData];
+    } else if (artistData) {
+      pillState.artist.tags = [artistData];
+    } else {
+      pillState.artist.tags = [];
+    }
+    renderPills('artist');
     document.getElementById('f-tourname').value = ev?.tour_name || '';
     document.getElementById('f-tour-comment').value = ev?.comment || '';
     pillState.support.tags = [...(ev?.support||[])];
@@ -3200,8 +3221,9 @@ async function saveEvent() {
         comment: document.getElementById('f-fest-comment').value.trim(),
       };
     } else {
-      const artist = document.getElementById('f-artist').value.trim();
-      if (!artist) { alert('Bitte Artist angeben.'); return; }
+      // Get artist list from pill state
+      const artistList = [...pillState.artist.tags];
+      if (!artistList.length) { alert('Bitte Artist angeben.'); return; }
       const blocks = document.querySelectorAll('.concert-block');
       const concerts = [];
       for (const b of blocks) {
@@ -3225,7 +3247,7 @@ async function saveEvent() {
         });
       }
       payload = {
-        event_type: 'tour', artist,
+        event_type: 'tour', artist: artistList,
         tour_name: document.getElementById('f-tourname').value.trim()||'Tour',
         support: [...pillState.support.tags],
         concerts, poster,
@@ -3273,7 +3295,45 @@ function renderPills(which) {
   field.querySelectorAll('.pill').forEach(p => p.remove());
   pillState[which].tags.forEach((tag, i) => {
     const pill = document.createElement('div'); pill.className = 'pill';
+    pill.draggable = true;
+    pill.dataset.index = i;
     pill.innerHTML = `${esc(tag)}<button type="button" class="p-rm" onclick="removePill('${which}',${i})">✕</button>`;
+    
+    // Drag events for pill reordering
+    pill.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', i.toString());
+      e.dataTransfer.setData('which', which);
+      pill.classList.add('dragging');
+    });
+    pill.addEventListener('dragend', () => {
+      pill.classList.remove('dragging');
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('drag-over'));
+    });
+    pill.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!pill.classList.contains('dragging')) {
+        pill.classList.add('drag-over');
+      }
+    });
+    pill.addEventListener('dragleave', () => {
+      pill.classList.remove('drag-over');
+    });
+    pill.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const fromWhich = e.dataTransfer.getData('which');
+      const toIndex = parseInt(pill.dataset.index);
+      
+      if (fromWhich === which && fromIndex !== toIndex) {
+        // Reorder the tags array
+        const tags = pillState[which].tags;
+        const [moved] = tags.splice(fromIndex, 1);
+        tags.splice(toIndex, 0, moved);
+        renderPills(which);
+      }
+      pill.classList.remove('drag-over');
+    });
+    
     field.insertBefore(pill, input);
   });
   // Update concert blocks when support pills change
@@ -3530,7 +3590,8 @@ function artistRatingsSummary(name) {
         const allActs = [c.artist, ...(c.support_present||[])];
         if (allActs.some(a => a && a.toLowerCase() === name.toLowerCase())) {
           const r = getRating(ev.id, name);
-          if (r !== null) entries.push({ label: `${esc(ev.artist)} · ${fmtDateShort(c.date)}`, rating: r });
+          const artistLabel = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
+          if (r !== null) entries.push({ label: `${esc(artistLabel)} · ${fmtDateShort(c.date)}`, rating: r });
         }
       });
     } else if (ev.event_type === 'festival') {
@@ -3570,7 +3631,8 @@ function artistDetailRatingsHtml(name) {
         const allActs = [c.artist, ...(c.support_present||[])];
         if (allActs.some(a => a && a.toLowerCase() === name.toLowerCase())) {
           const r = getRating(ev.id, name);
-          if (r !== null) entries.push({ label: `${esc(ev.artist)} – ${fmtDateShort(c.date)}`, sublabel: esc(c.venue), rating: r });
+          const artistLabel = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
+          if (r !== null) entries.push({ label: `${esc(artistLabel)} – ${fmtDateShort(c.date)}`, sublabel: esc(c.venue), rating: r });
         }
       });
     } else if (ev.event_type === 'festival') {
@@ -3887,7 +3949,8 @@ function calculateStats() {
           totalConcerts++;
           const year = c.date ? c.date.substring(0, 4) : 'unbekannt';
           byYear[year] = (byYear[year] || 0) + 1;
-          if (ev.artist) byArtist[ev.artist] = (byArtist[ev.artist] || 0) + 1;
+          const artistKey = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
+          if (artistKey) byArtist[artistKey] = (byArtist[artistKey] || 0) + 1;
           if (c.venue) byVenue[c.venue] = (byVenue[c.venue] || 0) + 1;
           const price = parseFloat(c.price) || 0;
           if (price > 0) totalSpent += price;
@@ -4132,8 +4195,9 @@ function exportCSV(upcoming, past, todayIso) {
       ]);
     } else {
       (ev.concerts||[]).forEach(c => {
+        const artistForExport = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
         rows.push([
-          'Konzert', ev.artist, ev.tour_name||'', c.date||'', c.end_date||'', c.time||'',
+          'Konzert', artistForExport, ev.tour_name||'', c.date||'', c.end_date||'', c.time||'',
           c.city||'', c.venue||'', c.price||'', c.ticket_link||'',
           (c.tags||[]).join('; '), (c.support_present||[]).join('; '), status
         ]);
@@ -4187,10 +4251,11 @@ function exportICS(upcoming, past, todayIso) {
       // Tour: one event per concert
       (ev.concerts||[]).forEach(c => {
         if (!c.date) return;
-        const uid = `concert-${c.id || c.date + '-' + (c.city||'').replace(/\W/g,'') + '-' + (ev.artist||'').replace(/\W/g,'')}@konzertplaner`;
+        const artistForIcal = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
+        const uid = `concert-${c.id || c.date + '-' + (c.city||'').replace(/\W/g,'') + '-' + (artistForIcal||'').replace(/\W/g,'')}@konzertplaner`;
         const dtstart = (c.date + (c.time ? 'T' + c.time.replace(':','') + '00' : '')).replace(/[-:]/g,'');
         const dtend = (c.end_date || c.date + (c.time ? 'T' + c.time.replace(':','') + '00' : '')).replace(/[-:]/g,'');
-        const summary = ev.artist + (ev.tour_name ? ' - ' + ev.tour_name : '');
+        const summary = artistForIcal + (ev.tour_name ? ' - ' + ev.tour_name : '');
         const location = [c.venue, c.city].filter(Boolean).join(', ');
         const desc = [
           ev.tour_name ? 'Tour: ' + ev.tour_name : '',
@@ -4276,7 +4341,7 @@ function exportHTML(upcoming, past, todayIso) {
     return `<div class="ev-card">
       <div class="ev-artist-header">
         <div class="ev-badge" style="color:${tourCol};border-color:${tourCol}">Tour</div>
-        <div class="ev-title">${esc(ev.artist)}</div>
+        <div class="ev-title">${Array.isArray(ev.artist) ? esc(ev.artist.join(' + ')) : esc(ev.artist)}</div>
         <div class="ev-sub">${esc(ev.tour_name||'')}${ev.support&&ev.support.length ? ' · Support: '+esc(ev.support.join(', ')) : ''}</div>
       </div>
       ${concRows}
