@@ -2,6 +2,8 @@ services:
   konzertplaner:
     build: .
     ports:
+      # To change the host port, modify the left number (HOST_PORT:CONTAINER_PORT)
+      # Example: "8080:5000" to access the app at http://localhost:8080
       - "5000:5000"
     volumes:
       - ./data:/app/data

@@ -13,6 +13,12 @@ COPY static/ static/
 # Data directory for persistence
 RUN mkdir -p data static/posters
 
+# Create non-root user and set ownership
+RUN useradd -m appuser && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
 EXPOSE 5000
 
 CMD ["python", "main.py"]
