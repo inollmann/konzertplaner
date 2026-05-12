@@ -117,7 +117,7 @@ header {
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ─── Filter bar ───────────────────────────────────────────────────── */
-.filter-bar { display: flex; align-items: center; gap: 10px; padding: 14px 32px; }
+.filter-bar { display: flex; align-items: center; gap: 10px; padding: 14px 32px; flex-wrap: wrap; }
 .filter-bar span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .filter-chip {
   padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
@@ -129,9 +129,73 @@ header {
 .filter-chip.active-upcoming  { border-color: #38bdf8;              color: #38bdf8;              background: color-mix(in srgb,#38bdf8 8%,transparent); }
 .filter-chip.active-tour      { border-color: var(--tour);           color: var(--tour);           background: color-mix(in srgb,var(--tour) 8%,transparent); }
 .filter-chip.active-festival  { border-color: var(--festival);       color: var(--festival);       background: color-mix(in srgb,var(--festival) 8%,transparent); }
+.filter-chip.active-shows-cat { border-color: var(--accent);         color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
+.filter-chip.active-shows-sort { border-color: var(--accent);        color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
 .filter-sep {
   width: 1px; height: 24px; background: var(--border); margin: 0 6px;
 }
+
+/* ─── Shows Tab ───────────────────────────────────────────────────── */
+.shows-container { padding: 0; }
+.histograms-section {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .histograms-section { grid-template-columns: 1fr; }
+}
+.histogram-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px;
+}
+.histogram-title {
+  font-size: 12px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 12px;
+}
+.histogram-bars {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.histogram-bar {
+  display: flex; align-items: center; gap: 10px; height: 28px;
+  cursor: pointer; transition: all .15s; border-radius: 4px; padding: 0 8px;
+}
+.histogram-bar .histogram-bar-fill { background: var(--accent); }
+.histogram-bar:hover { background: color-mix(in srgb,var(--accent) 15%,transparent); }
+.histogram-bar-label {
+  font-size: 12px; color: var(--text); min-width: 60px; flex-shrink: 0;
+}
+.histogram-bar-track {
+  flex: 1; height: 16px; background: var(--surface2); border-radius: 3px; overflow: hidden;
+}
+.histogram-bar-fill {
+  height: 100%; background: var(--surface3); border-radius: 3px; transition: background .15s;
+}
+.histogram-bar-count {
+  font-size: 12px; color: var(--muted); min-width: 30px; text-align: right;
+}
+.histogram-tooltip {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 1000; display: none;
+  max-width: 280px; max-height: 200px; overflow-y: auto;
+}
+.histogram-tooltip-title {
+  font-weight: 600; margin-bottom: 6px; color: var(--accent);
+}
+.histogram-tooltip-list {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.histogram-tooltip-item {
+  padding: 4px 0; border-bottom: 1px solid var(--border);
+}
+.histogram-tooltip-item:last-child { border-bottom: none; }
+
+/* Shows list */
+.shows-category-header {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
+  color: var(--accent); margin: 24px 0 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.shows-category-header:first-child { margin-top: 0; }
 
 /* ─── Main content ─────────────────────────────────────────────────── */
 main { padding: 24px 32px; min-height: calc(100vh - 130px); }
@@ -1014,11 +1078,12 @@ input[type=color] {
   <button class="tab active" onclick="switchTab('list',this)">Konzertliste</button>
   <button class="tab" onclick="switchTab('calendar',this)">Kalender</button>
   <button class="tab" onclick="switchTab('map',this)">Karte</button>
+  <button class="tab" onclick="switchTab('shows',this)">Shows</button>
   <button class="tab" onclick="switchTab('favourites',this)">Favoriten</button>
 </div>
 
 <!-- ── Filter bar ─────────────────────────────────────────────────── -->
-<div class="filter-bar">
+<div class="filter-bar" id="filter-bar">
   <span>Filter:</span>
   <button class="filter-chip active-upcoming" id="chip-upcoming" onclick="toggleDateFilter('upcoming')">📅 Anstehende Events</button>
   <button class="filter-chip active-past" id="chip-past" onclick="toggleDateFilter('past')">📅 Vergangene Events</button>
@@ -1028,6 +1093,26 @@ input[type=color] {
   <div class="filter-sep"></div>
   <button class="filter-chip" id="chip-tickets"   onclick="toggleFilter('tickets')">🎟 Tickets gekauft</button>
   <button class="filter-chip" id="chip-watchlist" onclick="toggleFilter('watchlist')">🔖 Merkliste</button>
+</div>
+
+<!-- ── Shows filter bar (hidden by default) ───────────────────────── -->
+<div class="filter-bar" id="shows-filter-bar" style="display:none">
+  <span>Kategorisierung:</span>
+  <button class="filter-chip active-shows-cat" id="cat-none" onclick="setShowsCategory('none')">Ohne</button>
+  <button class="filter-chip" id="cat-event" onclick="setShowsCategory('event')">Event</button>
+  <button class="filter-chip" id="cat-venue" onclick="setShowsCategory('venue')">Venue</button>
+  <button class="filter-chip" id="cat-city" onclick="setShowsCategory('city')">Stadt</button>
+  <button class="filter-chip" id="cat-artist" onclick="setShowsCategory('artist')">Artist</button>
+  <button class="filter-chip" id="cat-year" onclick="setShowsCategory('year')">Jahr</button>
+  <div class="filter-sep"></div>
+  <span>Sortierung:</span>
+  <button class="filter-chip active-shows-sort" id="sort-rating-desc" onclick="setShowsSort('rating-desc')">Bewertung ↓</button>
+  <button class="filter-chip" id="sort-rating-asc" onclick="setShowsSort('rating-asc')">Bewertung ↑</button>
+  <button class="filter-chip" id="sort-date-desc" onclick="setShowsSort('date-desc')">Datum ↓</button>
+  <button class="filter-chip" id="sort-date-asc" onclick="setShowsSort('date-asc')">Datum ↑</button>
+  <button class="filter-chip" id="sort-price-desc" onclick="setShowsSort('price-desc')">Preis ↓</button>
+  <button class="filter-chip" id="sort-price-asc" onclick="setShowsSort('price-asc')">Preis ↑</button>
+  <button class="filter-chip" id="sort-alpha" onclick="setShowsSort('alpha')">A-Z</button>
 </div>
 
 <!-- ── List Tab ───────────────────────────────────────────────────── -->
@@ -1067,6 +1152,33 @@ input[type=color] {
   </div>
   <div id="unrecognized-venues" style="display:none; padding: 12px 0; border-top: 1px solid var(--border); margin-top: 12px;">
     <div class="map-legend-title" style="margin-bottom:8px">Diese Locations konnten nicht gefunden werden. Füge sie manuell hinzu:</div>
+  </div>
+</main>
+
+<!-- ── Shows Tab ───────────────────────────────────────────────────── -->
+<main id="tab-shows" style="display:none">
+  <div class="shows-container">
+    <!-- Histograms -->
+    <div class="histograms-section">
+      <div class="histogram-card">
+        <div class="histogram-title">Bewertungen</div>
+        <div class="histogram-bars" id="histogram-ratings"></div>
+      </div>
+      <div class="histogram-card">
+        <div class="histogram-title">Jahre</div>
+        <div class="histogram-bars" id="histogram-years"></div>
+      </div>
+      <div class="histogram-card">
+        <div class="histogram-title">Städte</div>
+        <div class="histogram-bars" id="histogram-cities"></div>
+      </div>
+    </div>
+    <!-- Histogram tooltip -->
+    <div class="histogram-tooltip" id="histogram-tooltip"></div>
+    <!-- Shows list -->
+    <div id="shows-list"></div>
+  </div>
+</main>
     <div id="unrecognized-venues-list" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
   <style>
@@ -1601,8 +1713,23 @@ function switchTab(tab, el) {
   document.getElementById('tab-list').style.display        = tab === 'list'        ? 'block' : 'none';
   document.getElementById('tab-calendar').style.display    = tab === 'calendar'    ? 'block' : 'none';
   document.getElementById('tab-map').style.display         = tab === 'map'         ? 'block' : 'none';
+  document.getElementById('tab-shows').style.display       = tab === 'shows'       ? 'block' : 'none';
   document.getElementById('tab-favourites').style.display  = tab === 'favourites'  ? 'block' : 'none';
   
+  // Show/hide filter bars based on tab
+  const filterBar = document.getElementById('filter-bar');
+  const showsFilterBar = document.getElementById('shows-filter-bar');
+  if (tab === 'favourites' || tab === 'shows') {
+    filterBar.style.display = 'none';
+  } else {
+    filterBar.style.display = 'flex';
+  }
+  if (tab === 'shows') {
+    showsFilterBar.style.display = 'flex';
+  } else {
+    showsFilterBar.style.display = 'none';
+  }
+   
   // Set default filters per tab
   if (tab === 'list' || tab === 'calendar') {
     // Konzertliste & Kalender: show all events (no filters active)
@@ -1618,9 +1745,298 @@ function switchTab(tab, el) {
     activeFilters.add('tickets');
     updateAllFilterVisuals();
   }
-  
+   
   if (tab === 'favourites') renderFavourites();
   if (tab === 'map') initMap();
+  if (tab === 'shows') renderShows();
+}
+
+// ── Shows Tab ────────────────────────────────────────────────────────
+let showsCategory = 'none';
+let showsSort = 'rating-desc';
+
+function setShowsCategory(cat) {
+  showsCategory = cat;
+  // Update visual state
+  document.querySelectorAll('[id^="cat-"]').forEach(el => el.classList.remove('active-shows-cat'));
+  document.getElementById('cat-' + cat).classList.add('active-shows-cat');
+  renderShows();
+}
+
+function setShowsSort(sort) {
+  showsSort = sort;
+  // Update visual state
+  document.querySelectorAll('[id^="sort-"]').forEach(el => el.classList.remove('active-shows-sort'));
+  document.getElementById('sort-' + sort).classList.add('active-shows-sort');
+  renderShows();
+}
+
+function getRatedEvents() {
+  // Get all rated acts from all events
+  // ratings[eventId][actName] = 1-10 or null
+  const result = [];
+  
+  allEvents.forEach(event => {
+    const eventId = String(event.id);
+    const eventRatings = ratings[eventId];
+    if (!eventRatings) return;
+    
+    // Get all concerts for this event
+    const concerts = event.concerts || [];
+    if (concerts.length === 0) {
+      // Single event without concerts array - treat as one concert
+      const concert = { date: event.date, time: event.time, venue: event.venue, city: event.city, price: event.price };
+      processEventActs(event, concert, eventRatings, result);
+    } else {
+      // Multiple concerts - process each one
+      concerts.forEach(concert => {
+        processEventActs(event, concert, eventRatings, result);
+      });
+    }
+  });
+  
+  return result;
+}
+
+function processEventActs(event, concert, eventRatings, result) {
+  // Get all acts for this event/concert
+  // For tours: event.artist + event.support
+  // For festivals: event.artist + event.bands_to_watch
+  // For single concerts: concert.artist + concert.support_present
+  let allActs = [];
+  
+  if (concert.artist) {
+    // This is a concert with its own artist
+    allActs = [concert.artist];
+    if (concert.support_present) {
+      allActs.push(...concert.support_present);
+    }
+  } else if (event.support) {
+    // Tour with global support list
+    allActs = [event.artist];
+    allActs.push(...event.support);
+  } else if (event.bands_to_watch) {
+    // Festival with bands_to_watch
+    allActs = [event.artist];
+    allActs.push(...event.bands_to_watch);
+  } else if (event.supportActs) {
+    // Festival with support acts (legacy)
+    allActs = [event.artist];
+    allActs.push(...event.supportActs);
+  } else {
+    // Fallback
+    allActs = [event.artist];
+  }
+  
+  // Also check for support_present on the concert
+  if (concert.support_present) {
+    concert.support_present.forEach(act => {
+      if (!allActs.includes(act)) {
+        allActs.push(act);
+      }
+    });
+  }
+  
+  allActs.forEach(actName => {
+    if (!actName) return;
+    const rating = eventRatings[actName];
+    if (rating && rating > 0) {
+      result.push({
+        ...event,
+        actName: actName,
+        rating: rating,
+        date: concert.date,
+        time: concert.time,
+        venue: concert.venue || event.venue,
+        city: concert.city || event.city,
+        price: concert.price || event.price
+      });
+    }
+  });
+}
+
+function renderShows() {
+  const container = document.getElementById('shows-list');
+  const ratedEvents = getRatedEvents();
+  
+  if (ratedEvents.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">⭐</div><h3>Keine bewerteten Shows</h3><p>Bewerte Events, um sie hier zu sehen.</p></div>';
+    renderHistograms([]);
+    return;
+  }
+  
+  // Sort events
+  const sorted = [...ratedEvents].sort((a, b) => {
+    switch (showsSort) {
+      case 'rating-desc': return (b.rating || 0) - (a.rating || 0);
+      case 'rating-asc': return (a.rating || 0) - (b.rating || 0);
+      case 'date-desc': return new Date(b.date) - new Date(a.date);
+      case 'date-asc': return new Date(a.date) - new Date(b.date);
+      case 'price-desc': return (b.price || 0) - (a.price || 0);
+      case 'price-asc': return (a.price || 0) - (b.price || 0);
+      case 'alpha': return (a.title || '').localeCompare(b.title || '');
+      default: return 0;
+    }
+  });
+  
+  // Render based on category
+  if (showsCategory === 'none') {
+    container.innerHTML = sorted.map(e => renderShowCard(e)).join('');
+  } else {
+    // Group by category
+    const groups = {};
+    sorted.forEach(e => {
+      let key;
+      switch (showsCategory) {
+        case 'event': key = (e.artist || 'Unbekannt') + (e.tour_name ? ' - ' + e.tour_name : ''); break;
+        case 'venue': key = e.venue || 'Unbekannt'; break;
+        case 'city': key = e.city || 'Unbekannt'; break;
+        case 'artist': key = e.actName || 'Unbekannt'; break;
+        case 'year': key = e.date ? new Date(e.date).getFullYear().toString() : 'Unbekannt'; break;
+        default: key = 'Alle';
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+    
+    // Sort groups
+    const sortedKeys = Object.keys(groups).sort();
+    if (showsCategory === 'year') {
+      sortedKeys.sort((a, b) => parseInt(b) - parseInt(a));
+    }
+    
+    let html = '';
+    sortedKeys.forEach(key => {
+      html += `<div class="shows-category-header">${key}</div>`;
+      html += groups[key].map(e => renderShowCard(e)).join('');
+    });
+    container.innerHTML = html;
+  }
+  
+  // Render histograms
+  renderHistograms(ratedEvents);
+}
+
+function renderShowCard(e) {
+  const date = e.date ? new Date(e.date) : null;
+  const dateStr = date ? date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
+  const venue = e.venue || 'Unbekannt';
+  const city = e.city || '';
+  const price = e.price ? e.price + ' €' : '';
+  const rating = e.rating || 0;
+  const actName = e.actName || e.title || 'Unbekannt';
+   
+  // Generate rating pips with color scale
+  const pips = Array.from({length: 10}, (_, i) => {
+    const pos = i + 1;
+    const col = pipColor(rating, pos);
+    const style = col ? `background:${col};border-color:${col}` : '';
+    return `<div class="rating-pip" style="${style}"></div>`;
+  }).join('');
+   
+  // All info in one line: Act • Date • Venue • City • Rating • Price
+  return `<div class="event-card" onclick="openEventModal(${e.id})" style="padding:12px 16px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden">
+      <div class="rating-bar" style="gap:2px;flex-shrink:0">${pips}</div>
+      <strong style="color:${pipColor(rating, rating)};flex-shrink:0">${rating}</strong>
+      <span style="color:var(--text)">${actName}</span>
+      <span style="color:var(--muted)">•</span>
+      <span style="color:var(--muted)">${dateStr}</span>
+      <span style="color:var(--muted)">•</span>
+      <span style="color:var(--text)">${venue}</span>
+      ${city ? `<span style="color:var(--muted)">•</span><span style="color:var(--text)">${city}</span>` : ''}
+      ${price ? `<span style="color:var(--muted)">•</span><span style="color:var(--text)">${price}</span>` : ''}
+    </div>
+    </div>
+  </div>`;
+}
+
+function renderHistograms(events) {
+  // Rating histogram (1-10)
+  const ratingCounts = {};
+  for (let i = 1; i <= 10; i++) ratingCounts[i] = 0;
+  const ratingEvents = {};
+  for (let i = 1; i <= 10; i++) ratingEvents[i] = [];
+  
+  events.forEach(e => {
+    const r = Math.round(e.rating || 0);
+    if (r >= 1 && r <= 10) {
+      ratingCounts[r]++;
+      ratingEvents[r].push(e);
+    }
+  });
+  
+  // Year histogram
+  const yearCounts = {};
+  const yearEvents = {};
+  events.forEach(e => {
+    if (e.date) {
+      const y = new Date(e.date).getFullYear();
+      yearCounts[y] = (yearCounts[y] || 0) + 1;
+      if (!yearEvents[y]) yearEvents[y] = [];
+      yearEvents[y].push(e);
+    }
+  });
+  
+  // City histogram
+  const cityCounts = {};
+  const cityEvents = {};
+  events.forEach(e => {
+    const c = e.city || 'Unbekannt';
+    cityCounts[c] = (cityCounts[c] || 0) + 1;
+    if (!cityEvents[c]) cityEvents[c] = [];
+    cityEvents[c].push(e);
+  });
+  
+  renderHistogramBars('histogram-ratings', ratingCounts, ratingEvents, 'Bewertung');
+  renderHistogramBars('histogram-years', yearCounts, yearEvents, 'Jahr');
+  renderHistogramBars('histogram-cities', cityCounts, cityEvents, 'Stadt');
+}
+
+function renderHistogramBars(containerId, counts, events, type) {
+  const container = document.getElementById(containerId);
+  const maxCount = Math.max(...Object.values(counts), 1);
+  
+  let html = '';
+  Object.entries(counts).sort((a, b) => {
+    if (type === 'Jahr') return parseInt(b[0]) - parseInt(a[0]);
+    if (type === 'Bewertung') return parseInt(b[0]) - parseInt(a[0]); // Highest rating first
+    return a[0].localeCompare(b[0]);
+  }).forEach(([key, count]) => {
+    if (count === 0) return;
+    const pct = (count / maxCount) * 100;
+    const label = type === 'Bewertung' ? key + ' ⭐' : key;
+    html += `<div class="histogram-bar" onmouseenter="showHistogramTooltip(event, '${key}', ${JSON.stringify(events[key] || []).replace(/"/g, '"')})" onmouseleave="hideHistogramTooltip()">
+      <span class="histogram-bar-label">${label}</span>
+      <div class="histogram-bar-track">
+        <div class="histogram-bar-fill" style="width:${pct}%"></div>
+      </div>
+      <span class="histogram-bar-count">${count}</span>
+    </div>`;
+  });
+  
+  container.innerHTML = html || '<div style="color:var(--muted);font-size:12px">Keine Daten</div>';
+}
+
+function showHistogramTooltip(event, key, eventList) {
+  const tooltip = document.getElementById('histogram-tooltip');
+  if (!eventList || eventList.length === 0) {
+    tooltip.style.display = 'none';
+    return;
+  }
+  
+  const listHtml = eventList.map(e => `<div class="histogram-tooltip-item">${e.title || 'Unbekannt'} (${e.city || ''})</div>`).join('');
+  tooltip.innerHTML = `<div class="histogram-tooltip-title">${key}</div><div class="histogram-tooltip-list">${listHtml}</div>`;
+  tooltip.style.display = 'block';
+  
+  // Position tooltip
+  const rect = event.target.getBoundingClientRect();
+  tooltip.style.left = (rect.left + window.scrollX) + 'px';
+  tooltip.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+}
+
+function hideHistogramTooltip() {
+  document.getElementById('histogram-tooltip').style.display = 'none';
 }
 
 function updateAllFilterVisuals() {
