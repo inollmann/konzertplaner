@@ -131,6 +131,7 @@ header {
 .filter-chip.active-festival  { border-color: var(--festival);       color: var(--festival);       background: color-mix(in srgb,var(--festival) 8%,transparent); }
 .filter-chip.active-shows-cat { border-color: var(--accent);         color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
 .filter-chip.active-shows-sort { border-color: var(--accent);        color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
+.filter-chip.active-shows-type { border-color: var(--accent);        color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
 .filter-sep {
   width: 1px; height: 24px; background: var(--border); margin: 0 6px;
 }
@@ -1097,6 +1098,10 @@ input[type=color] {
 
 <!-- ── Shows filter bar (hidden by default) ───────────────────────── -->
 <div class="filter-bar" id="shows-filter-bar" style="display:none">
+  <button class="filter-chip active-shows-type" id="type-both" onclick="setShowsTypeFilter('both')">Alle</button>
+  <button class="filter-chip" id="type-tour" onclick="setShowsTypeFilter('tour')">🎸 Konzerte</button>
+  <button class="filter-chip" id="type-festival" onclick="setShowsTypeFilter('festival')">🎪 Festivals</button>
+  <div class="filter-sep"></div>
   <span>Kategorisierung:</span>
   <button class="filter-chip active-shows-cat" id="cat-none" onclick="setShowsCategory('none')">Ohne</button>
   <button class="filter-chip" id="cat-event" onclick="setShowsCategory('event')">Event</button>
@@ -1754,6 +1759,20 @@ function switchTab(tab, el) {
 // ── Shows Tab ────────────────────────────────────────────────────────
 let showsCategory = 'none';
 let showsSort = 'rating-desc';
+let showsTypeFilter = 'both';
+
+function setShowsTypeFilter(type) {
+  showsTypeFilter = type;
+  // Update visual state - use same classes as main filter bar
+  document.querySelectorAll('[id^="type-"]').forEach(el => {
+    el.classList.remove('active-tour', 'active-festival', 'active-shows-type');
+  });
+  const btn = document.getElementById('type-' + type);
+  if (type === 'tour') btn.classList.add('active-tour');
+  else if (type === 'festival') btn.classList.add('active-festival');
+  else if (type === 'both') btn.classList.add('active-shows-type');
+  renderShows();
+}
 
 function setShowsCategory(cat) {
   showsCategory = cat;
@@ -1775,30 +1794,36 @@ function getRatedEvents() {
   // Get all rated acts from all events
   // ratings[eventId][actName] = 1-10 or null
   const result = [];
-  
+   
   allEvents.forEach(event => {
     const eventId = String(event.id);
     const eventRatings = ratings[eventId];
     if (!eventRatings) return;
+    
+    // Determine event type (tour or festival)
+    const eventType = event.event_type || 'tour';
+    
+    // Filter by type
+    if (showsTypeFilter !== 'both' && eventType !== showsTypeFilter) return;
     
     // Get all concerts for this event
     const concerts = event.concerts || [];
     if (concerts.length === 0) {
       // Single event without concerts array - treat as one concert
       const concert = { date: event.date, time: event.time, venue: event.venue, city: event.city, price: event.price };
-      processEventActs(event, concert, eventRatings, result);
+      processEventActs(event, concert, eventRatings, result, eventType);
     } else {
       // Multiple concerts - process each one
       concerts.forEach(concert => {
-        processEventActs(event, concert, eventRatings, result);
+        processEventActs(event, concert, eventRatings, result, eventType);
       });
     }
   });
-  
+   
   return result;
 }
 
-function processEventActs(event, concert, eventRatings, result) {
+function processEventActs(event, concert, eventRatings, result, eventType) {
   // Get all acts for this event/concert
   // For tours: event.artist + event.support
   // For festivals: event.artist + event.bands_to_watch
@@ -1845,6 +1870,7 @@ function processEventActs(event, concert, eventRatings, result) {
         ...event,
         actName: actName,
         rating: rating,
+        eventType: eventType,
         date: concert.date,
         time: concert.time,
         venue: concert.venue || event.venue,
@@ -1925,6 +1951,15 @@ function renderShowCard(e) {
   const price = e.price ? e.price + ' €' : '';
   const rating = e.rating || 0;
   const actName = e.actName || e.title || 'Unbekannt';
+  
+  // Event name: "[artist] - [tour_name]" for tours, "[name]" for festivals
+  const eventType = e.eventType || 'tour';
+  let eventName = '';
+  if (eventType === 'festival') {
+    eventName = e.name || e.title || '';
+  } else {
+    eventName = (e.artist || '') + (e.tour_name ? ' - ' + e.tour_name : '');
+  }
    
   // Generate rating pips with color scale
   const pips = Array.from({length: 10}, (_, i) => {
@@ -1934,7 +1969,7 @@ function renderShowCard(e) {
     return `<div class="rating-pip" style="${style}"></div>`;
   }).join('');
    
-  // All info in one line: Act • Date • Venue • City • Rating • Price
+  // All info in one line: Act • Date • EventName • Venue • City • Rating • Price
   return `<div class="event-card" onclick="openEventModal(${e.id})" style="padding:12px 16px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden">
       <div class="rating-bar" style="gap:2px;flex-shrink:0">${pips}</div>
@@ -1942,6 +1977,8 @@ function renderShowCard(e) {
       <span style="color:var(--text)">${actName}</span>
       <span style="color:var(--muted)">•</span>
       <span style="color:var(--muted)">${dateStr}</span>
+      <span style="color:var(--muted)">•</span>
+      <span style="color:var(--muted)">${eventName}</span>
       <span style="color:var(--muted)">•</span>
       <span style="color:var(--text)">${venue}</span>
       ${city ? `<span style="color:var(--muted)">•</span><span style="color:var(--text)">${city}</span>` : ''}
@@ -1952,9 +1989,15 @@ function renderShowCard(e) {
 }
 
 function renderHistograms(events) {
-  // Rating histogram (1-10)
+  // Rating histogram (1-10) - track tour/festival separately
   const ratingCounts = {};
-  for (let i = 1; i <= 10; i++) ratingCounts[i] = 0;
+  const ratingTourCounts = {};
+  const ratingFestCounts = {};
+  for (let i = 1; i <= 10; i++) {
+    ratingCounts[i] = 0;
+    ratingTourCounts[i] = 0;
+    ratingFestCounts[i] = 0;
+  }
   const ratingEvents = {};
   for (let i = 1; i <= 10; i++) ratingEvents[i] = [];
   
@@ -1962,40 +2005,63 @@ function renderHistograms(events) {
     const r = Math.round(e.rating || 0);
     if (r >= 1 && r <= 10) {
       ratingCounts[r]++;
+      if (e.eventType === 'festival') {
+        ratingFestCounts[r]++;
+      } else {
+        ratingTourCounts[r]++;
+      }
       ratingEvents[r].push(e);
     }
   });
   
-  // Year histogram
+  // Year histogram - track tour/festival separately
   const yearCounts = {};
+  const yearTourCounts = {};
+  const yearFestCounts = {};
   const yearEvents = {};
   events.forEach(e => {
     if (e.date) {
       const y = new Date(e.date).getFullYear();
       yearCounts[y] = (yearCounts[y] || 0) + 1;
+      if (e.eventType === 'festival') {
+        yearFestCounts[y] = (yearFestCounts[y] || 0) + 1;
+      } else {
+        yearTourCounts[y] = (yearTourCounts[y] || 0) + 1;
+      }
       if (!yearEvents[y]) yearEvents[y] = [];
       yearEvents[y].push(e);
     }
   });
   
-  // City histogram
+  // City histogram - track tour/festival separately
   const cityCounts = {};
+  const cityTourCounts = {};
+  const cityFestCounts = {};
   const cityEvents = {};
   events.forEach(e => {
     const c = e.city || 'Unbekannt';
     cityCounts[c] = (cityCounts[c] || 0) + 1;
+    if (e.eventType === 'festival') {
+      cityFestCounts[c] = (cityFestCounts[c] || 0) + 1;
+    } else {
+      cityTourCounts[c] = (cityTourCounts[c] || 0) + 1;
+    }
     if (!cityEvents[c]) cityEvents[c] = [];
     cityEvents[c].push(e);
   });
   
-  renderHistogramBars('histogram-ratings', ratingCounts, ratingEvents, 'Bewertung');
-  renderHistogramBars('histogram-years', yearCounts, yearEvents, 'Jahr');
-  renderHistogramBars('histogram-cities', cityCounts, cityEvents, 'Stadt');
+  renderHistogramBars('histogram-ratings', ratingCounts, ratingEvents, 'Bewertung', ratingTourCounts, ratingFestCounts);
+  renderHistogramBars('histogram-years', yearCounts, yearEvents, 'Jahr', yearTourCounts, yearFestCounts);
+  renderHistogramBars('histogram-cities', cityCounts, cityEvents, 'Stadt', cityTourCounts, cityFestCounts);
 }
 
-function renderHistogramBars(containerId, counts, events, type) {
+function renderHistogramBars(containerId, counts, events, type, tourCounts, festCounts) {
   const container = document.getElementById(containerId);
   const maxCount = Math.max(...Object.values(counts), 1);
+  
+  // Get CSS colors
+  const tourCol = getComputedStyle(document.documentElement).getPropertyValue('--tour').trim() || '#38bdf8';
+  const festCol = getComputedStyle(document.documentElement).getPropertyValue('--festival').trim() || '#a78bfa';
   
   let html = '';
   Object.entries(counts).sort((a, b) => {
@@ -2006,10 +2072,33 @@ function renderHistogramBars(containerId, counts, events, type) {
     if (count === 0) return;
     const pct = (count / maxCount) * 100;
     const label = type === 'Bewertung' ? key + ' ⭐' : key;
+    
+    // Calculate tour/festival proportions, scaled to maxCount
+    const tourCount = tourCounts?.[key] || 0;
+    const festCount = festCounts?.[key] || 0;
+    const tourPct = (tourCount / maxCount) * 100;
+    const festPct = (festCount / maxCount) * 100;
+    
+    let barContent = '';
+    if (tourCount > 0 && festCount > 0) {
+      // Two-colored bar - both scaled to maxCount
+      barContent = `<div class="histogram-bar-fill" style="width:${tourPct}%;background:${tourCol};border-radius:3px 0 0 3px"></div>
+        <div class="histogram-bar-fill" style="width:${festPct}%;background:${festCol};border-radius:0 3px 3px 0;margin-left:-1px"></div>`;
+    } else if (tourCount > 0) {
+      // Only tours - scaled to maxCount
+      barContent = `<div class="histogram-bar-fill" style="width:${pct}%;background:${tourCol}"></div>`;
+    } else if (festCount > 0) {
+      // Only festivals - scaled to maxCount
+      barContent = `<div class="histogram-bar-fill" style="width:${pct}%;background:${festCol}"></div>`;
+    } else {
+      // Fallback
+      barContent = `<div class="histogram-bar-fill" style="width:${pct}%"></div>`;
+    }
+    
     html += `<div class="histogram-bar" onmouseenter="showHistogramTooltip(event, '${key}', ${JSON.stringify(events[key] || []).replace(/"/g, '"')})" onmouseleave="hideHistogramTooltip()">
       <span class="histogram-bar-label">${label}</span>
-      <div class="histogram-bar-track">
-        <div class="histogram-bar-fill" style="width:${pct}%"></div>
+      <div class="histogram-bar-track" style="display:flex">
+        ${barContent}
       </div>
       <span class="histogram-bar-count">${count}</span>
     </div>`;
