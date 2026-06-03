@@ -322,6 +322,177 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
 .bands-list { display: flex; flex-wrap: wrap; gap: 5px; }
 .band-chip { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: color-mix(in srgb,var(--festival) 10%,transparent); color: var(--festival); border: 1px solid color-mix(in srgb,var(--festival) 25%,transparent); }
 
+/* ─── Timeline ────────────────────────────────────────────────────── */
+.timeline-container {
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px;
+}
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.timeline-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.timeline-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.timeline-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background .15s;
+}
+.timeline-btn:hover { background: var(--border); }
+.timeline-zoom-label {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 60px;
+  text-align: center;
+}
+.timeline-viewport {
+  position: relative;
+  height: 120px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--surface2);
+  border-radius: 8px;
+  cursor: grab;
+}
+.timeline-viewport:active { cursor: grabbing; }
+.timeline-track {
+  position: relative;
+  height: 100%;
+  min-width: 100%;
+}
+.timeline-axis {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.timeline-month-marker {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+  border-left: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.timeline-day-tick {
+  position: absolute;
+  bottom: 0;
+  height: 30%;
+  border-left: 1px solid var(--border);
+  opacity: 0.4;
+}
+.timeline-day-label {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 8px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.timeline-event-date {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+.timeline-today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  z-index: 5;
+}
+.timeline-today-label {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.timeline-events {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  height: calc(100% - 32px);
+}
+.timeline-event {
+  position: absolute;
+  min-height: 28px;
+  height: auto;
+  min-height: 28px;
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: transform .1s, filter .1s;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.timeline-event:hover {
+  transform: scale(1.02);
+  filter: brightness(1.15);
+  z-index: 10;
+}
+.timeline-event.tour {
+  background: color-mix(in srgb,var(--tour) 70%,transparent);
+  color: #fff;
+  border-left: 3px solid var(--tour);
+}
+.timeline-event.festival {
+  background: color-mix(in srgb,var(--festival) 70%,transparent);
+  color: #fff;
+  border-left: 3px solid var(--festival);
+}
+.timeline-event.tickets {
+  background: color-mix(in srgb,var(--tickets-color) 70%,transparent);
+  color: #fff;
+  border-left: 3px solid var(--tickets-color);
+}
+.timeline-event.watchlist {
+  background: color-mix(in srgb,var(--watch-color) 70%,transparent);
+  color: #fff;
+  border-left: 3px solid var(--watch-color);
+}
+
 /* ─── Calendar ─────────────────────────────────────────────────────── */
 .cal-header { display: flex; align-items: center; justify-content: space-between; padding: 0 0 18px; }
 .cal-nav {
@@ -1129,6 +1300,29 @@ input[type=color] {
 
 <!-- ── Calendar Tab ───────────────────────────────────────────────── -->
 <main id="tab-calendar" style="display:none">
+  <!-- Timeline View -->
+  <div class="timeline-container">
+    <div class="timeline-header">
+      <div class="timeline-title">ZEITSTRAHL</div>
+      <div class="timeline-controls">
+        <button class="timeline-btn" onclick="timelineNav(-3)" title="Zurück">‹‹</button>
+        <button class="timeline-btn" onclick="timelineNav(-1)" title="Zurück">‹</button>
+        <button class="timeline-btn" onclick="timelineZoom(-1)" title="Vergrößern">🔍+</button>
+        <span class="timeline-zoom-label" id="timeline-zoom-label">1 Jahr</span>
+        <button class="timeline-btn" onclick="timelineZoom(1)" title="Verkleinern">🔍−</button>
+        <button class="timeline-btn" onclick="timelineToday()" title="Heute">Heute</button>
+        <button class="timeline-btn" onclick="timelineNav(1)" title="Vorwärts">›</button>
+        <button class="timeline-btn" onclick="timelineNav(3)" title="Vorwärts">››</button>
+      </div>
+    </div>
+    <div class="timeline-viewport" id="timeline-viewport">
+      <div class="timeline-track" id="timeline-track">
+        <div class="timeline-axis" id="timeline-axis"></div>
+        <div class="timeline-events" id="timeline-events"></div>
+      </div>
+    </div>
+  </div>
+  
   <div class="cal-header">
     <button class="cal-nav" onclick="calNav(-1)">‹</button>
     <div class="cal-title" id="cal-title"></div>
@@ -1569,6 +1763,13 @@ let currentTab    = 'list';
 let eventTypeFilter = 'both'; // 'tour', 'festival', or 'both'
 let calYear, calMonth;
 
+// Timeline variables
+let timelineStartDate = new Date();
+let timelineZoomLevel = 1;
+const zoomLabels = ['2 Jahre', '1 Jahr', '6 Monate', '3 Monate'];
+const zoomMonths = [24, 12, 6, 3];
+let timelineInitialized = false;
+
 let editingId      = null;
 let currentType    = 'tour';
 let pendingBlob    = { tour: null, festival: null };
@@ -1701,6 +1902,9 @@ async function fetchAll() {
   venuesCat   = await vcR.json();
   renderList();
   renderCalendar();
+  renderTimeline();
+  // Initialize timeline after data is loaded to ensure events are rendered
+  initTimeline();
 }
 fetchAll();
 loadTheme();
@@ -1746,6 +1950,17 @@ function switchTab(tab, el) {
     eventTypeFilter = 'both';
     activeFilters.clear();
     updateAllFilterVisuals();
+  } else if (tab === 'calendar') {
+    // Reset timeline to start at current month and scroll to today
+    timelineStartDate = new Date();
+    timelineStartDate.setDate(1);
+    timelineStartDate.setMonth(timelineStartDate.getMonth() - 1);
+    timelineZoomLevel = 1; // Default to 1 year view
+    document.getElementById('timeline-zoom-label').textContent = zoomLabels[timelineZoomLevel];
+    timelineInitialized = false; // Reset to trigger scroll to today
+    renderTimeline();
+    // Scroll to today after render
+    setTimeout(timelineToday, 150);
   } else if (tab === 'map') {
     // Karte: show past events with purchased tickets
     dateFilter = 'past';
@@ -2187,7 +2402,7 @@ function toggleFilter(tag) {
   }
   // Update visual state: if no filters active, neither should be highlighted
   updateFilterVisualState();
-  renderList(); renderCalendar();
+  renderList(); renderCalendar(); renderTimeline();
   // Refresh map if initialized and visible
   if (mapInstance && currentTab === 'map') {
     // Remove existing map and markers
@@ -2247,7 +2462,7 @@ function toggleEventTypeFilter(type) {
       chipFestival.className = 'filter-chip active-festival';
     }
   }
-  renderList(); renderCalendar();
+  renderList(); renderCalendar(); renderTimeline();
   // Refresh map if initialized and visible
   if (mapInstance && currentTab === 'map') {
     mapMarkers.forEach(m => mapInstance.removeLayer(m));
@@ -2301,7 +2516,7 @@ function toggleDateFilter(type) {
   }
   // Only refresh list/calendar if not on map tab (date filter only applies to map)
   if (currentTab !== 'map') {
-    renderList(); renderCalendar();
+    renderList(); renderCalendar(); renderTimeline();
   }
   // Always refresh map if initialized and visible
   if (mapInstance && currentTab === 'map') {
@@ -2499,7 +2714,7 @@ async function patchEvent(ev) {
   // Reload from server to get canonical state
   const r = await fetch('/api/events');
   allEvents = await r.json();
-  renderList(); renderCalendar();
+  renderList(); renderCalendar(); renderTimeline();
   // Re-render detail panel with updated data
   const updated = getEvent(ev.id);
   if (updated && document.getElementById('detail-bd').classList.contains('open')) {
@@ -3361,6 +3576,312 @@ function calNav(d) {
   if (calMonth > 11) { calMonth = 0; calYear++; }
   if (calMonth < 0)  { calMonth = 11; calYear--; }
   renderCalendar();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Timeline
+// ══════════════════════════════════════════════════════════════════════
+
+function initTimeline() {
+  const viewport = document.getElementById('timeline-viewport');
+  if (!viewport) return; // Element not found yet
+  
+  let isDown = false;
+  let startX;
+  let scrollLeft;
+  
+  // Mouse events
+  viewport.addEventListener('mousedown', (e) => {
+    isDown = true;
+    viewport.classList.add('active');
+    startX = e.pageX - viewport.offsetLeft;
+    scrollLeft = viewport.scrollLeft;
+  });
+  
+  viewport.addEventListener('mouseleave', () => {
+    isDown = false;
+    viewport.classList.remove('active');
+  });
+  
+  viewport.addEventListener('mouseup', () => {
+    isDown = false;
+    viewport.classList.remove('active');
+  });
+  
+  viewport.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - viewport.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    viewport.scrollLeft = scrollLeft - walk;
+  });
+  
+  // Touch events for mobile
+  viewport.addEventListener('touchstart', (e) => {
+    isDown = true;
+    viewport.classList.add('active');
+    startX = e.touches[0].pageX - viewport.offsetLeft;
+    scrollLeft = viewport.scrollLeft;
+  }, { passive: true });
+  
+  viewport.addEventListener('touchend', () => {
+    isDown = false;
+    viewport.classList.remove('active');
+  });
+  
+  viewport.addEventListener('touchmove', (e) => {
+    if (!isDown) return;
+    const x = e.touches[0].pageX - viewport.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    viewport.scrollLeft = scrollLeft - walk;
+  }, { passive: true });
+  
+  // Initialize to today - start at beginning of current month to show upcoming events
+  timelineStartDate = new Date();
+  timelineStartDate.setDate(1); // First day of current month
+  timelineStartDate.setMonth(timelineStartDate.getMonth() - 1); // Start 1 month before today
+  renderTimeline();
+}
+
+function timelineZoom(direction) {
+  timelineZoomLevel += direction;
+  if (timelineZoomLevel < 0) timelineZoomLevel = 0;
+  if (timelineZoomLevel > 3) timelineZoomLevel = 3;
+  document.getElementById('timeline-zoom-label').textContent = zoomLabels[timelineZoomLevel];
+  renderTimeline();
+}
+
+function timelineNav(months) {
+  // Move timeline start date by specified months (negative = past, positive = future)
+  timelineStartDate.setMonth(timelineStartDate.getMonth() + months);
+  renderTimeline();
+}
+
+function timelineToday() {
+  const viewport = document.getElementById('timeline-viewport');
+  const track = document.getElementById('timeline-track');
+  if (!viewport || !track) return;
+  const today = new Date();
+  const start = new Date(timelineStartDate);
+  const months = zoomMonths[timelineZoomLevel];
+  const totalDays = months * 30;
+  // Use same dayWidth calculation as renderTimeline for consistency
+  const dayWidth = Math.max(20, 600 / months);
+  const daysSinceStart = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  const scrollPos = daysSinceStart * dayWidth - viewport.offsetWidth / 2;
+  viewport.scrollLeft = Math.max(0, scrollPos);
+}
+
+function renderTimeline() {
+  const axis = document.getElementById('timeline-axis');
+  const eventsContainer = document.getElementById('timeline-events');
+  const track = document.getElementById('timeline-track');
+  const viewport = document.getElementById('timeline-viewport');
+  
+  // Guard: elements not ready yet
+  if (!axis || !eventsContainer || !track || !viewport) return;
+  
+  const months = zoomMonths[timelineZoomLevel];
+  const totalDays = months * 30;
+  const dayWidth = Math.max(20, 600 / months); // Dynamic width based on zoom
+  const trackWidth = totalDays * dayWidth;
+  
+  track.style.width = trackWidth + 'px';
+  axis.innerHTML = '';
+  eventsContainer.innerHTML = '';
+  
+  const start = new Date(timelineStartDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Render month markers
+  const monthsNames = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+  for (let m = 0; m <= months; m++) {
+    const markerDate = new Date(start);
+    markerDate.setMonth(markerDate.getMonth() + m);
+    const daysFromStart = (markerDate - start) / (1000 * 60 * 60 * 24);
+    const left = daysFromStart * dayWidth;
+    
+    if (left <= trackWidth) {
+      const marker = document.createElement('div');
+      marker.className = 'timeline-month-marker';
+      marker.style.left = left + 'px';
+      marker.textContent = monthsNames[markerDate.getMonth()] + ' ' + markerDate.getFullYear().toString().slice(2);
+      axis.appendChild(marker);
+    }
+  }
+  
+  // Render daily minor ticks (only when zoomed in enough)
+  if (months <= 12) { // Show daily ticks for 12 months or less
+    for (let d = 0; d <= totalDays; d++) {
+      const tickDate = new Date(start);
+      tickDate.setDate(tickDate.getDate() + d);
+      const daysFromStart = d;
+      const left = daysFromStart * dayWidth;
+      
+      if (left <= trackWidth) {
+        const tick = document.createElement('div');
+        tick.className = 'timeline-day-tick';
+        tick.style.left = left + 'px';
+        // Only show day number for every 7 days or on Mondays
+        const dayOfWeek = tickDate.getDay(); // 0 = Sunday
+        if (dayOfWeek === 1 || d % 1 === 0) {
+          tick.innerHTML = '<span class="timeline-day-label">' + tickDate.getDate() + '</span>';
+        }
+        axis.appendChild(tick);
+      }
+    }
+  }
+  
+  // Render today line
+  const daysSinceStart = (today - start) / (1000 * 60 * 60 * 24);
+  if (daysSinceStart >= 0 && daysSinceStart <= totalDays) {
+    const todayLine = document.createElement('div');
+    todayLine.className = 'timeline-today-line';
+    todayLine.style.left = (daysSinceStart * dayWidth) + 'px';
+    todayLine.innerHTML = '<span class="timeline-today-label">HEUTE</span>';
+    eventsContainer.appendChild(todayLine);
+  }
+  
+  // Collect and render events
+  const entries = [];
+  allEvents.filter(ev => eventVisible(ev)).forEach(ev => {
+    if (ev.event_type === 'festival') {
+      entries.push({
+        iso: ev.date,
+        end_iso: ev.end_date || ev.date,
+        label: ev.name,
+        type: 'festival',
+        tags: ev.tags || [],
+        id: ev.id,
+        poster: ev.poster || null
+      });
+    } else {
+      (ev.concerts || []).forEach(c => {
+        const artistLabel = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
+        entries.push({
+          iso: c.date,
+          end_iso: c.end_date || c.date,
+          label: artistLabel,
+          type: 'tour',
+          tags: c.tags || [],
+          data: c,
+          id: ev.id,
+          poster: ev.poster || null,
+          artist: ev.artist || []
+        });
+      });
+    }
+  });
+  
+  // Sort by date
+  entries.sort((a, b) => new Date(a.iso) - new Date(b.iso));
+  
+  // Track rows for overlapping events
+  const rows = [];
+  
+  entries.forEach(e => {
+    const eventStart = new Date(e.iso);
+    const eventEnd = new Date(e.end_iso);
+    
+    // Skip events outside visible range
+    const eventStartDays = (eventStart - start) / (1000 * 60 * 60 * 24);
+    const eventEndDays = (eventEnd - start) / (1000 * 60 * 60 * 24);
+    
+    if (eventEndDays < 0 || eventStartDays > totalDays) return;
+    
+    // Find available row
+    let row = 0;
+    while (true) {
+      const rowEnd = rows[row] || 0;
+      if (eventStartDays >= rowEnd) {
+        rows[row] = eventEndDays;
+        break;
+      }
+      row++;
+      if (row > 10) break; // Max 11 rows
+    }
+    
+    const left = Math.max(0, eventStartDays) * dayWidth;
+    const width = Math.min(
+      (eventEndDays - Math.max(0, eventStartDays)) * dayWidth,
+      trackWidth - left
+    );
+    
+    const el = document.createElement('div');
+    // Use tour/festival colors (not tickets/watchlist)
+    let cls = e.type;
+    
+    el.className = 'timeline-event ' + cls;
+    el.style.left = left + 'px';
+    el.style.width = Math.max(30, width) + 'px';
+    el.style.top = (row * 32 + 4) + 'px';
+    
+    // For tours: show artist logos stacked; for festivals: show poster
+    if (e.type === 'festival') {
+      // Festival: use poster
+      if (e.poster) {
+        el.innerHTML = `<img src="/static/posters/${e.poster}" alt="${esc(e.label)}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">`;
+      } else {
+        el.textContent = e.label;
+      }
+    } else {
+      // Tour: show artist logos stacked (headliner + support acts)
+      const headliner = e.artist || e.data?.artist || e.label;
+      // Handle both array and string formats for artist
+      const headlinerList = Array.isArray(headliner) ? headliner : (headliner ? [headliner] : []);
+      const supportActs = e.data?.support_present || [];
+      const allActs = [...headlinerList, ...supportActs].filter(Boolean);
+      // Ensure all elements are strings before calling toLowerCase
+      const stringActs = allActs.filter(a => typeof a === 'string');
+      const uniqueActs = [...new Set(stringActs.map(a => a.toLowerCase()))].map(l => stringActs.find(a => a.toLowerCase() === l));
+      
+      const logoHtml = [];
+      for (const artistName of uniqueActs) {
+        const artist = artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
+        if (artist && artist.logo) {
+          logoHtml.push(`<img src="/static/logos/${artist.logo}" alt="${esc(artistName)}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);">`);
+        }
+      }
+      if (logoHtml.length > 0) {
+        el.innerHTML = `<div style="display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;height:100%;min-height:28px;">${logoHtml.join('')}</div>`;
+      } else {
+        el.textContent = e.label;
+      }
+    }
+    el.title = e.label + '\n' + e.iso + (e.end_iso !== e.iso ? ' - ' + e.end_iso : '');
+    
+    // Add date label above event
+    const dateLabel = document.createElement('div');
+    dateLabel.className = 'timeline-event-date';
+    // Format date as DD.MM.
+    const dateParts = e.iso.split('-');
+    const day = dateParts[2];
+    const month = dateParts[1];
+    dateLabel.textContent = day + '.' + month + '.';
+    el.appendChild(dateLabel);
+    
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      openDetail(e.id);
+    });
+    
+    if (e.data) {
+      el.addEventListener('mouseenter', evt => showPopover(evt, e.data));
+      el.addEventListener('mouseleave', hidePopover);
+    }
+    
+    eventsContainer.appendChild(el);
+  });
+  
+  // Scroll to today on first render
+  if (!timelineInitialized) {
+    timelineInitialized = true;
+    // Use requestAnimationFrame + setTimeout to ensure viewport is fully rendered
+    requestAnimationFrame(() => {
+      setTimeout(timelineToday, 200);
+    });
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════
