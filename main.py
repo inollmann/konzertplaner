@@ -156,11 +156,15 @@ def handle_invite(eid, code):
                 city=invite_data.get("c", [{}])[0].get("y", "") if invite_data.get("c") else "",
                 venue=invite_data.get("c", [{}])[0].get("v", "") if invite_data.get("c") else "",
                 poster=invite_data.get("pt"),
+                time=invite_data.get("tm"),
+                ticket_link=invite_data.get("tk"),
+                bands_to_watch=invite_data.get("bw", []),
+                tags=invite_data.get("tg", []),
+                comment=invite_data.get("cm", ""),
             )
             if invite_data.get("c"):
                 first_concert = invite_data["c"][0]
                 ev.date = first_concert.get("d", "")
-                ev.time = first_concert.get("tm", "")
                 if len(invite_data["c"]) > 1:
                     ev.end_date = invite_data["c"][-1].get("d", "")
         
@@ -548,9 +552,23 @@ def get_event_invite(eid):
                 "v": c.venue,
                 "p": c.price,
                 "e": c.end_date,
+                "tm": c.time,
+                "tg": c.tags,
+                "tk": c.ticket_link,
             }
-            for c in ev.concerts
+            for c in ev.Concerts
         ]
+        # Tour- level fields
+        invite_data = {
+            "v": 1,
+            "t": ev.event_type,
+            "n": "",
+            "a": artist_for_invite,
+            "s": ev.support,
+            "c": concerts_list,
+            "pt": ev.poster,
+            "cm": ev.comment,
+        }
     else:  # festival
         concerts_list = [
             {
@@ -561,16 +579,21 @@ def get_event_invite(eid):
                 "e": ev.end_date,
             }
         ]
-    
-    invite_data = {
-        "v": 1,  # version
-        "t": ev.event_type,
-        "n": ev.name if ev.event_type == "festival" else "",
-        "a": artist_for_invite,
-        "s": ev.support if ev.event_type == "tour" else [],
-        "c": concerts_list,
-        "pt": ev.poster,
-    }
+        # Festival-specific fields
+        invite_data = {
+            "v": 1,
+            "t": ev.event_type,
+            "n": ev.name,
+            "a": "",
+            "s": [],
+            "c": concerts_list,
+            "pt": ev.poster,
+            "tm": ev.time,
+            "tk": ev.ticket_link,
+            "bw": ev.bands_to_watch,
+            "tg": ev.tags,
+            "cm": ev.comment,
+        }
     
     # Encode as base64 URL-safe string
     import base64
@@ -640,11 +663,15 @@ def import_event_invite():
                 city=invite_data.get("c", [{}])[0].get("y", "") if invite_data.get("c") else "",
                 venue=invite_data.get("c", [{}])[0].get("v", "") if invite_data.get("c") else "",
                 poster=invite_data.get("pt"),
+                time=invite_data.get("tm"),
+                ticket_link=invite_data.get("tk"),
+                bands_to_watch=invite_data.get("bw", []),
+                tags=invite_data.get("tg", []),
+                comment=invite_data.get("cm", ""),
             )
             if invite_data.get("c"):
                 first_concert = invite_data["c"][0]
                 ev.date = first_concert.get("d", "")
-                ev.time = first_concert.get("tm", "")
                 if len(invite_data["c"]) > 1:
                     ev.end_date = invite_data["c"][-1].get("d", "")
         
