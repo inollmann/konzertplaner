@@ -6,7 +6,5 @@ services:
       # Example: "8080:5000" to access the app at http://localhost:8080
       - "5000:5000"
     volumes:
-      - ./data:/app/data
-      - ./static/posters:/app/static/posters
-      - ./static/logos:/app/static/logos
+          - ./data:/app/data
     restart: unless-stopped

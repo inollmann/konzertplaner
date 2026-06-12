@@ -15,17 +15,17 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/logos/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/logos/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
+          "src": "/static/konzertplaner.ico",
+          "sizes": "192x192",
+          "type": "image/x-icon",
+          "purpose": "any"
+        },
+        {
+          "src": "/static/konzertplaner.ico",
+          "sizes": "512x512",
+          "type": "image/x-icon",
+          "purpose": "any"
+        }
   ],
   "categories": ["entertainment", "lifestyle"]
 }

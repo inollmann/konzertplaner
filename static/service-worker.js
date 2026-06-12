@@ -1,16 +1,24 @@
-const CACHE_NAME = 'konzertplaner-v2';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/static/konzertplaner.ico',
-  '/design_tool.html'
-];
+const CACHE_NAME = 'konzertplaner-v3';
 
 // Install Event: Cache Ressourcen
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => {
+        console.log('Service Worker: Caching files');
+        return cache.addAll([
+          '/',
+          '/static/index.html',
+          '/static/manifest.json',
+          '/static/style.css'
+        ]);
+      })
+      .then(() => {
+        console.log('Service Worker: Caching complete');
+      })
+      .catch((err) => {
+        console.error('Service Worker: Cache error:', err);
+      })
   );
   self.skipWaiting();
 });
@@ -36,11 +44,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Cache treffer -> aus Cache laden
         if (response) {
           return response;
         }
-        // Cache fehler -> vom Netzwerk laden
         return fetch(event.request);
       })
   );

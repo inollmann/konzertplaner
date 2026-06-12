@@ -1,6 +1,8 @@
 data/*
 static/logos/*
 static/posters/*
+.claude/
+CLAUDE.md
 
 # Python-generated files
 __pycache__/

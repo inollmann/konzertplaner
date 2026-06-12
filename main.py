@@ -536,13 +536,11 @@ def get_event_invite(eid):
     if isinstance(artist_for_invite, list):
         artist_for_invite = artist_for_invite[0] if artist_for_invite else ""
     
-    invite_data = {
-        "v": 1,  # version
-        "t": ev.event_type,
-        "n": ev.name if ev.event_type == "festival" else "",
-        "a": artist_for_invite,
-        "s": ev.support if ev.event_type == "tour" else [],
-        "c": [
+    # Build concerts list based on event type
+    # Tours have multiple concerts in ev.concerts
+    # Festivals store their single date/venue directly on the event
+    if ev.event_type == "tour":
+        concerts_list = [
             {
                 "d": c.date,
                 "y": c.city,
@@ -551,7 +549,25 @@ def get_event_invite(eid):
                 "e": c.end_date,
             }
             for c in ev.concerts
-        ],
+        ]
+    else:  # festival
+        concerts_list = [
+            {
+                "d": ev.date,
+                "y": ev.city,
+                "v": ev.venue,
+                "p": ev.price,
+                "e": ev.end_date,
+            }
+        ]
+    
+    invite_data = {
+        "v": 1,  # version
+        "t": ev.event_type,
+        "n": ev.name if ev.event_type == "festival" else "",
+        "a": artist_for_invite,
+        "s": ev.support if ev.event_type == "tour" else [],
+        "c": concerts_list,
         "pt": ev.poster,
     }
     
