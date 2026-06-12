@@ -167,6 +167,7 @@ def handle_invite(eid, code):
         # Save the event
         import uuid
         new_eid = str(uuid.uuid4())[:8]
+        ev.id = new_eid  # Set event's ID to the short ID for consistency
         events[new_eid] = ev
         save_events(events)
         
@@ -650,6 +651,7 @@ def import_event_invite():
         # Save the event
         import uuid
         eid = str(uuid.uuid4())[:8]
+        ev.id = eid  # Set event's ID to the short ID for consistency
         events[eid] = ev
         save_events(events)
         
