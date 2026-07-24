@@ -9,23 +9,29 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/static/konzertplaner.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon",
-      "purpose": "any maskable"
+      "src": "/static/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-          "src": "/static/konzertplaner.ico",
-          "sizes": "192x192",
-          "type": "image/x-icon",
-          "purpose": "any"
-        },
-        {
-          "src": "/static/konzertplaner.ico",
-          "sizes": "512x512",
-          "type": "image/x-icon",
-          "purpose": "any"
-        }
+      "src": "/static/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "categories": ["entertainment", "lifestyle"]
 }
