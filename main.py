@@ -11,8 +11,9 @@ DATA_FILE = BASE_DIR / "data" / "events.json"
 CAT_FILE = BASE_DIR / "data" / "catalogue.json"  # artists + venues
 POSTER_DIR = BASE_DIR / "static" / "posters"
 LOGO_DIR = BASE_DIR / "static" / "logos"
+FESTIVAL_LOGO_DIR = BASE_DIR / "static" / "festival-logos"
 
-for d in (DATA_FILE.parent, POSTER_DIR, LOGO_DIR):
+for d in (DATA_FILE.parent, POSTER_DIR, LOGO_DIR, FESTIVAL_LOGO_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -182,6 +183,7 @@ def handle_invite(eid, code):
                 if invite_data.get("c")
                 else "",
                 poster=invite_data.get("pt"),
+                logo=invite_data.get("fl"),
                 time=invite_data.get("tm"),
                 ticket_link=invite_data.get("tk"),
                 bands_to_watch=invite_data.get("bw", []),
@@ -302,6 +304,23 @@ def upload_logo():
     img_type = request.form.get("type", "logo")
     suffix = f"_{img_type}" if img_type else ""
     return jsonify({"filename": _save_upload(f, LOGO_DIR, artist, suffix)})
+
+
+@app.route("/api/upload-festival-logo", methods=["POST"])
+def upload_festival_logo():
+    """Upload a festival logo (image). Optional `name` for a named file.
+
+    Used by the festival form's logo upload zone (click / drag-drop / paste),
+    so logos can be added to a festival at creation time or later.
+    """
+    f = request.files.get("logo")
+    if not f or not f.filename:
+        return jsonify({"error": "No file"}), 400
+    if not allowed_file(f.filename):
+        return jsonify({"error": "Type not allowed"}), 400
+    # Optional: festival name for a named, human-readable file
+    name = request.form.get("name")
+    return jsonify({"filename": _save_upload(f, FESTIVAL_LOGO_DIR, name, "_logo")})
 
 
 # ── Autocomplete ──────────────────────────────────────────────────────────────
@@ -494,6 +513,7 @@ def create_event():
             bands_to_watch=data.get("bands_to_watch", []),
             tags=data.get("tags", []),
             poster=data.get("poster"),
+            logo=data.get("logo"),
             comment=data.get("comment", ""),
         )
     else:
@@ -548,6 +568,8 @@ def update_event(eid):
         ev.bands_to_watch = data.get("bands_to_watch", ev.bands_to_watch)
         ev.tags = data.get("tags", ev.tags)
         ev.comment = data.get("comment", ev.comment)
+        if "logo" in data:
+            ev.logo = data["logo"]
     else:
         # Handle both single artist (string) and multiple artists (list)
         artist_data = data.get("artist")
@@ -655,6 +677,7 @@ def get_event_invite(eid):
             "s": [],
             "c": concerts_list,
             "pt": ev.poster,
+            "fl": ev.logo,  # festival logo filename
             "tm": ev.time,  # type: ignore[attr-defined]
             "tk": ev.ticket_link,  # type: ignore[attr-defined]
             "bw": ev.bands_to_watch,  # type: ignore[attr-defined]
@@ -739,6 +762,7 @@ def import_event_invite():
                 if invite_data.get("c")
                 else "",
                 poster=invite_data.get("pt"),
+                logo=invite_data.get("fl"),
                 time=invite_data.get("tm"),
                 ticket_link=invite_data.get("tk"),
                 bands_to_watch=invite_data.get("bw", []),

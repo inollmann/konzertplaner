@@ -145,11 +145,15 @@
       <div class="timeline-controls">
         <button class="timeline-btn timeline-today-btn" onclick="timelineToday()" title="Heute">Heute</button>
         <button class="timeline-btn" onclick="timelineNavEvent(-1)" title="Vorheriges Event">‹‹</button>
-        <button class="timeline-btn" onclick="timelineNav(-1)" title="Ein Monat zurück">‹</button>
-        <button class="timeline-btn" onclick="timelineZoom(-1)" title="Vergrößern">🔍-</button>
-        <span class="timeline-zoom-label" id="timeline-zoom-label">1 Jahr</span>
-        <button class="timeline-btn" onclick="timelineZoom(1)" title="Verkleinern">🔍+</button>
-        <button class="timeline-btn" onclick="timelineNav(1)" title="Ein Monat vor">›</button>
+        <button class="timeline-btn" onclick="timelineNav(-1)" title="Zurück">‹</button>
+        <div class="timeline-zoom-seg" id="timeline-zoom-seg">
+          <button data-z="0" onclick="tlSetZoom(0)">1 Jahr</button>
+          <button data-z="1" class="sel" onclick="tlSetZoom(1)">6 Monate</button>
+          <button data-z="2" onclick="tlSetZoom(2)">3 Monate</button>
+          <button data-z="3" onclick="tlSetZoom(3)">1 Monat</button>
+        </div>
+        <span class="timeline-zoom-label" id="timeline-zoom-label" style="display:none">6 Monate</span>
+        <button class="timeline-btn" onclick="timelineNav(1)" title="Vor">›</button>
         <button class="timeline-btn" onclick="timelineNavEvent(1)" title="Nächstes Event">››</button>
       </div>
     </div>
@@ -323,6 +327,15 @@
         </div>
         <div class="paste-hint">Strg+V zum Einfügen</div>
         <input type="file" id="fi-festival" class="hidden" accept="image/*" onchange="handleFile(event,'festival')">
+      </div>
+      <div class="poster-col">
+        <div class="poster-upload festival-logo-upload" id="pu-festlogo"
+             onclick="document.getElementById('fi-festlogo').click()"
+             ondragover="event.preventDefault()" ondrop="handleFestLogoDrop(event)">
+          <div class="pu-icon">🏷</div><div class="pu-label">Festival-Logo hochladen</div>
+        </div>
+        <div class="paste-hint">Strg+V zum Einfügen</div>
+        <input type="file" id="fi-festlogo" class="hidden" accept="image/*" onchange="handleFestLogoFile(event)">
       </div>
       <div class="form-grid">
         <div class="form-group full">

@@ -187,8 +187,10 @@ class Festival(Event):
                  bands_to_watch: list | None = None,
                  tags: list | None = None,
                  poster: str | None = None,
+                 logo: str | None = None,
                  comment: str = ""):
         super().__init__(name=name, poster=poster, comment=comment)
+        self.logo: str | None = logo
         self.city: str = city
         self.venue: str = venue
         self.date: str = date
@@ -211,6 +213,7 @@ class Festival(Event):
             "ticket_link": self.ticket_link,
             "bands_to_watch": self.bands_to_watch,
             "tags": self.tags,
+            "logo": self.logo,
         })
         return d
 
@@ -228,6 +231,7 @@ class Festival(Event):
             bands_to_watch=data.get("bands_to_watch", []),
             tags=data.get("tags", []),
             poster=data.get("poster"),
+            logo=data.get("logo"),
             comment=data.get("comment", ""),
         )
         fest.id = data["id"]

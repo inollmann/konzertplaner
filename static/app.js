@@ -13,13 +13,22 @@ let currentTab    = 'list';
 let eventTypeFilter = 'both'; // 'tour', 'festival', or 'both'
 let calYear, calMonth;
 
-// Timeline variables
-let timelineStartDate = new Date();
-let timelineZoomLevel = 0;
-const zoomLabels = ['1 Jahr', '6 Monate', '3 Monate', '1 Monat', '2 Wochen'];
-const zoomMonths = [12, 6, 3, 1, 0.5];
-let timelineInitialized = false;
-let timelineScrollHandlerEnabled = true;
+// Timeline variables (epoch-based, virtualized, center-date preserving)
+const TL_EPOCH = new Date(2000, 0, 1).getTime();        // fixed pixel origin (ms)
+const TL_EPOCH_END = new Date(2100, 0, 1).getTime();     // track right edge (ms)
+const TL_MS_PER_DAY = 86400000;
+const TL_BUFFER_PX = 400;                                // virtualization buffer
+const TL_MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const TL_ZOOM_LEVELS = [
+  { label: '1 Jahr',   days: 365 },
+  { label: '6 Monate', days: 182 },
+  { label: '3 Monate', days: 91  },
+  { label: '1 Monat',  days: 30  },
+];
+let tlZoom = 1;                                          // default 6 Monate
+let tlCenterDate = new Date();                          // date at viewport center
+let tlSuppressScroll = false;
+let tlRafPending = false;
 
 let editingId      = null;
 let currentType    = 'tour';
@@ -154,13 +163,8 @@ async function fetchAll() {
   renderList();
   renderCalendar();
   
-  // Initialize timeline before renderTimeline to ensure correct start date and zoom level
   initTimeline();
-  
-  // Now render timeline with correct values
   renderTimeline();
-  // Scroll to today at 10% position after render
-  setTimeout(timelineToday, 100);
 }
 fetchAll();
 loadTheme();
@@ -200,23 +204,20 @@ function switchTab(tab, el) {
   }
    
   // Set default filters per tab
-  if (tab === 'list' || tab === 'calendar') {
-    // Konzertliste & Kalender: show all events (no filters active)
+  if (tab === 'list') {
+    // Konzertliste: show all events (no filters active)
     dateFilter = 'both';
     eventTypeFilter = 'both';
     activeFilters.clear();
     updateAllFilterVisuals();
   } else if (tab === 'calendar') {
-    // Reset timeline to start further in the past to allow dragging
-    timelineStartDate = new Date();
-    timelineStartDate.setDate(1);
-    timelineStartDate.setMonth(timelineStartDate.getMonth() - 3); // Start 3 months before today
-    timelineZoomLevel = 0; // Default to 1 year view
-    document.getElementById('timeline-zoom-label').textContent = zoomLabels[timelineZoomLevel];
-    timelineInitialized = false; // Reset to trigger scroll to today
+    // Kalender: show all events, center timeline on today
+    dateFilter = 'both';
+    eventTypeFilter = 'both';
+    activeFilters.clear();
+    updateAllFilterVisuals();
     renderTimeline();
-    // Scroll to today after render
-    setTimeout(timelineToday, 150);
+    timelineToday();
   } else if (tab === 'map') {
     // Karte: show past events with purchased tickets
     dateFilter = 'past';
@@ -1217,6 +1218,11 @@ function buildDetailHTML(ev) {
     const endLabel = ev.end_date ? `<div class="date-end">→ ${fmtDateShort(ev.end_date)}</div>` : '';
     const tagHtml = (ev.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?'✓ Tickets':'☆ Merkliste'}</span>`).join('');
     const bandsHtml = allBandsF.map(b=>`<span class="band-chip">${esc(b)}</span>`).join('');
+    const festLogoHtml = ev.logo
+      ? `<img class="detail-festival-logo" src="/static/festival-logos/${ev.logo}" alt=""
+          onclick="openLightbox('/static/festival-logos/${ev.logo}')"
+          style="cursor:zoom-in" title="Logo vergrößern">`
+      : '';
     return `
       <div class="detail-header">
         ${ps}
@@ -1224,7 +1230,10 @@ function buildDetailHTML(ev) {
           <div style="display:flex;gap:7px;align-items:center;margin-bottom:4px">
             <span class="type-badge festival">Festival</span>
           </div>
-          <div class="detail-title">${esc(ev.name)}</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${festLogoHtml}
+            <div class="detail-title">${esc(ev.name)}</div>
+          </div>
           <div class="detail-subtitle">${esc(ev.tour_name||'')}</div>
         </div>
         <div class="detail-close-row">
@@ -1835,475 +1844,342 @@ function calNav(d) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// Timeline
+// Timeline (epoch-based, virtualized, center-date preserving)
 // ══════════════════════════════════════════════════════════════════════
 
+// pixel helpers ---------------------------------------------------------
+function tlDateToX(d) { return (d.getTime() - TL_EPOCH) / TL_MS_PER_DAY * tlDayWidth(); }
+function tlXToDate(x) { return new Date(TL_EPOCH + (x / tlDayWidth()) * TL_MS_PER_DAY); }
+function tlDayWidth() {
+  const viewport = document.getElementById('timeline-viewport');
+  const vw = viewport?.offsetWidth || 800;
+  return vw / TL_ZOOM_LEVELS[tlZoom].days;
+}
+// start-of-day helper
+function tlMidnight(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+
+// init drag + virtualization scroll sync --------------------------------
 function initTimeline() {
   const viewport = document.getElementById('timeline-viewport');
-  if (!viewport) return; // Element not found yet
-  
-  let isDown = false;
-  let startX;
-  let scrollLeft;
-  
-  // Mouse events
-  viewport.addEventListener('mousedown', (e) => {
-    isDown = true;
-    viewport.classList.add('active');
-    startX = e.pageX - viewport.offsetLeft;
-    scrollLeft = viewport.scrollLeft;
-  });
-  
-  viewport.addEventListener('mouseleave', () => {
-    isDown = false;
-    viewport.classList.remove('active');
-  });
-  
-  viewport.addEventListener('mouseup', () => {
-    isDown = false;
-    viewport.classList.remove('active');
-  });
-  
-  viewport.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - viewport.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    viewport.scrollLeft = scrollLeft - walk;
-  });
-  
-  // Touch events for mobile
-  viewport.addEventListener('touchstart', (e) => {
-    isDown = true;
-    viewport.classList.add('active');
-    startX = e.touches[0].pageX - viewport.offsetLeft;
-    scrollLeft = viewport.scrollLeft;
-  }, { passive: true });
-  
-  viewport.addEventListener('touchend', () => {
-    isDown = false;
-    viewport.classList.remove('active');
-  });
-  
-  viewport.addEventListener('touchmove', (e) => {
-    if (!isDown) return;
-    const x = e.touches[0].pageX - viewport.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    viewport.scrollLeft = scrollLeft - walk;
-  }, { passive: true });
-  
-  // Initialize timeline with all events loaded
-  // Calculate the full time range from first to last event
-  const allEventDates = [];
-  allEvents.forEach(ev => {
-    if (ev.event_type === 'festival') {
-      allEventDates.push(new Date(ev.date));
-      if (ev.end_date) allEventDates.push(new Date(ev.end_date));
-    } else {
-      (ev.concerts || []).forEach(c => {
-        allEventDates.push(new Date(c.date));
-        if (c.end_date) allEventDates.push(new Date(c.end_date));
-      });
-    }
-  });
-  
-  if (allEventDates.length > 0) {
-    allEventDates.sort((a, b) => a - b);
-    const firstDate = allEventDates[0];
-    const lastDate = allEventDates[allEventDates.length - 1];
-    
-    // Set timeline start to show first event at left edge with 1 month buffer
-    timelineStartDate = new Date(firstDate);
-    timelineStartDate.setDate(1);
-    timelineStartDate.setMonth(timelineStartDate.getMonth() - 1);
-    
-    // Calculate total months to show (full range from first to last event)
-    const totalMonths = Math.ceil((lastDate - timelineStartDate) / (1000 * 60 * 60 * 24 * 30));
-    
-    // Adjust zoom level to fit all events in the viewport
-    timelineZoomLevel = 0; // Start with 1 year view
-    const zoomMonthsTotal = zoomMonths[timelineZoomLevel] * 30;
-    while (totalMonths > zoomMonthsTotal && timelineZoomLevel < 4) {
-      timelineZoomLevel++;
-    }
-    
-    // Store the full time range for consistent day width calculation
-    timelineFullMonths = totalMonths;
-  } else {
-    // No events - use default
-    timelineStartDate = new Date();
-    timelineStartDate.setDate(1);
-    timelineStartDate.setMonth(timelineStartDate.getMonth() - 1);
-    timelineZoomLevel = 0;
-    timelineFullMonths = 12; // Default 1 year
-  }
-  
-  // Store for use in renderTimeline
-  timelineFullRangeCalculated = true;
-}
-
-function timelineZoom(direction) {
-  timelineZoomLevel += direction;
-  if (timelineZoomLevel < 0) timelineZoomLevel = 0;
-  if (timelineZoomLevel > 4) timelineZoomLevel = 4;
-  document.getElementById('timeline-zoom-label').textContent = zoomLabels[timelineZoomLevel];
-  // Disable scroll handler during zoom to prevent jumping
-  timelineScrollHandlerEnabled = false;
-  renderTimeline();
-  // Re-enable after scroll
-  setTimeout(() => { timelineScrollHandlerEnabled = true; }, 100);
-}
-
-function timelineNav(months) {
-  // Move timeline start date by specified months (negative = past, positive = future)
-  timelineStartDate.setMonth(timelineStartDate.getMonth() + months);
-  // Disable scroll handler during navigation to prevent jumping
-  timelineScrollHandlerEnabled = false;
-  renderTimeline();
-  // Re-enable after scroll
-  setTimeout(() => { timelineScrollHandlerEnabled = true; }, 100);
-}
-
-function timelineNavEvent(direction) {
-  // direction: -1 = previous event, 1 = next event
-  const viewport = document.getElementById('timeline-viewport');
   if (!viewport) return;
-  
-  const start = new Date(timelineStartDate);
-  const months = zoomMonths[timelineZoomLevel];
-  const totalDays = months * 30;
-  const endDate = new Date(start);
-  endDate.setDate(endDate.getDate() + totalDays);
-  
-  // Collect all event dates
-  const eventDates = [];
-  allEvents.filter(ev => eventVisible(ev)).forEach(ev => {
-    if (ev.event_type === 'festival') {
-      eventDates.push(new Date(ev.date));
-    } else {
-      (ev.concerts || []).forEach(c => {
-        eventDates.push(new Date(c.date));
-      });
-    }
+  let isDown = false, startX, scrollLeft, moved = false;
+
+  const onDown = (px) => { isDown = true; moved = false; viewport.classList.add('active'); startX = px; scrollLeft = viewport.scrollLeft; };
+  const onMove = (px) => { if (!isDown) return; const walk = px - startX; if (Math.abs(walk) > 4) moved = true; viewport.scrollLeft = scrollLeft - walk; };
+  const onUp = () => { isDown = false; viewport.classList.remove('active'); };
+
+  viewport.addEventListener('mousedown', e => { e.preventDefault(); onDown(e.pageX); });
+  viewport.addEventListener('mousemove', e => { if (isDown) e.preventDefault(); onMove(e.pageX); });
+  window.addEventListener('mouseup', onUp);
+  viewport.addEventListener('mouseleave', onUp);
+  viewport.addEventListener('touchstart', e => onDown(e.touches[0].pageX), { passive: true });
+  viewport.addEventListener('touchmove', e => onMove(e.touches[0].pageX), { passive: true });
+  viewport.addEventListener('touchend', onUp);
+
+  // click on a date axis area: jump so that date lands at viewport center
+  viewport.addEventListener('click', e => {
+    if (moved) { moved = false; return; } // ignore drags
+    if (e.target.closest('.timeline-event')) return; // events open detail
+    const rect = viewport.getBoundingClientRect();
+    const x = e.pageX - rect.left + viewport.scrollLeft;
+    tlCenterDate = tlMidnight(tlXToDate(x));
+    renderTimeline();
   });
-  
-  if (eventDates.length === 0) return;
-  
-  eventDates.sort((a, b) => a - b);
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Find the closest event in the requested direction
-  let targetEvent = null;
-  if (direction === 1) {
-    // Next event: find first event after today
-    targetEvent = eventDates.find(d => d >= today);
-    if (!targetEvent) targetEvent = eventDates[eventDates.length - 1]; // Wrap to last if none after today
+
+  // sync tlCenterDate while dragging/scrolling (position memory)
+  viewport.addEventListener('scroll', () => {
+    if (tlSuppressScroll) return;
+    const vw = viewport.offsetWidth;
+    tlCenterDate = tlMidnight(tlXToDate(viewport.scrollLeft + vw / 2));
+    // lightweight virtualized re-render, debounced via rAF
+    if (tlRafPending) return;
+    tlRafPending = true;
+    requestAnimationFrame(() => { tlRafPending = false; renderTimeline(); });
+  });
+}
+
+// zoom (preserves center date) -----------------------------------------
+function timelineZoom(direction) {
+  tlSetZoom(tlZoom + direction);
+}
+function tlSetZoom(level) {
+  const next = Math.max(0, Math.min(TL_ZOOM_LEVELS.length - 1, level));
+  if (next === tlZoom) return;
+  tlZoom = next;
+  const lbl = document.getElementById('timeline-zoom-label');
+  if (lbl) lbl.textContent = TL_ZOOM_LEVELS[tlZoom].label;
+  document.querySelectorAll('#timeline-zoom-seg button').forEach(b => {
+    b.classList.toggle('sel', Number(b.dataset.z) === tlZoom);
+  });
+  // preserve the centered date across zoom: same date, recompute scrollLeft
+  const viewport = document.getElementById('timeline-viewport');
+  if (viewport) {
+    const vw = viewport.offsetWidth || 800;
+    const centerX = tlDateToX(tlCenterDate);
+    tlSuppressScroll = true;
+    viewport.scrollLeft = Math.max(0, centerX - vw / 2);
+    renderTimeline();
+    requestAnimationFrame(() => { tlSuppressScroll = false; });
   } else {
-    // Previous event: find last event before or on today
-    const pastEvents = eventDates.filter(d => d < today);
-    if (pastEvents.length > 0) {
-      targetEvent = pastEvents[pastEvents.length - 1];
-    } else {
-      targetEvent = eventDates[0]; // Wrap to first if none before today
-    }
+    renderTimeline();
   }
-  
-  // Calculate new start date to show the target event at 10%
-  const dayWidth = getDayWidth();
-  const daysSinceStart = Math.floor((targetEvent - start) / (1000 * 60 * 60 * 24));
-  const scrollPos = daysSinceStart * dayWidth - viewport.offsetWidth * 0.1;
-  viewport.scrollLeft = Math.max(0, scrollPos);
 }
 
-function getDayWidth() {
-  // Calculate day width based on full time range to show all events at once
-  const fullMonths = timelineFullMonths || 12;
-  const viewportWidth = document.getElementById('timeline-viewport')?.offsetWidth || 800;
-  const totalDays = Math.ceil(fullMonths * 30);
-  return Math.max(viewportWidth / totalDays, 10); // At least 10px per day
+// nudge center date by a fraction of the visible span ------------------
+function timelineNav(months) {
+  const days = Math.round(months * 30);
+  tlCenterDate = tlMidnight(new Date(tlCenterDate.getTime() + days * TL_MS_PER_DAY));
+  renderTimeline();
 }
 
+// jump to today at 10% from left ----------------------------------------
 function timelineToday() {
   const viewport = document.getElementById('timeline-viewport');
-  const track = document.getElementById('timeline-track');
-  if (!viewport || !track) return;
-  const today = new Date();
-  const start = new Date(timelineStartDate);
-  const dayWidth = getDayWidth();
-  const daysSinceStart = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-  // Scroll to position today at 10% of the visible area (left 10% = past, right 90% = future)
-  const scrollPos = daysSinceStart * dayWidth - viewport.offsetWidth * 0.1;
-  viewport.scrollLeft = Math.max(0, scrollPos);
+  if (!viewport) return;
+  const vw = viewport.offsetWidth || 800;
+  const dw = tlDayWidth();
+  const todayX = tlDateToX(tlMidnight(new Date()));
+  tlSuppressScroll = true;
+  viewport.scrollLeft = todayX - vw * 0.1;
+  tlCenterDate = tlMidnight(tlXToDate(viewport.scrollLeft + vw / 2));
+  renderTimeline();
+  requestAnimationFrame(() => { tlSuppressScroll = false; });
 }
 
+// next / previous event relative to current center date ----------------
+function timelineNavEvent(direction) {
+  const viewport = document.getElementById('timeline-viewport');
+  if (!viewport || !allEvents.length) return;
+
+  const refs = [];
+  allEvents.filter(ev => eventVisible(ev)).forEach(ev => {
+    if (ev.event_type === 'festival') {
+      refs.push({ date: new Date(ev.date), ev });
+    } else {
+      (ev.concerts || []).forEach(c => refs.push({ date: new Date(c.date), ev, c }));
+    }
+  });
+  refs.sort((a, b) => a.date - b.date);
+  if (!refs.length) return;
+
+  const center = tlCenterDate.getTime();
+  let target;
+  if (direction === 1) {
+    target = refs.find(r => r.date.getTime() > center) || refs[refs.length - 1];
+  } else {
+    target = [...refs].reverse().find(r => r.date.getTime() < center) || refs[0];
+  }
+  tlCenterDate = tlMidnight(target.date);
+  const vw = viewport.offsetWidth;
+  const dw = tlDayWidth();
+  const todayX = tlDateToX(target.date);
+  tlSuppressScroll = true;
+  viewport.scrollLeft = todayX - vw * 0.4; // center the event ~40% from left
+  renderTimeline();
+  requestAnimationFrame(() => { tlSuppressScroll = false; });
+}
+
+// main render (virtualized over epoch range) ----------------------------
 function renderTimeline() {
   const axis = document.getElementById('timeline-axis');
   const eventsContainer = document.getElementById('timeline-events');
   const track = document.getElementById('timeline-track');
   const viewport = document.getElementById('timeline-viewport');
-  
-  // Guard: elements not ready yet
   if (!axis || !eventsContainer || !track || !viewport) return;
-  
-  // Calculate the full time range from first to last event for consistent day width
-  const fullMonths = timelineFullMonths || 12;
-  const fullTotalDays = Math.ceil(fullMonths * 30);
-  
-  // Calculate day width based on full time range to show all events at once
-  const viewportWidth = viewport.offsetWidth || 800;
-  const dayWidth = Math.max(viewportWidth / fullTotalDays, 10); // At least 10px per day
-  
-  // Calculate the visible time range based on zoom level
-  const months = zoomMonths[timelineZoomLevel];
-  const totalDays = Math.ceil(months * 30);
-  const trackWidth = fullTotalDays * dayWidth;
-  
-  track.style.width = trackWidth + 'px';
+
+  const dw = tlDayWidth();
+  const vw = viewport.offsetWidth || 800;
+  // clamp scrollLeft to epoch range so the timeline stays draggable everywhere
+  const maxScroll = (TL_EPOCH_END - TL_EPOCH) / TL_MS_PER_DAY * dw - vw;
+  if (viewport.scrollLeft > maxScroll) viewport.scrollLeft = Math.max(0, maxScroll);
+  if (viewport.scrollLeft < 0) viewport.scrollLeft = 0;
+
+  const leftPx = viewport.scrollLeft;
+  const rightPx = leftPx + vw;
+  const vL = leftPx - TL_BUFFER_PX;
+  const vR = rightPx + TL_BUFFER_PX;
+  const from = tlXToDate(Math.max(0, vL));
+  const to = tlXToDate(Math.min((TL_EPOCH_END - TL_EPOCH) / TL_MS_PER_DAY * dw, vR));
+
+  // track width = full epoch range (infinite feel within fixed bounds)
+  track.style.width = ((TL_EPOCH_END - TL_EPOCH) / TL_MS_PER_DAY * dw) + 'px';
   axis.innerHTML = '';
   eventsContainer.innerHTML = '';
-  
-  const start = new Date(timelineStartDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Render month markers (below day labels) - based on full time range
-  const monthsNames = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-  for (let m = 0; m <= fullMonths; m++) {
-    const markerDate = new Date(start);
-    markerDate.setMonth(markerDate.getMonth() + m);
-    const daysFromStart = (markerDate - start) / (1000 * 60 * 60 * 24);
-    const left = daysFromStart * dayWidth;
-    
-    if (left <= trackWidth) {
+
+  // month + day ticks (only within [vL, vR]) ------------------------------
+  const showDays = TL_ZOOM_LEVELS[tlZoom].days <= 182; // 6 Monate and below
+  const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+  cursor.setDate(1);
+  if (cursor.getTime() < from.getTime()) cursor.setMonth(cursor.getMonth() + 1);
+  while (cursor.getTime() <= to.getTime()) {
+    const x = tlDateToX(cursor);
+    if (x >= vL && x <= vR) {
       const marker = document.createElement('div');
       marker.className = 'timeline-month-marker';
-      marker.style.left = left + 'px';
-      marker.innerHTML = '<span class="timeline-month-label">' + monthsNames[markerDate.getMonth()] + ' ' + markerDate.getFullYear().toString().slice(2) + '</span>';
+      marker.style.left = x + 'px';
+      marker.innerHTML = `<span class="timeline-month-label">${TL_MONTHS[cursor.getMonth()]} '${String(cursor.getFullYear()).slice(2)}</span>`;
       axis.appendChild(marker);
     }
+    cursor.setMonth(cursor.getMonth() + 1);
   }
-  
-  // Render daily minor ticks (only when zoomed in enough)
-  if (months <= 6) { // Show daily ticks for 6 months or less
-    for (let d = 0; d <= fullTotalDays; d++) {
-      const tickDate = new Date(start);
-      tickDate.setDate(tickDate.getDate() + d);
-      const daysFromStart = d;
-      const left = daysFromStart * dayWidth;
-      
-      if (left <= trackWidth) {
+  if (showDays) {
+    const d = new Date(from); d.setHours(0,0,0,0);
+    while (d.getTime() <= to.getTime()) {
+      const x = tlDateToX(d);
+      if (x >= vL && x <= vR) {
         const tick = document.createElement('div');
         tick.className = 'timeline-day-tick';
-        tick.style.left = left + 'px';
-        // Only show day number
-        const dayOfWeek = tickDate.getDay(); // 0 = Sunday
-        if (dayOfWeek === 1 || d % 1 === 0) {
-          tick.innerHTML = '<span class="timeline-day-label">' + tickDate.getDate() + '</span>';
+        tick.style.left = x + 'px';
+        if (d.getDay() === 1 || d.getDate() === 1) {
+          tick.innerHTML = `<span class="timeline-day-label">${d.getDate()}</span>`;
         }
         axis.appendChild(tick);
       }
+      d.setDate(d.getDate() + 1);
     }
   }
-  
-  // Render today line
-  const daysSinceStart = (today - start) / (1000 * 60 * 60 * 24);
-  if (daysSinceStart >= 0 && daysSinceStart <= fullTotalDays) {
-    const todayLine = document.createElement('div');
-    todayLine.className = 'timeline-today-line';
-    todayLine.style.left = (daysSinceStart * dayWidth) + 'px';
-    todayLine.innerHTML = '<span class="timeline-today-label">HEUTE</span>';
-    eventsContainer.appendChild(todayLine);
+
+  // today line ----------------------------------------------------------
+  const today = tlMidnight(new Date());
+  const todayX = tlDateToX(today);
+  if (todayX >= vL && todayX <= vR) {
+    const tl = document.createElement('div');
+    tl.className = 'timeline-today-line';
+    tl.style.left = todayX + 'px';
+    tl.innerHTML = '<span class="timeline-today-label">HEUTE</span>';
+    eventsContainer.appendChild(tl);
   }
-  
-  // Collect and render events
+
+  // collect visible event entries --------------------------------------
   const entries = [];
   allEvents.filter(ev => eventVisible(ev)).forEach(ev => {
     if (ev.event_type === 'festival') {
       entries.push({
-        iso: ev.date,
-        end_iso: ev.end_date || ev.date,
-        label: ev.name,
-        type: 'festival',
-        tags: ev.tags || [],
-        id: ev.id,
-        poster: ev.poster || null
+        iso: ev.date, end_iso: ev.end_date || ev.date,
+        label: ev.name, type: 'festival',
+        tags: ev.tags || [], id: ev.id, poster: ev.poster || null,
+        logo: ev.logo || null,
       });
     } else {
       (ev.concerts || []).forEach(c => {
         const artistLabel = Array.isArray(ev.artist) ? ev.artist.join(' + ') : ev.artist;
         entries.push({
-          iso: c.date,
-          end_iso: c.end_date || c.date,
-          label: artistLabel,
-          type: 'tour',
-          tags: c.tags || [],
-          data: c,
-          id: ev.id,
-          poster: ev.poster || null,
-          artist: ev.artist || []
+          iso: c.date, end_iso: c.end_date || c.date,
+          label: artistLabel, type: 'tour',
+          tags: c.tags || [], data: c, id: ev.id, poster: ev.poster || null,
+          artist: ev.artist || [],
         });
       });
     }
   });
-  
-  // Sort by date
   entries.sort((a, b) => new Date(a.iso) - new Date(b.iso));
-  
-  // Track rows for overlapping events - store event info for height calculation
-  const rows = [];
-  
-  // Check if we should show logos/posters (only for 1 month and 2 weeks zoom levels)
-  const showMedia = timelineZoomLevel >= 3; // 3 = 1 Monat, 4 = 2 Wochen
-  
-  // Calculate available height for events (viewport height - axis height - date label space)
-  // Use fixed values to ensure consistent height across all zoom levels
-  const viewportHeight = 200; // Fixed viewport height
-  const axisHeight = 28; // Fixed axis height
-  const dateLabelHeight = 16; // Fixed date label height
-  const availableHeight = viewportHeight - axisHeight - dateLabelHeight - 8; // 8px padding
-  
-  // First pass: assign rows and collect row info
-  entries.forEach(e => {
-    const eventStart = new Date(e.iso);
-    const eventEnd = new Date(e.end_iso);
-    
-    // Calculate event position relative to timeline start
-    const eventStartDays = (eventStart - start) / (1000 * 60 * 60 * 24);
-    const eventEndDays = (eventEnd - start) / (1000 * 60 * 60 * 24);
-    
-    // Calculate event duration in days (at least 1 day for single-day events)
-    const eventDurationDays = Math.max(1, eventEndDays - eventStartDays + 1);
-    
-    // Find available row - render all events, not just those in visible range
-    let row = 0;
-    while (true) {
-      const rowEnd = rows[row]?.endDay || 0;
-      if (eventStartDays >= rowEnd) {
-        if (!rows[row]) rows[row] = { events: [], endDay: 0 };
-        rows[row].events.push(e);
-        rows[row].endDay = eventEndDays;
-        break;
-      }
-      row++;
-      if (row > 10) break; // Max 11 rows
+
+  // single-row layout: overlapping events split into side-by-side columns.
+  // 1. collect visible entries with their pixel span.
+  // 2. assign each to the lowest free column using interval partitioning.
+  // 3. group overlapping events so each knows the total column count in its
+  //    overlap group — its bar is then narrowed to 1/k of its time span.
+  const placed = [];
+  for (const e of entries) {
+    const sMs = new Date(e.iso).getTime();
+    const eMs = new Date(e.end_iso).getTime();
+    if (eMs < from.getTime() || sMs > to.getTime()) continue; // outside view
+    const startX = tlDateToX(new Date(sMs));
+    const endX = tlDateToX(new Date(eMs)) + dw; // inclusive end day
+    placed.push({ e, sMs, eMs: eMs + TL_MS_PER_DAY, startX, endX, span: Math.max(dw, endX - startX) });
+  }
+  placed.sort((a, b) => a.sMs - b.sMs || a.eMs - b.eMs);
+
+  // column assignment + overlap-group sizing
+  const cols = []; // cols[c] = end-ms of the last event placed in column c
+  let groupEnd = -Infinity;     // end-ms of the current overlap group
+  let groupMaxCols = 0;         // max columns used in the current group
+  let groupStart = 0;            // index where the current group began
+  for (let i = 0; i < placed.length; i++) {
+    const p = placed[i];
+    // start a new overlap group when this event doesn't overlap any active one
+    if (p.sMs >= groupEnd) {
+      // finalize the previous group: stamp its members with groupMaxCols
+      for (let j = groupStart; j < i; j++) placed[j].groupCols = groupMaxCols;
+      groupEnd = -Infinity;
+      groupMaxCols = 0;
+      groupStart = i;
+      cols.length = 0;
     }
-  });
-  
-  // Calculate how many rows have events
-  const activeRows = rows.filter(r => r && r.events.length > 0);
-  let rowCount = activeRows.length || 1;
-  
-  // Limit rows to fit within available height (with some padding)
-  const maxRows = Math.floor(availableHeight / 40); // At least 40px per row
-  if (rowCount > maxRows) rowCount = maxRows;
-  
-  // Use a fixed height per row that doesn't change when scrolling
-  // This ensures consistent event heights regardless of which events are visible
-  const heightPerRow = 40; // Fixed height per row
-  
-  // Second pass: render events with proper heights
-  let currentRowIndex = 0;
-  rows.forEach((rowData, rowIndex) => {
-    if (!rowData || rowData.events.length === 0) return;
-    
-    const eventsInRow = rowData.events;
-    const eventsInRowCount = eventsInRow.length;
-    
-    // If only one event in row, use full row height. If multiple, divide equally.
-    const heightForThisRow = eventsInRowCount === 1 ? heightPerRow : Math.floor(heightPerRow / eventsInRowCount);
-    
-    eventsInRow.forEach((e, eventIndex) => {
-      const eventStart = new Date(e.iso);
-      const eventEnd = new Date(e.end_iso);
-      
-      const eventStartDays = (eventStart - start) / (1000 * 60 * 60 * 24);
-      const eventEndDays = (eventEnd - start) / (1000 * 60 * 60 * 24);
-      
-      const eventDurationDays = Math.max(1, eventEndDays - eventStartDays + 1);
-      
-      const left = Math.max(0, eventStartDays) * dayWidth;
-      const width = eventDurationDays * dayWidth;
-      
-      const el = document.createElement('div');
-      let cls = e.type;
-      
-      el.className = 'timeline-event ' + cls;
-      el.style.left = left + 'px';
-      el.style.width = width + 'px';
-      el.style.top = (currentRowIndex * heightPerRow + 4) + 'px';
-      el.style.height = (heightForThisRow - 8) + 'px';
-      
-      // For tours: show artist logos stacked; for festivals: show poster
-      // Only show media for zoom levels 1 Monat (3) and 2 Wochen (4)
-      if (showMedia) {
-        if (e.type === 'festival') {
-          // Festival: use poster
-          if (e.poster) {
-            el.innerHTML = `<img src="/static/posters/${e.poster}" alt="${esc(e.label)}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">`;
-          } else {
-            el.textContent = e.label;
-          }
+    // assign lowest free column (one whose last event ended before this starts)
+    let c = 0;
+    while (c < cols.length && cols[c] > p.sMs) c++;
+    cols[c] = p.eMs;
+    p.col = c;
+    groupMaxCols = Math.max(groupMaxCols, c + 1);
+    groupEnd = Math.max(groupEnd, p.eMs);
+  }
+  // finalize the trailing group
+  for (let j = groupStart; j < placed.length; j++) placed[j].groupCols = groupMaxCols;
+
+  // rendering flags: logos at 6M/3M/1M, vertical text at 1 Jahr
+  const showLogos = tlZoom >= 1;
+  const barH = eventsContainer.clientHeight || 172; // events area = viewport 200 − axis 28
+
+  for (const p of placed) {
+    const e = p.e;
+    const k = p.groupCols;            // total columns in this overlap group
+    const colW = k > 1 ? p.span / k : p.span;
+    const left = k > 1 ? p.startX + p.col * colW : p.startX;
+    const width = k > 1 ? colW : p.span;
+    const logoSize = Math.min(width, barH); // logos sized to event width, capped by bar height
+
+    const el = document.createElement('div');
+    let cls = 'timeline-event ' + e.type;
+    if (e.tags?.includes('tickets')) cls += ' has-tickets';
+    if (e.tags?.includes('watchlist')) cls += ' has-watch';
+    el.className = cls;
+    el.style.left = left + 'px';
+    el.style.width = width + 'px';
+    el.style.top = '0px';
+    el.style.height = '100%';         // single row: fill the whole timeline height
+
+    if (showLogos) {
+      if (e.type === 'festival') {
+        if (e.logo) {
+          el.innerHTML = `<img src="/static/festival-logos/${e.logo}" alt="${esc(e.label)}" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;border-radius:4px;padding:2px;">`;
+        } else if (e.poster) {
+          el.innerHTML = `<img src="/static/posters/${e.poster}" alt="${esc(e.label)}" style="width:${logoSize}px;height:${logoSize}px;object-fit:cover;border-radius:4px;">`;
         } else {
-          // Tour: show artist logos - full width, proportional height per band
-          const headliner = e.artist || e.data?.artist || e.label;
-          const headlinerList = Array.isArray(headliner) ? headliner : (headliner ? [headliner] : []);
-          const supportActs = e.data?.support_present || [];
-          const allActs = [...headlinerList, ...supportActs].filter(Boolean);
-          const stringActs = allActs.filter(a => typeof a === 'string');
-          const uniqueActs = [...new Set(stringActs.map(a => a.toLowerCase()))].map(l => stringActs.find(a => a.toLowerCase() === l));
-          
-          const logoHtml = [];
-          const logoHeight = Math.max(24, Math.floor(heightPerEvent * 0.7 / uniqueActs.length)); // Proportional height
-          
-          for (const artistName of uniqueActs) {
-            const artist = artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
-            if (artist && artist.logo) {
-              logoHtml.push(`<img src="/static/logos/${artist.logo}" alt="${esc(artistName)}" style="width:${logoHeight}px;height:${logoHeight}px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);flex-shrink:0;">`);
-            }
-          }
-          if (logoHtml.length > 0) {
-            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;width:100%;height:100%;padding:2px;">${logoHtml.join('')}</div>`;
-          } else {
-            el.textContent = e.label;
-            el.style.fontSize = '11px';
-          }
+          el.textContent = e.label;
         }
       } else {
-        // For zoom levels 1 Jahr, 6 Monate, 3 Monate: show vertical text
-        el.innerHTML = `<div class="timeline-event-vertical">${esc(e.label)}</div>`;
+        const headliner = e.artist || e.data?.artist || e.label;
+        const hl = Array.isArray(headliner) ? headliner : (headliner ? [headliner] : []);
+        const sup = e.data?.support_present || [];
+        const acts = [...hl, ...sup].filter(a => typeof a === 'string');
+        const uniq = [...new Set(acts.map(a => a.toLowerCase()))].map(lc => acts.find(a => a.toLowerCase() === lc));
+        const imgs = [];
+        for (const name of uniq) {
+          const a = artists.find(ar => ar.name.toLowerCase() === name.toLowerCase());
+          if (a && a.logo) imgs.push(`<img src="/static/logos/${a.logo}" alt="${esc(name)}" style="height:${logoSize}px;width:${logoSize}px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);flex-shrink:0;">`);
+        }
+        el.innerHTML = imgs.length
+          ? `<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;width:100%;height:100%;">${imgs.join('')}</div>`
+          : `<div class="timeline-event-vertical">${esc(e.label)}</div>`;
       }
-      el.title = e.label + '\n' + e.iso + (e.end_iso !== e.iso ? ' - ' + e.end_iso : '');
-      
-      // Add date label above event
-      const dateLabel = document.createElement('div');
-      dateLabel.className = 'timeline-event-date';
-      const dateParts = e.iso.split('-');
-      const day = dateParts[2];
-      const month = dateParts[1];
-      dateLabel.textContent = day + '.' + month + '.';
-      el.appendChild(dateLabel);
-      
-      el.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        openDetail(e.id);
-      });
-      
-      if (e.data) {
-        el.addEventListener('mouseenter', evt => showPopover(evt, e.data));
-        el.addEventListener('mouseleave', hidePopover);
-      }
-      
-      eventsContainer.appendChild(el);
-    });
-    
-    currentRowIndex++;
-  });
-  
-  // Scroll to today on first render (handled in fetchAll)
-  if (!timelineInitialized) {
-    timelineInitialized = true;
+    } else {
+      el.innerHTML = `<div class="timeline-event-vertical">${esc(e.label)}</div>`;
+    }
+    el.title = e.label + '\n' + e.iso + (e.end_iso !== e.iso ? ' – ' + e.end_iso : '');
+
+    const dateLabel = document.createElement('div');
+    dateLabel.className = 'timeline-event-date';
+    const dp = e.iso.split('-');
+    dateLabel.textContent = dp[2] + '.' + dp[1] + '.';
+    el.appendChild(dateLabel);
+
+    el.addEventListener('click', ev => { ev.stopPropagation(); openDetail(e.id); });
+    if (e.data) {
+      el.addEventListener('mouseenter', evt => showPopover(evt, e.data));
+      el.addEventListener('mouseleave', hidePopover);
+    }
+    eventsContainer.appendChild(el);
   }
 }
 
@@ -2358,6 +2234,8 @@ function openEventModal(ev) {
   editingId = ev ? ev.id : null;
   pendingBlob = { tour: null, festival: null };
   savedPoster = { tour: ev?.poster||null, festival: ev?.poster||null };
+  pendingFestLogo = null;
+  savedFestLogo = ev?.logo || null;
 
   document.getElementById('type-chooser').style.display = ev ? 'none' : 'block';
   document.getElementById('event-modal-title').textContent = ev ? 'Event bearbeiten' : 'Neues Event';
@@ -2401,6 +2279,7 @@ function openEventModal(ev) {
     pillState.bands.tags = [...(ev?.bands_to_watch||[])];
     renderPills('bands');
     setPosterPreview('festival', ev?.poster||null);
+    setFestivalLogoPreview(ev?.logo||null);
   }
 
   openModal('event-modal');
@@ -2444,10 +2323,50 @@ function handleDrop(e, which) {
   const f = e.dataTransfer.files[0];
   if (f && f.type.startsWith('image/')) previewBlob(which, f);
 }
+
+// ── Festival-Logo ────────────────────────────────────────────────────
+let pendingFestLogo = null;
+let savedFestLogo = null;
+function setFestivalLogoPreview(filename) {
+  const el = document.getElementById('pu-festlogo');
+  el.innerHTML = '';
+  if (filename) {
+    savedFestLogo = filename;
+    const img = document.createElement('img'); img.src = `/static/festival-logos/${filename}`; el.appendChild(img);
+  } else {
+    savedFestLogo = null;
+    el.innerHTML = '<div class="pu-icon">🏷</div><div class="pu-label">Festival-Logo hochladen</div>';
+  }
+}
+function previewFestivalLogo(blob) {
+  pendingFestLogo = blob;
+  const url = URL.createObjectURL(blob);
+  const el = document.getElementById('pu-festlogo');
+  el.innerHTML = ''; const img = document.createElement('img'); img.src = url; el.appendChild(img);
+}
+function handleFestLogoFile(e) { const f = e.target.files[0]; if (f) previewFestivalLogo(f); }
+function handleFestLogoDrop(e) {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) previewFestivalLogo(f);
+}
+async function uploadFestivalLogoIfNeeded() {
+  const blob = pendingFestLogo;
+  if (!blob) return savedFestLogo;
+  const fd = new FormData(); fd.append('logo', blob);
+  const r = await fetch('/api/upload-festival-logo', { method: 'POST', body: fd });
+  if (!r.ok) throw new Error('Upload fehlgeschlagen');
+  return (await r.json()).filename;
+}
+
 document.addEventListener('paste', e => {
   if (!document.getElementById('event-modal').classList.contains('open')) return;
   for (const item of e.clipboardData.items) {
-    if (item.type.startsWith('image/')) { previewBlob(currentType, item.getAsFile()); break; }
+    if (item.type.startsWith('image/')) {
+      if (currentType === 'festival') previewFestivalLogo(item.getAsFile());
+      else previewBlob(currentType, item.getAsFile());
+      break;
+    }
   }
 });
 async function uploadBlobIfNeeded(which) {
@@ -2651,6 +2570,7 @@ async function saveEvent() {
   btn.disabled = true; btn.textContent = 'Speichern…';
   try {
     const poster = await uploadBlobIfNeeded(currentType);
+    const festivalLogo = currentType === 'festival' ? await uploadFestivalLogoIfNeeded() : null;
     let payload;
     if (currentType === 'festival') {
       const name = document.getElementById('f-fest-name').value.trim();
@@ -2671,6 +2591,7 @@ async function saveEvent() {
         ticket_link: document.getElementById('f-fest-ticketlink').value.trim()||null,
         bands_to_watch: [...pillState.bands.tags],
         tags, poster,
+        logo: festivalLogo,
         comment: document.getElementById('f-fest-comment').value.trim(),
       };
     } else {
