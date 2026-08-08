@@ -496,6 +496,7 @@ export async function saveEvent() {
     if (!r.ok) throw new Error('Server error');
     closeModal('event-modal');
     await fetchAll();
+    window.dispatchEvent(new CustomEvent('datachange'));
     await new Promise(resolve => setTimeout(resolve, 50));
     if (state.editingId) {
       closeDetail();

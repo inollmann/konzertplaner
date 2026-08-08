@@ -56,9 +56,9 @@ def test_create_tour_via_api_appears_in_list(page, live_server):
     )
     assert resp.ok, f"API create failed: {resp.status}"
     _goto(page, live_server)
-    expect(page.get_by_text("E2E Band")).to_be_visible()
-    expect(page.get_by_text("Berlin")).to_be_visible()
-    expect(page.get_by_text("E2E Tour")).to_be_visible()
+    expect(page.locator("#event-list").get_by_text("E2E Band")).to_be_visible()
+    expect(page.locator("#event-list").get_by_text("Berlin")).to_be_visible()
+    expect(page.locator("#event-list").get_by_text("E2E Tour")).to_be_visible()
 
 
 def test_create_festival_via_api_appears_in_list(page, live_server):
@@ -69,12 +69,12 @@ def test_create_festival_via_api_appears_in_list(page, live_server):
             "name": "Test Festival",
             "city": "Köln",
             "venue": "Rheinpark",
-            "date": "2026-07-15",
+            "date": "2026-12-01",
         },
     )
     _goto(page, live_server)
-    expect(page.get_by_text("Test Festival")).to_be_visible()
-    expect(page.get_by_text("Köln")).to_be_visible()
+    expect(page.locator("#event-list").get_by_text("Test Festival")).to_be_visible()
+    expect(page.locator("#event-list").get_by_text("Köln")).to_be_visible()
 
 
 def test_open_new_event_modal(page, live_server):
@@ -106,6 +106,6 @@ def test_create_tour_via_ui(page, live_server):
     page.locator("#btn-save").click()
     expect(page.locator("#event-modal.open")).to_be_hidden()
 
-    # The event should now appear in the list
-    expect(page.get_by_text("UI Band")).to_be_visible()
-    expect(page.get_by_text("Hamburg")).to_be_visible()
+    # The event should now appear in the list (datachange event triggers renderList)
+    expect(page.locator("#event-list").get_by_text("UI Band")).to_be_visible()
+    expect(page.locator("#event-list").get_by_text("Hamburg")).to_be_visible()

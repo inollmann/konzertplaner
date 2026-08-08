@@ -82,6 +82,13 @@ window.addEventListener('listviewchange', () => {
   renderList();
 });
 
+window.addEventListener('datachange', () => {
+  renderList();
+  renderCalendar();
+  renderTimeline();
+  if (state.currentTab === 'shows') renderShows();
+});
+
 window.addEventListener('showsfilterchange', () => {
   renderShows();
 });
