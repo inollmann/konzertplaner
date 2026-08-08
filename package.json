@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "jsdom": "^25",
+    "typescript": "^7.0.2",
+    "vitest": "^2"
   }
 }

@@ -4,9 +4,10 @@ Generate favicons from a single source image.
 Converts a PNG of arbitrary size into the required favicon formats.
 """
 
-from PIL import Image
 import os
 import sys
+
+from PIL import Image
 
 # Define required icon sizes for different use cases
 ICONS = {
@@ -59,11 +60,7 @@ def generate_favicons(source_path: str, output_dir: str = ".") -> None:
             # Save multi-resolution ICO
             # Note: Pillow's ICO saving is limited, save first size as fallback
             if icons_to_save:
-                icons_to_save[0].save(
-                    output_path,
-                    format="ICO",
-                    sizes=sizes
-                )
+                icons_to_save[0].save(output_path, format="ICO", sizes=sizes)
         else:
             # For PNG files, create single size icon
             for size in sizes:

@@ -8,7 +8,7 @@ On first boot, if the DB is empty and JSON files exist, data is auto-migrated.
 import json
 import os
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlmodel import Session, SQLModel, create_engine, select
@@ -42,6 +42,7 @@ FESTIVAL_LOGO_DIR = BASE_DIR / "static" / "festival-logos"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _parse_date(s: str | None) -> date | None:
     if not s:
@@ -85,6 +86,7 @@ def _mime_from_ext(filename: str) -> str:
 
 
 # ── Mappers: domain ↔ DB rows ─────────────────────────────────────────────────
+
 
 def row_to_event(row: EventRow) -> Event:
     poster_str = str(row.poster_id) if row.poster_id else None
@@ -215,6 +217,7 @@ def venue_to_row(venue: Venue) -> VenueRow:
 
 # ── CRUD: events ──────────────────────────────────────────────────────────────
 
+
 def list_events() -> list[Event]:
     with session() as s:
         rows = s.exec(select(EventRow)).all()
@@ -232,10 +235,20 @@ def upsert_event(event: Event) -> Event:
     with session() as s:
         existing = s.get(EventRow, row.id)
         if existing:
-            for col in ("event_type", "name", "city", "venue", "start_date",
-                        "end_date", "poster_id", "logo_id", "comment", "attrs"):
+            for col in (
+                "event_type",
+                "name",
+                "city",
+                "venue",
+                "start_date",
+                "end_date",
+                "poster_id",
+                "logo_id",
+                "comment",
+                "attrs",
+            ):
                 setattr(existing, col, getattr(row, col))
-            existing.updated_at = datetime.now(timezone.utc)
+            existing.updated_at = datetime.now(UTC)
         else:
             s.add(row)
         s.commit()
@@ -253,6 +266,7 @@ def delete_event_db(eid: str) -> bool:
 
 
 # ── CRUD: artists ────────────────────────────────────────────────────────────
+
 
 def list_artists() -> list[Artist]:
     with session() as s:
@@ -274,10 +288,9 @@ def upsert_artist(artist: Artist) -> Artist:
     with session() as s:
         existing = s.get(ArtistRow, row.id)
         if existing:
-            for col in ("name", "logo_id", "photo_id", "followed",
-                        "eventim_name", "eventim_id"):
+            for col in ("name", "logo_id", "photo_id", "followed", "eventim_name", "eventim_id"):
                 setattr(existing, col, getattr(row, col))
-            existing.updated_at = datetime.now(timezone.utc)
+            existing.updated_at = datetime.now(UTC)
         else:
             s.add(row)
         s.commit()
@@ -298,6 +311,7 @@ def delete_artist_db(aid: str) -> bool:
 
 
 # ── CRUD: venues ─────────────────────────────────────────────────────────────
+
 
 def list_venues() -> list[Venue]:
     with session() as s:
@@ -342,8 +356,8 @@ def delete_venue_db(vid: str) -> bool:
 
 # ── CRUD: images ─────────────────────────────────────────────────────────────
 
-def create_image(data: bytes, kind: str, mime: str,
-                 filename: str | None = None) -> str:
+
+def create_image(data: bytes, kind: str, mime: str, filename: str | None = None) -> str:
     img = Image(kind=kind, mime=mime, filename=filename, data=data)
     with session() as s:
         s.add(img)
@@ -361,8 +375,8 @@ def get_image(img_id: str) -> Image | None:
 
 # ── Auto-migration from JSON + on-disk images ─────────────────────────────────
 
-def _migrate_image_file(filename: str, dir_path: Path, kind: str,
-                        s: Session) -> str | None:
+
+def _migrate_image_file(filename: str, dir_path: Path, kind: str, s: Session) -> str | None:
     """Read an image file from disk, insert into images table, return UUID."""
     file_path = dir_path / filename
     if not file_path.exists():
@@ -378,13 +392,16 @@ def _auto_migrate():
     """If DB tables are empty and JSON files exist, migrate data into the DB."""
     migrated = False
     with session() as s:
-        if s.exec(select(EventRow)).first() is not None or \
-           s.exec(select(ArtistRow)).first() is not None:
+        if (
+            s.exec(select(EventRow)).first() is not None
+            or s.exec(select(ArtistRow)).first() is not None
+        ):
             return  # DB already has data
 
         # Migrate events
-        events_path = DATA_FILE if DATA_FILE.exists() else \
-            (LEGACY_FILE if LEGACY_FILE.exists() else None)
+        events_path = (
+            DATA_FILE if DATA_FILE.exists() else (LEGACY_FILE if LEGACY_FILE.exists() else None)
+        )
         if events_path:
             with open(events_path, encoding="utf-8") as f:
                 raw = json.load(f)
@@ -392,11 +409,9 @@ def _auto_migrate():
                 ev = Event.from_dict(ev_dict)
                 # Replace image filenames with DB image UUIDs
                 if ev.poster:
-                    ev.poster = _migrate_image_file(
-                        ev.poster, POSTER_DIR, "poster", s)
+                    ev.poster = _migrate_image_file(ev.poster, POSTER_DIR, "poster", s)
                 if isinstance(ev, Festival) and ev.logo:
-                    ev.logo = _migrate_image_file(
-                        ev.logo, FESTIVAL_LOGO_DIR, "festival-logo", s)
+                    ev.logo = _migrate_image_file(ev.logo, FESTIVAL_LOGO_DIR, "festival-logo", s)
                 s.add(event_to_row(ev))
             migrated = True
 
@@ -423,6 +438,8 @@ def _auto_migrate():
 
 # ── Init ──────────────────────────────────────────────────────────────────────
 
+
 def init_db():
     SQLModel.metadata.create_all(engine)
-    _auto_migrate()
+    if os.environ.get("KP_TESTING") != "1":
+        _auto_migrate()

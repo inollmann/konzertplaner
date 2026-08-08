@@ -3,11 +3,23 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 
-from concert import Artist, Event, Festival, Tour, Venue
+from concert import Artist, Festival, Tour, Venue
 from db import (
-    create_image, delete_artist_db, delete_event_db, delete_venue_db,
-    get_artist, get_event, get_image, init_db, list_artists, list_events,
-    list_venues, upsert_artist, upsert_event, upsert_venue,
+    create_image,
+    delete_artist_db,
+    delete_event_db,
+    delete_venue_db,
+    get_artist,
+    get_event,
+    get_image,
+    get_venue,
+    init_db,
+    list_artists,
+    list_events,
+    list_venues,
+    upsert_artist,
+    upsert_event,
+    upsert_venue,
 )
 
 BASE_DIR = Path(__file__).parent
@@ -105,12 +117,8 @@ def handle_invite(eid, code):
 
             ev = Festival(
                 name=invite_data.get("n", ""),
-                city=invite_data.get("c", [{}])[0].get("y", "")
-                if invite_data.get("c")
-                else "",
-                venue=invite_data.get("c", [{}])[0].get("v", "")
-                if invite_data.get("c")
-                else "",
+                city=invite_data.get("c", [{}])[0].get("y", "") if invite_data.get("c") else "",
+                venue=invite_data.get("c", [{}])[0].get("v", "") if invite_data.get("c") else "",
                 time=invite_data.get("tm"),
                 ticket_link=invite_data.get("tk"),
                 bands_to_watch=invite_data.get("bw", []),
@@ -205,8 +213,13 @@ def upload_poster():
     if not allowed_file(f.filename):
         return jsonify({"error": "Type not allowed"}), 400
     ext = f.filename.rsplit(".", 1)[1].lower() if "." in f.filename else "png"
-    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
+    mime = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "gif": "image/gif",
+        "webp": "image/webp",
+    }.get(ext, "image/png")
     img_id = create_image(f.read(), "poster", mime, f.filename)
     return jsonify({"id": img_id})
 
@@ -220,8 +233,13 @@ def upload_logo():
         return jsonify({"error": "Type not allowed"}), 400
     img_type = request.form.get("type", "logo")
     ext = f.filename.rsplit(".", 1)[1].lower() if "." in f.filename else "png"
-    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
+    mime = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "gif": "image/gif",
+        "webp": "image/webp",
+    }.get(ext, "image/png")
     img_id = create_image(f.read(), img_type, mime, f.filename)
     return jsonify({"id": img_id})
 
@@ -235,8 +253,13 @@ def upload_festival_logo():
     if not allowed_file(f.filename):
         return jsonify({"error": "Type not allowed"}), 400
     ext = f.filename.rsplit(".", 1)[1].lower() if "." in f.filename else "png"
-    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
-            "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
+    mime = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "gif": "image/gif",
+        "webp": "image/webp",
+    }.get(ext, "image/png")
     img_id = create_image(f.read(), "festival-logo", mime, f.filename)
     return jsonify({"id": img_id})
 
@@ -660,12 +683,8 @@ def import_event_invite():
 
             ev = Festival(
                 name=invite_data.get("n", ""),
-                city=invite_data.get("c", [{}])[0].get("y", "")
-                if invite_data.get("c")
-                else "",
-                venue=invite_data.get("c", [{}])[0].get("v", "")
-                if invite_data.get("c")
-                else "",
+                city=invite_data.get("c", [{}])[0].get("y", "") if invite_data.get("c") else "",
+                venue=invite_data.get("c", [{}])[0].get("v", "") if invite_data.get("c") else "",
                 time=invite_data.get("tm"),
                 ticket_link=invite_data.get("tk"),
                 bands_to_watch=invite_data.get("bw", []),
@@ -782,9 +801,7 @@ def get_venues_catalogue():
     (id=None, derived=True) so the frontend can display and optionally save them.
     """
     venues = list_venues()
-    cat_keys = {
-        f"{v.name.casefold()}|{v.city.casefold()}" for v in venues
-    }
+    cat_keys = {f"{v.name.casefold()}|{v.city.casefold()}" for v in venues}
     result = [v.to_dict() for v in venues]
     for ev in list_events():
         pairs = []

@@ -17,3 +17,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Test artifacts
+.pytest_cache/
+coverage.xml
+.coverage
+htmlcov/

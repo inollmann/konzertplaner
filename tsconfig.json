@@ -15,5 +15,6 @@
       "/*": ["./*"]
     }
   },
-  "include": ["static/js/**/*.js", "static/js/**/*.d.ts"]
+  "include": ["static/js/**/*.js", "static/js/**/*.d.ts"],
+  "exclude": ["static/js/**/*.test.js"]
 }

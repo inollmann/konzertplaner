@@ -20,18 +20,17 @@ are documented stubs ready for a future vision-model integration.
 
 import uuid
 
-
 # ── Base ──────────────────────────────────────────────────────────────────────
+
 
 class Event:
     event_type: str = ""
 
-    def __init__(self, name: str, poster: str | None = None,
-                 comment: str = ""):
+    def __init__(self, name: str, poster: str | None = None, comment: str = ""):
         self.id: str = str(uuid.uuid4())
         self.name: str = name
         self.poster: str | None = poster
-        self.comment: str = comment   # free-text note, shown only in detail view
+        self.comment: str = comment  # free-text note, shown only in detail view
 
     def set_poster(self, filename: str | None):
         self.poster = filename
@@ -58,12 +57,18 @@ class Event:
 
 # ── Tour ──────────────────────────────────────────────────────────────────────
 
+
 class Tour(Event):
     event_type = "tour"
 
-    def __init__(self, artist: str | list | None = None, support: list | None = None,
-                 tour_name: str = "Tour", poster: str | None = None,
-                 comment: str = ""):
+    def __init__(
+        self,
+        artist: str | list | None = None,
+        support: list | None = None,
+        tour_name: str = "Tour",
+        poster: str | None = None,
+        comment: str = "",
+    ):
         # Handle both single artist (string) and multiple artists (list)
         if artist is None:
             artist_list = []
@@ -71,20 +76,26 @@ class Tour(Event):
             artist_list = artist
         else:
             artist_list = [artist] if artist else []
-        
+
         # Use first artist as name for backward compatibility
         super().__init__(name=artist_list[0] if artist_list else "", poster=poster, comment=comment)
         self.artist: list = artist_list  # list of artist names (for co-headlining)
-        self.support: list = support or []   # list of act-name strings
+        self.support: list = support or []  # list of act-name strings
         self.tour_name: str = tour_name
         self.concerts: list = []
 
-    def add_concert(self, date: str, city: str, venue: str,
-                    price=None, time: str | None = None,
-                    end_date: str | None = None,
-                    tags: list | None = None,
-                    support_present: list | None = None,
-                    ticket_link: str | None = None) -> "Concert":
+    def add_concert(
+        self,
+        date: str,
+        city: str,
+        venue: str,
+        price=None,
+        time: str | None = None,
+        end_date: str | None = None,
+        tags: list | None = None,
+        support_present: list | None = None,
+        ticket_link: str | None = None,
+    ) -> "Concert":
         """
         support_present: subset of self.support that plays this specific date.
         Defaults to all support acts when omitted.
@@ -92,10 +103,16 @@ class Tour(Event):
         # Get first artist for backward compatibility
         main_artist = self.artist[0] if self.artist else ""
         concert = Concert(
-            date=date, city=city, venue=venue,
-            price=price, time=time, end_date=end_date,
+            date=date,
+            city=city,
+            venue=venue,
+            price=price,
+            time=time,
+            end_date=end_date,
             tags=tags or [],
-            tour_id=self.id, tour_name=self.tour_name, artist=main_artist,
+            tour_id=self.id,
+            tour_name=self.tour_name,
+            artist=main_artist,
             support_present=support_present if support_present is not None else list(self.support),
             ticket_link=ticket_link,
         )
@@ -104,12 +121,14 @@ class Tour(Event):
 
     def to_dict(self) -> dict:
         d = self._base_dict()
-        d.update({
-            "artist": self.artist,
-            "support": self.support,
-            "tour_name": self.tour_name,
-            "concerts": [c.to_dict() for c in self.concerts],
-        })
+        d.update(
+            {
+                "artist": self.artist,
+                "support": self.support,
+                "tour_name": self.tour_name,
+                "concerts": [c.to_dict() for c in self.concerts],
+            }
+        )
         return d
 
     @classmethod
@@ -122,7 +141,7 @@ class Tour(Event):
             artist_list = [artist_data]
         else:
             artist_list = [data.get("name", "")]
-        
+
         tour = cls(
             artist=artist_list,
             support=data.get("support", []),
@@ -157,7 +176,7 @@ class Tour(Event):
             artist_list = [artist_data]
         else:
             artist_list = []
-        
+
         tour = cls(
             artist=artist_list,
             support=extracted.get("support", []),
@@ -166,9 +185,12 @@ class Tour(Event):
         )
         for c in extracted.get("concerts", []):
             tour.add_concert(
-                date=c.get("date", ""), city=c.get("city", ""),
-                venue=c.get("venue", ""), time=c.get("time"),
-                end_date=c.get("end_date"), tags=c.get("tags", []),
+                date=c.get("date", ""),
+                city=c.get("city", ""),
+                venue=c.get("venue", ""),
+                time=c.get("time"),
+                end_date=c.get("end_date"),
+                tags=c.get("tags", []),
                 support_present=c.get("support_present"),
             )
         return tour
@@ -176,18 +198,26 @@ class Tour(Event):
 
 # ── Festival ──────────────────────────────────────────────────────────────────
 
+
 class Festival(Event):
     event_type = "festival"
 
-    def __init__(self, name: str, city: str = "", venue: str = "",
-                 date: str = "", end_date: str | None = None,
-                 time: str | None = None, price=None,
-                 ticket_link: str | None = None,
-                 bands_to_watch: list | None = None,
-                 tags: list | None = None,
-                 poster: str | None = None,
-                 logo: str | None = None,
-                 comment: str = ""):
+    def __init__(
+        self,
+        name: str,
+        city: str = "",
+        venue: str = "",
+        date: str = "",
+        end_date: str | None = None,
+        time: str | None = None,
+        price=None,
+        ticket_link: str | None = None,
+        bands_to_watch: list | None = None,
+        tags: list | None = None,
+        poster: str | None = None,
+        logo: str | None = None,
+        comment: str = "",
+    ):
         super().__init__(name=name, poster=poster, comment=comment)
         self.logo: str | None = logo
         self.city: str = city
@@ -202,18 +232,20 @@ class Festival(Event):
 
     def to_dict(self) -> dict:
         d = self._base_dict()
-        d.update({
-            "city": self.city,
-            "venue": self.venue,
-            "date": self.date,
-            "end_date": self.end_date,
-            "time": self.time,
-            "price": self.price,
-            "ticket_link": self.ticket_link,
-            "bands_to_watch": self.bands_to_watch,
-            "tags": self.tags,
-            "logo": self.logo,
-        })
+        d.update(
+            {
+                "city": self.city,
+                "venue": self.venue,
+                "date": self.date,
+                "end_date": self.end_date,
+                "time": self.time,
+                "price": self.price,
+                "ticket_link": self.ticket_link,
+                "bands_to_watch": self.bands_to_watch,
+                "tags": self.tags,
+                "logo": self.logo,
+            }
+        )
         return d
 
     @classmethod
@@ -259,14 +291,23 @@ class Festival(Event):
 
 # ── Concert (child of Tour) ───────────────────────────────────────────────────
 
+
 class Concert:
-    def __init__(self, date: str, city: str, venue: str,
-                 price=None, time: str | None = None,
-                 end_date: str | None = None, tags: list | None = None,
-                 tour_id: str | None = None, tour_name: str | None = None,
-                 artist: str | None = None,
-                 support_present: list | None = None,
-                 ticket_link: str | None = None):
+    def __init__(
+        self,
+        date: str,
+        city: str,
+        venue: str,
+        price=None,
+        time: str | None = None,
+        end_date: str | None = None,
+        tags: list | None = None,
+        tour_id: str | None = None,
+        tour_name: str | None = None,
+        artist: str | None = None,
+        support_present: list | None = None,
+        ticket_link: str | None = None,
+    ):
         self.id: str = str(uuid.uuid4())
         self.date = date
         self.end_date = end_date
@@ -302,10 +343,15 @@ class Concert:
     @classmethod
     def from_dict(cls, data: dict) -> "Concert":
         c = cls(
-            date=data["date"], city=data["city"], venue=data["venue"],
-            price=data.get("price"), time=data.get("time"),
-            end_date=data.get("end_date"), tags=data.get("tags", []),
-            tour_id=data.get("tour_id"), tour_name=data.get("tour_name"),
+            date=data["date"],
+            city=data["city"],
+            venue=data["venue"],
+            price=data.get("price"),
+            time=data.get("time"),
+            end_date=data.get("end_date"),
+            tags=data.get("tags", []),
+            tour_id=data.get("tour_id"),
+            tour_name=data.get("tour_name"),
             artist=data.get("artist"),
             support_present=data.get("support_present", []),
             ticket_link=data.get("ticket_link"),
@@ -316,23 +362,33 @@ class Concert:
 
 # ── Catalogue models ──────────────────────────────────────────────────────────
 
+
 class Artist:
     """Stand-alone artist entry with optional logo, photo, follow state and Eventim mapping."""
-    def __init__(self, name: str, logo: str | None = None, photo: str | None = None,
-                 followed: bool = False, eventim_name: str | None = None,
-                 eventim_id: str | None = None):
+
+    def __init__(
+        self,
+        name: str,
+        logo: str | None = None,
+        photo: str | None = None,
+        followed: bool = False,
+        eventim_name: str | None = None,
+        eventim_id: str | None = None,
+    ):
         self.id: str = str(uuid.uuid4())
         self.name: str = name
         self.logo: str | None = logo
         self.photo: str | None = photo
-        self.followed: bool = followed          # star / follow toggle
+        self.followed: bool = followed  # star / follow toggle
         self.eventim_name: str | None = eventim_name  # confirmed Eventim artist name
-        self.eventim_id: str | None = eventim_id      # Eventim productGroupId / attractionId
+        self.eventim_id: str | None = eventim_id  # Eventim productGroupId / attractionId
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "name": self.name,
-            "logo": self.logo, "photo": self.photo,
+            "id": self.id,
+            "name": self.name,
+            "logo": self.logo,
+            "photo": self.photo,
             "followed": self.followed,
             "eventim_name": self.eventim_name,
             "eventim_id": self.eventim_id,
@@ -341,7 +397,9 @@ class Artist:
     @classmethod
     def from_dict(cls, data: dict) -> "Artist":
         a = cls(
-            name=data["name"], logo=data.get("logo"), photo=data.get("photo"),
+            name=data["name"],
+            logo=data.get("logo"),
+            photo=data.get("photo"),
             followed=data.get("followed", False),
             eventim_name=data.get("eventim_name"),
             eventim_id=data.get("eventim_id"),
@@ -352,6 +410,7 @@ class Artist:
 
 class Venue:
     """Stand-alone venue entry linked to a city."""
+
     def __init__(self, name: str, city: str = ""):
         self.id: str = str(uuid.uuid4())
         self.name: str = name
