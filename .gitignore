@@ -1,8 +1,10 @@
 data/*
 static/logos/*
+static/festival-logos/*
 static/posters/*
 .claude/
 CLAUDE.md
+opencode.json
 
 # Python-generated files
 __pycache__/
