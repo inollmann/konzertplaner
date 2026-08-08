@@ -34,9 +34,10 @@ export function icon(name, { size = 16, cls = '', title = '' } = {}) {
     console.warn('[icons] unknown icon: ' + name);
     return '';
   }
+  const filled = name.endsWith('-filled') ? ' filled' : '';
   const t = title ? `<title>${title}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="ic${cls ? ' ' + cls : ''}" width="${size}" height="${size}" viewBox="0 0 24 24"${aria}>${t}<use href="#i-${name}"/></svg>`;
+  return `<svg class="ic${filled}${cls ? ' ' + cls : ''}" width="${size}" height="${size}" viewBox="0 0 24 24"${aria}>${t}<use href="#i-${name}"/></svg>`;
 }
 
 if (typeof document !== 'undefined') injectSprite();

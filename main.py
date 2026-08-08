@@ -166,6 +166,11 @@ def index():
     return send_from_directory(str(BASE_DIR / "static"), "index.html")
 
 
+@app.route("/service-worker.js")
+def service_worker():
+    return send_from_directory(str(BASE_DIR / "static"), "service-worker.js")
+
+
 @app.route("/design-tool")
 def design_tool():
     return send_from_directory(str(BASE_DIR / "static"), "design_tool.html")

@@ -311,8 +311,8 @@ function renderHistogramBars(containerId, counts, events, type, tourCounts, fest
   const container = document.getElementById(containerId);
   const maxCount = Math.max(...Object.values(counts), 1);
 
-  const tourCol = getComputedStyle(document.documentElement).getPropertyValue('--tour').trim() || '#38bdf8';
-  const festCol = getComputedStyle(document.documentElement).getPropertyValue('--festival').trim() || '#a78bfa';
+  const tourCol = getComputedStyle(document.documentElement).getPropertyValue('--tour').trim() || '#19c6e6';
+  const festCol = getComputedStyle(document.documentElement).getPropertyValue('--festival').trim() || '#ff4d8d';
 
   let html = '';
   Object.entries(counts).sort((a, b) => {

@@ -83,9 +83,65 @@ export function renderList() {
   }
   group.sort((a, b) => compareEvents(a, b, getListSort()));
   const isPast = sub === 'past';
-  el.innerHTML = group.map(ev =>
-    ev.event_type === 'festival' ? renderFestCard(ev, isPast) : renderTourCard(ev, isPast)
-  ).join('');
+  if (state.listView === 'wall') {
+    el.className = 'poster-wall';
+    el.innerHTML = group.map(ev => renderWallCard(ev, isPast)).join('');
+  } else {
+    el.className = '';
+    el.innerHTML = group.map(ev =>
+      ev.event_type === 'festival' ? renderFestCard(ev, isPast) : renderTourCard(ev, isPast)
+    ).join('');
+  }
+}
+
+/**
+ * Switch between list and poster-wall views. Updates the toggle buttons,
+ * stores the choice in `state.listView` and re-renders.
+ * @param {'list'|'wall'} view
+ */
+export function switchListView(view) {
+  state.listView = view;
+  document.getElementById('lview-list').classList.toggle('active', view === 'list');
+  document.getElementById('lview-wall').classList.toggle('active', view === 'wall');
+  renderList();
+}
+
+/**
+ * Build a poster-wall card: large poster (or generated placeholder), event
+ * title, date and venue overlaid at the bottom. Clicking opens the detail
+ * panel like a regular card.
+ * @param {import('./state.js').Event} ev
+ * @param {boolean} isPast
+ * @returns {string}
+ */
+export function renderWallCard(ev, isPast) {
+  const isFest = ev.event_type === 'festival';
+  const title = isFest ? esc(ev.name) : (Array.isArray(ev.artist) ? esc(ev.artist.join(' + ')) : esc(ev.artist));
+  const subtitle = isFest ? '' : esc(ev.tour_name || '');
+  const earliest = eventEarliestDate(ev);
+  const dateStr = earliest ? fmtDateShort(earliest) : '';
+  const venue = isFest ? esc(ev.venue || '') : (ev.concerts && ev.concerts.length ? esc(ev.concerts[0].venue) : '');
+  const typeClass = isFest ? 'festival' : 'tour';
+  const typeLabel = isFest ? 'Festival' : 'Tour';
+  const posterInner = ev.poster
+    ? `<img src="/api/img/${ev.poster}" alt="" loading="lazy">`
+    : `<div class="poster-wall-placeholder">${isFest ? icon('disc') : icon('music')}</div>`;
+  const tags = (ev.tags || []).concat(isFest ? [] : (ev.concerts || []).flatMap(c => c.tags || []));
+  const hasTickets = tags.includes('tickets');
+  const hasWatch = tags.includes('watchlist');
+  const stripe = hasTickets ? ' has-tickets' : (hasWatch ? ' has-watch' : '');
+  return `<div class="poster-card${stripe}" onclick="openDetail('${ev.id}')">
+    <div class="poster-card-img">${posterInner}</div>
+    <div class="poster-card-overlay">
+      <span class="type-badge ${typeClass}">${typeLabel}</span>
+      <div class="poster-card-title">${title}</div>
+      ${subtitle ? `<div class="poster-card-subtitle">${subtitle}</div>` : ''}
+      <div class="poster-card-meta">
+        ${dateStr ? `<span>${icon('calendar')} ${dateStr}</span>` : ''}
+        ${venue ? `<span>${icon('map-pin')} ${venue}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
 }
 
 /**

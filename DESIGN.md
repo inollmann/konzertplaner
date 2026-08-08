@@ -44,11 +44,24 @@ overrides to `localStorage['kp-colors']`.
 | `--text`           | `#f0f0f0`      | `#1a1a1a`    | Primary text                           |
 | `--muted`          | `#777`         | `#666`       | Secondary text, placeholders           |
 | `--accent`         | `#e8ff47`      | `#006b66`    | Single brand accent (CTAs, highlights) |
-| `--tour`           | `#38bdf8`      | `#0066cc`    | Tour / concert type                    |
-| `--festival`       | `#a78bfa`      | `#7c3aed`    | Festival type                          |
-| `--tickets-color`  | `#4ade80`      | `#16a34a`    | "Tickets gekauft" tag                  |
-| `--watch-color`    | `#fb923c`      | `#ea580c`    | "Merkliste" tag                         |
-| `--radius`         | `10px`         | `10px`       | Corner radius                          |
+| `--tour`           | `#19c6e6`      | `#0e7c9c`    | Tour / concert type                    |
+| `--festival`       | `#ff4d8d`      | `#c8286a`    | Festival type                          |
+| `--tickets-color`  | `#1fc8a4`      | `#0a7a5e`    | "Tickets gekauft" tag                  |
+| `--watch-color`    | `#ff9e2c`      | `#b8650a`    | "Merkliste" tag                        |
+| `--danger`         | `#f87171`      | `#dc2626`    | Delete/danger actions                  |
+| `--link`           | `#99aecc`      | `#5b7a9e`    | Ticket links                           |
+| `--link-soldout`   | `#64748b`      | `#475569`    | Sold-out ticket links                  |
+| `--placeholder`    | `#444`         | `#999`       | Image/empty-state placeholders          |
+| `--radius`         | `var(--radius-md)` | `var(--radius-md)` | Corner radius (legacy alias for `--radius-md`) |
+
+#### Radius scale
+`--radius-sm` (4px) · `--radius-md` (8px) · `--radius-lg` (12px) · `--radius-xl` (16px) · `--radius-pill` (20px) · `--radius-full` (50%)
+
+#### Shadow scale
+`--shadow-sm` (subtle) · `--shadow-md` (cards) · `--shadow-lg` (popovers) · `--shadow-xl` (lightbox) · `--shadow-accent` (accent glow) · `--shadow-stripe-tickets` / `--shadow-stripe-watch` (bottom inset stripes)
+
+#### Spacing scale
+`--space-1` (2px) through `--space-14` (36px): 1=2, 2=4, 3=6, 4=8, 5=10, 6=12, 7=14, 8=16, 9=20, 10=24, 12=32, 14=36
 
 ### Presets
 - **dark** — the default, above.

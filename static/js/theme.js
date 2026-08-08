@@ -16,6 +16,9 @@ export const COLOR_VARS = [
   { key: '--festival',      label: 'Festival-Farbe' },
   { key: '--tickets-color', label: 'Tickets-Tag' },
   { key: '--watch-color',   label: 'Merkliste-Tag' },
+  { key: '--danger',        label: 'Gefahr/Löschen' },
+  { key: '--link',          label: 'Link' },
+  { key: '--link-soldout',  label: 'Link (ausverkauft)' },
   { key: '--bg',            label: 'Hintergrund' },
   { key: '--surface',       label: 'Oberfläche 1' },
   { key: '--surface2',      label: 'Oberfläche 2' },
@@ -23,21 +26,26 @@ export const COLOR_VARS = [
   { key: '--text',          label: 'Text' },
   { key: '--muted',         label: 'Gedämpft' },
   { key: '--border',        label: 'Rahmen' },
+  { key: '--placeholder',   label: 'Platzhalter' },
 ];
 
 /** Full token sets per preset. `forest`/`rose` live only in /design-tool. */
 export const THEMES = {
   dark: {
     '--bg': '#0d0d0d', '--surface': '#161616', '--surface2': '#1f1f1f',
-    '--surface3': '#272727', '--border': '#2a2a2a', '--text': '#f0f0f0',
-    '--muted': '#777', '--accent': '#e8ff47', '--tour': '#38bdf8',
-    '--festival': '#a78bfa', '--tickets-color': '#4ade80', '--watch-color': '#fb923c',
+    '--surface3': '#272727', '--border': '#2e2e2e44', '--text': '#f0f0f0',
+    '--muted': '#777', '--accent': '#e8ff47', '--tour': '#19c6e6',
+    '--festival': '#ff4d8d', '--tickets-color': '#1fc8a4', '--watch-color': '#ff9e2c',
+    '--danger': '#f87171', '--link': '#99aecc', '--link-soldout': '#64748b',
+    '--placeholder': '#444',
   },
   light: {
-    '--bg': '#f5f5f5', '--surface': '#ffffff', '--surface2': '#f0f0f0',
-    '--surface3': '#e8e8e8', '--border': '#d0d0d0', '--text': '#111111',
-    '--muted': '#666666', '--accent': '#1a7a00', '--tour': '#0066cc',
-    '--festival': '#7c3aed', '--tickets-color': '#16a34a', '--watch-color': '#ea580c',
+    '--bg': '#ececec', '--surface': '#ffffff', '--surface2': '#f3f3f3',
+    '--surface3': '#e5e5e5', '--border': '#dddddddd', '--text': '#1a1a1a',
+    '--muted': '#666', '--accent': '#006b66', '--tour': '#0e7c9c',
+    '--festival': '#c8286a', '--tickets-color': '#0a7a5e', '--watch-color': '#b8650a',
+    '--danger': '#dc2626', '--link': '#5b7a9e', '--link-soldout': '#475569',
+    '--placeholder': '#999',
   },
   midnight: {
     '--bg': '#04040f', '--surface': '#0d0d2b', '--surface2': '#131340',
@@ -57,6 +65,11 @@ export function applyTheme(themeKey) {
     saved[k] = v;
   });
   localStorage.setItem('kp-colors', JSON.stringify(saved));
+  localStorage.setItem('kp-theme', themeKey);
+  // Toggle .light class so CSS :root.light cascades apply correctly
+  document.documentElement.classList.toggle('light', themeKey === 'light');
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.innerHTML = themeKey === 'light' ? icon('moon') : icon('sun');
   buildColorGrid();
 }
 
@@ -77,7 +90,11 @@ export function saveColors(key, val) {
 /** Clear all overrides, restoring style.css defaults. */
 export function resetColors() {
   localStorage.removeItem('kp-colors');
+  localStorage.removeItem('kp-theme');
   COLOR_VARS.forEach(c => document.documentElement.style.removeProperty(c.key));
+  document.documentElement.classList.remove('light');
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.innerHTML = icon('sun');
   buildColorGrid();
 }
 

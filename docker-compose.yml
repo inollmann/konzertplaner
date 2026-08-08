@@ -30,6 +30,8 @@ services:
     volumes:
       # Read-only: migration source only (events.json, catalogue.json)
       - ./data:/app/data:ro
+      # Dev: mount static/ so changes appear on page reload (no rebuild needed)
+      - ./static:/app/static:ro
     restart: unless-stopped
 
 volumes:

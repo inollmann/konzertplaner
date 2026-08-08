@@ -551,8 +551,8 @@ export function exportICS(upcoming, past, todayIso) {
 /** Build a standalone, print-friendly HTML document from the event slices and download it. */
 export function exportHTML(upcoming, past, todayIso) {
   const accentCol = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8ff47';
-  const tourCol   = getComputedStyle(document.documentElement).getPropertyValue('--tour').trim()   || '#38bdf8';
-  const festCol   = getComputedStyle(document.documentElement).getPropertyValue('--festival').trim() || '#a78bfa';
+  const tourCol   = getComputedStyle(document.documentElement).getPropertyValue('--tour').trim()   || '#19c6e6';
+  const festCol   = getComputedStyle(document.documentElement).getPropertyValue('--festival').trim() || '#ff4d8d';
 
   function evHtml(ev) {
     if (ev.event_type === 'festival') {
@@ -637,7 +637,7 @@ export function exportHTML(upcoming, past, todayIso) {
   .cd-yr  { font-size: 10px; color: #555; }
   .conc-info { line-height: 1.6; }
   .conc-tags { font-size: 14px; padding-top: 2px; }
-  a { color: #4ade80; }
+  a { color: #1fc8a4; }
   @media print {
     body { background: #fff; color: #111; }
     .ev-card { background: #f8f8f8; border-color: #ddd; }
