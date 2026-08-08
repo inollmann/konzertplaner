@@ -5,6 +5,10 @@ Inherits `test_engine` / `_clean_db` / `client` / `app` from the parent
 (StaticPool, single shared connection) that the parent conftest binds to
 `db.engine` — so events created via the API are visible to the browser, and
 the `_clean_db` autouse fixture wipes them between tests.
+
+The server runs single-threaded because StaticPool gives one shared sqlite3
+connection; a threaded server would corrupt cursor state under concurrent SPA
+requests (see ``live_server`` docstring for details).
 """
 
 import threading
@@ -22,8 +26,16 @@ def live_server(test_engine):
 
     Depends on `test_engine` so the in-memory sqlite engine is bound to
     `db.engine` before the server starts handling requests.
+
+    Single-threaded: the in-memory sqlite engine uses StaticPool (one shared
+    connection across all sessions). A threaded server would let concurrent
+    SPA requests (events/bands/venues/artists fired in parallel on load)
+    interleave on that single sqlite3 connection, corrupting cursor state
+    (seen as ``IndexError: tuple index out of range`` and silently-empty query
+    results). Single-threaded forces sequential handling, eliminating the
+    race without needing a real connection pool.
     """
-    server = make_server("127.0.0.1", 0, main.app, threaded=True)
+    server = make_server("127.0.0.1", 0, main.app, threaded=False)
     port = server.server_port
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
