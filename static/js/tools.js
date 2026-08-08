@@ -381,7 +381,7 @@ export function showStatDetail(type) {
   document.getElementById('stats-content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <button class="btn-cancel" onclick="openStatistics()">${icon('arrow-left')} Zurück</button>
-      <span style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px">${title}</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:var(--display-sm);letter-spacing:var(--ls-tight)">${title}</span>
       <span style="color:var(--accent)">${fmtPrice(total)}</span>
     </div>
     <div class="stat-list" style="max-height:60vh">

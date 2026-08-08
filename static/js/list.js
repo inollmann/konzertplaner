@@ -77,7 +77,7 @@ export function renderList() {
     const h3 = sub === 'past' ? 'Keine vergangenen Events' : 'Keine anstehenden Events';
     const p = sub === 'past' ? 'Besuchte Konzerte erscheinen hier.' : 'Leg dein erstes Event mit \u201eNeues Event\u201c an.';
     el.innerHTML = `<div class="empty-state">
-      <div class="icon">\uD83C\uDFB8</div><h3>${h3}</h3>
+      <div class="icon">${icon('guitar')}</div><h3>${h3}</h3>
       <p>${p}</p></div>`;
     return;
   }

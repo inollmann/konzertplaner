@@ -121,7 +121,7 @@ export function renderShows() {
   const ratedEvents = getRatedEvents();
 
   if (ratedEvents.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">${icon('star-filled')}</div><h3>Keine bewerteten Shows</h3><p>Bewerte Events, um sie hier zu sehen.</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">${icon('star-filled')}</div><h3>Keine bewerteten Shows</h3><p>Bewerte vergangene Events, um sie hier zu sehen.</p></div>`;
     renderHistograms([]);
     return;
   }
@@ -350,7 +350,7 @@ function renderHistogramBars(containerId, counts, events, type, tourCounts, fest
     </div>`;
   });
 
-  container.innerHTML = html || '<div style="color:var(--muted);font-size:12px">Keine Daten</div>';
+  container.innerHTML = html || '<div class="empty-state" style="padding: 40px 0;"><h3>Keine Daten</h3><p>Bewerte Events, um Statistiken zu sehen.</p></div>';
 }
 
 /**

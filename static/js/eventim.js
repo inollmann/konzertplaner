@@ -89,8 +89,7 @@ export function showToursModal(query, data) {
 
   const list = document.getElementById('eventim-tour-list');
   if (!data.tours || !data.tours.length) {
-    list.innerHTML = `<div class="ev-no-results">${icon('search')} Keine Konzerte gefunden.<br>
-      <span style="font-size:12px;color:var(--border)">Versuche einen anderen Suchbegriff.</span></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="icon">${icon('search')}</div><h3>Keine Konzerte gefunden</h3><p>Versuche einen anderen Suchbegriff.</p></div>`;
   } else {
     list.innerHTML = data.tours.map((tour, i) => {
       const dates = tour.concerts.map(c => c.date).filter(Boolean).sort();

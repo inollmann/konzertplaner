@@ -42,7 +42,7 @@ export function renderArtistList() {
   _admStore = [];
   const el = document.getElementById('artist-list');
   if (!state.artists.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Artists gespeichert.</div>';
+    el.innerHTML = '<div class="empty-state"><div class="icon">'+icon('mic')+'</div><h3>Noch keine Artists gespeichert</h3><p>Füge Artists über die Suche oder Eventim hinzu.</p></div>';
     return;
   }
   el.innerHTML = state.artists.map(a => {
@@ -211,7 +211,7 @@ export function openVenueCatalogue() { closeDrawer(); renderVenueList(); openMod
 /** (Re)render the venue list into `#venue-list`. */
 export function renderVenueList() {
   const el = document.getElementById('venue-list');
-  if (!state.venuesCat.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Venues gespeichert.</div>'; return; }
+  if (!state.venuesCat.length) { el.innerHTML = '<div class="empty-state"><div class="icon">'+icon('building-2')+'</div><h3>Noch keine Venues gespeichert</h3><p>Venues werden automatisch aus Events angelegt.</p></div>'; return; }
   el.innerHTML = state.venuesCat.map(v => {
     if (v.derived) {
       return `<div class="cat-item" style="opacity:.75">

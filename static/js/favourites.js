@@ -32,7 +32,7 @@ export async function renderFavourites() {
   if (!followed.length) {
     el.innerHTML = `<div class="empty-state">
       <div class="icon">${icon('star-filled')}</div><h3>Keine Favoriten</h3>
-      <p>Füge Artists über „Artist hinzufügen" oder die Artist-Liste hinzu.</p>
+      <p>Füge Artists über „Artist hinzufügen" hinzu.</p>
     </div>`;
     return;
   }
@@ -93,7 +93,7 @@ export function buildFavCard(a) {
         </div>`;
       }).join('');
     } else {
-      bodyHtml = `<div class="fav-empty">Keine anstehenden Events auf Eventim gefunden.</div>`;
+      bodyHtml = `<div class="empty-state"><div class="icon">${icon('calendar')}</div><h3>Keine anstehenden Events</h3><p>Dieser Artist hat aktuell keine Termine auf Eventim.</p></div>`;
     }
   }
   return `<div class="fav-card ${isOpen?'open':''}" id="fav-card-${a.id}">

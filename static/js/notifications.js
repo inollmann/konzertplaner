@@ -49,7 +49,7 @@ export function toggleNotifPanel() {
 /** Render the notification list into `#notif-list` (most recent first). */
 export function renderNotifPanel() {
   const el = document.getElementById('notif-list');
-  if (!state.notifications.length) { el.innerHTML=`<div class="notif-empty">Keine Benachrichtigungen</div>`; return; }
+  if (!state.notifications.length) { el.innerHTML=`<div class="empty-state"><div class="icon">${icon('bell')}</div><h3>Keine Benachrichtigungen</h3><p>Neue Termine gefolgter Artists erscheinen hier.</p></div>`; return; }
   el.innerHTML = [...state.notifications].reverse().map(n=>`
     <div class="notif-item ${n.read?'':'unread'}" onclick="onNotifClick('${n.id}')">
       <div class="notif-artist">${icon('star-filled')} ${esc(n.artistName)}</div>
