@@ -47,7 +47,7 @@ def test_tab_switching(page, live_server):
 def test_create_tour_via_api_appears_in_list(page, live_server):
     resp = page.request.post(
         f"{live_server}/api/events",
-        json={
+        data={
             "event_type": "tour",
             "artist": ["E2E Band"],
             "tour_name": "E2E Tour",
@@ -64,7 +64,7 @@ def test_create_tour_via_api_appears_in_list(page, live_server):
 def test_create_festival_via_api_appears_in_list(page, live_server):
     page.request.post(
         f"{live_server}/api/events",
-        json={
+        data={
             "event_type": "festival",
             "name": "Test Festival",
             "city": "Köln",
@@ -80,16 +80,16 @@ def test_create_festival_via_api_appears_in_list(page, live_server):
 def test_open_new_event_modal(page, live_server):
     _goto(page, live_server)
     page.locator("header .btn-new").click()
-    expect(page.locator("#event-modal")).to_be_visible()
+    expect(page.locator("#event-modal.open")).to_be_visible()
     expect(page.get_by_text("Tour / Konzert")).to_be_visible()
-    expect(page.get_by_text("Festival")).to_be_visible()
+    expect(page.locator("#opt-festival")).to_be_visible()
 
 
 def test_create_tour_via_ui(page, live_server):
     """Full UI flow: open modal → fill tour form → save → verify in list."""
     _goto(page, live_server)
     page.locator("header .btn-new").click()
-    expect(page.locator("#event-modal")).to_be_visible()
+    expect(page.locator("#event-modal.open")).to_be_visible()
 
     # Artist is a pill input — type + Enter adds it as a tag
     page.locator("#artist-input").fill("UI Band")
@@ -102,9 +102,9 @@ def test_create_tour_via_ui(page, live_server):
     page.locator(".cb-city").fill("Hamburg")
     page.locator(".cb-venue").fill("Bar")
 
-    # Save and wait for the modal to close (saveEvent closes it on success)
+    # Save and wait for the modal to close (saveEvent removes .open on success)
     page.locator("#btn-save").click()
-    expect(page.locator("#event-modal")).to_be_hidden()
+    expect(page.locator("#event-modal.open")).to_be_hidden()
 
     # The event should now appear in the list
     expect(page.get_by_text("UI Band")).to_be_visible()
