@@ -245,8 +245,8 @@ export function closeDetailOnBg(e) {
  */
 export function buildDetailHTML(ev) {
   const ps = ev.poster
-    ? `<img class="detail-poster" src="/static/posters/${ev.poster}" alt=""
-        onclick="openLightbox('/static/posters/${ev.poster}')"
+    ? `<img class="detail-poster" src="/api/img/${ev.poster}" alt=""
+        onclick="openLightbox('/api/img/${ev.poster}')"
         style="cursor:zoom-in" title="Poster vergrößern">`
     : `<div class="detail-poster-ph">${ev.event_type==='festival'?icon('disc'):icon('music')}</div>`;
 
@@ -262,8 +262,8 @@ export function buildDetailHTML(ev) {
     const tagHtml = (ev.tags||[]).map(t => `<span class="tag ${t==='tickets'?'tag-tickets':'tag-watchlist'}">${t==='tickets'?icon('check')+' Tickets':icon('star')+' Merkliste'}</span>`).join('');
     const bandsHtml = allBandsF.map(b=>`<span class="band-chip">${esc(b)}</span>`).join('');
     const festLogoHtml = ev.logo
-      ? `<img class="detail-festival-logo" src="/static/festival-logos/${ev.logo}" alt=""
-          onclick="openLightbox('/static/festival-logos/${ev.logo}')"
+      ? `<img class="detail-festival-logo" src="/api/img/${ev.logo}" alt=""
+          onclick="openLightbox('/api/img/${ev.logo}')"
           style="cursor:zoom-in" title="Logo vergrößern">`
       : '';
     return `

@@ -1,20 +1,16 @@
 import json
-import uuid
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 from concert import Artist, Event, Festival, Tour, Venue
+from db import (
+    create_image, delete_artist_db, delete_event_db, delete_venue_db,
+    get_artist, get_event, get_image, init_db, list_artists, list_events,
+    list_venues, upsert_artist, upsert_event, upsert_venue,
+)
 
 BASE_DIR = Path(__file__).parent
-DATA_FILE = BASE_DIR / "data" / "events.json"
-CAT_FILE = BASE_DIR / "data" / "catalogue.json"  # artists + venues
-POSTER_DIR = BASE_DIR / "static" / "posters"
-LOGO_DIR = BASE_DIR / "static" / "logos"
-FESTIVAL_LOGO_DIR = BASE_DIR / "static" / "festival-logos"
-
-for d in (DATA_FILE.parent, POSTER_DIR, LOGO_DIR, FESTIVAL_LOGO_DIR):
-    d.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
@@ -24,76 +20,11 @@ app = Flask(
     static_url_path="/static",
 )
 
+init_db()
+
 
 def allowed_file(fn: str) -> bool:
     return "." in fn and fn.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-# ── Persistence: events ───────────────────────────────────────────────────────
-
-
-def load_events() -> dict[str, Event]:
-    legacy = BASE_DIR / "data" / "tours.json"
-    path = DATA_FILE if DATA_FILE.exists() else (legacy if legacy.exists() else None)
-    if path:
-        with open(path, encoding="utf-8") as f:
-            raw = json.load(f)
-        return {e["id"]: Event.from_dict(e) for e in raw}
-    return {}
-
-
-def save_events(evts: dict[str, Event]):
-    import os
-    import tempfile
-
-    # Atomic write: write to temp file in same dir, then rename
-    # Avoids partial writes and permission issues with locked files
-    tmp_fd, tmp_path = tempfile.mkstemp(dir=DATA_FILE.parent, suffix=".tmp")
-    try:
-        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-            json.dump(
-                [e.to_dict() for e in evts.values()], f, ensure_ascii=False, indent=2
-            )
-        os.replace(tmp_path, DATA_FILE)
-    except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
-
-
-events: dict[str, Event] = load_events()
-
-
-# ── Persistence: catalogue ────────────────────────────────────────────────────
-
-
-def load_catalogue() -> dict:
-    if CAT_FILE.exists():
-        with open(CAT_FILE, encoding="utf-8") as f:
-            raw = json.load(f)
-        return {
-            "artists": {a["id"]: Artist.from_dict(a) for a in raw.get("artists", [])},
-            "venues": {v["id"]: Venue.from_dict(v) for v in raw.get("venues", [])},
-        }
-    return {"artists": {}, "venues": {}}
-
-
-def save_catalogue():
-    with open(CAT_FILE, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "artists": [a.to_dict() for a in catalogue["artists"].values()],
-                "venues": [v.to_dict() for v in catalogue["venues"].values()],
-            },
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
-
-
-catalogue = load_catalogue()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -101,10 +32,9 @@ catalogue = load_catalogue()
 
 def all_known_bands() -> list[str]:
     """All artist/band names from catalogue + events, deduplicated & sorted."""
-    names: set[str] = {a.name for a in catalogue["artists"].values()}
-    for ev in events.values():
+    names: set[str] = {a.name for a in list_artists()}
+    for ev in list_events():
         if isinstance(ev, Tour):
-            # Handle both single artist (string) and multiple artists (list)
             if isinstance(ev.artist, list):
                 names.update(ev.artist)
             else:
@@ -118,10 +48,10 @@ def all_known_bands() -> list[str]:
 def all_known_venues() -> list[dict]:
     """All venues from catalogue + events, deduplicated."""
     seen: dict[str, dict] = {}
-    for v in catalogue["venues"].values():
+    for v in list_venues():
         key = f"{v.name.lower()}|{v.city.lower()}"
         seen[key] = {"id": v.id, "name": v.name, "city": v.city}
-    for ev in events.values():
+    for ev in list_events():
         if isinstance(ev, Tour):
             for c in ev.concerts:
                 key = f"{c.venue.lower()}|{c.city.lower()}"
@@ -148,7 +78,7 @@ def handle_invite(eid, code):
         json_str = base64.urlsafe_b64decode(code.encode("utf-8")).decode("utf-8")
         invite_data = json.loads(json_str)
 
-        if invite_data.get("v") != 1:
+        if invite_data.get("v") != 2:
             return "Unbekannte Einladungsversion", 400
 
         event_type = invite_data.get("t", "tour")
@@ -159,7 +89,6 @@ def handle_invite(eid, code):
             ev = Tour(
                 artist=invite_data.get("a", ""),
                 tour_name=invite_data.get("n", "Tour"),
-                poster=invite_data.get("pt"),
             )
             for support in invite_data.get("s", []):
                 ev.support.append(support)
@@ -182,8 +111,6 @@ def handle_invite(eid, code):
                 venue=invite_data.get("c", [{}])[0].get("v", "")
                 if invite_data.get("c")
                 else "",
-                poster=invite_data.get("pt"),
-                logo=invite_data.get("fl"),
                 time=invite_data.get("tm"),
                 ticket_link=invite_data.get("tk"),
                 bands_to_watch=invite_data.get("bw", []),
@@ -193,19 +120,17 @@ def handle_invite(eid, code):
             if invite_data.get("c"):
                 first_concert = invite_data["c"][0]
                 ev.date = first_concert.get("d", "")
-                # Set end_date from last concert OR from the first concert's end date (for multi-day events)
                 if len(invite_data["c"]) > 1:
                     ev.end_date = invite_data["c"][-1].get("d", "")
                 elif first_concert.get("e"):
                     ev.end_date = first_concert.get("e")
 
-        # Save the event
+        # Save the event to DB
         import uuid
 
         new_eid = str(uuid.uuid4())[:8]
-        ev.id = new_eid  # Set event's ID to the short ID for consistency
-        events[new_eid] = ev
-        save_events(events)
+        ev.id = new_eid
+        upsert_event(ev)
 
         # Redirect to main page with success message
         from flask import make_response
@@ -260,25 +185,16 @@ def export_css():
     )
 
 
-# ── Image upload helpers ──────────────────────────────────────────────────────
+# ── Image serving & upload ────────────────────────────────────────────────────
 
 
-def _save_upload(
-    file, dest_dir: Path, base_name: str | None = None, suffix: str = ""
-) -> str:
-    ext = file.filename.rsplit(".", 1)[1].lower() if "." in file.filename else "png"
-    if base_name:
-        # Sanitize filename: lowercase, replace spaces/special chars with hyphens
-        sanitized = base_name.lower().strip()
-        for ch in " _/\\":
-            sanitized = sanitized.replace(ch, "-")
-        # Remove any non-alphanumeric except hyphens
-        sanitized = "".join(c if c.isalnum() or c == "-" else "" for c in sanitized)
-        filename = f"{sanitized}{suffix}.{ext}"
-    else:
-        filename = f"{uuid.uuid4()}.{ext}"
-    file.save(dest_dir / filename)
-    return filename
+@app.route("/api/img/<img_id>")
+def serve_image(img_id):
+    """Serve an image stored in the DB by UUID."""
+    img = get_image(img_id)
+    if not img:
+        return "Not found", 404
+    return Response(img.data, mimetype=img.mime)
 
 
 @app.route("/api/upload-poster", methods=["POST"])
@@ -288,7 +204,11 @@ def upload_poster():
         return jsonify({"error": "No file"}), 400
     if not allowed_file(f.filename):
         return jsonify({"error": "Type not allowed"}), 400
-    return jsonify({"filename": _save_upload(f, POSTER_DIR)})
+    ext = f.filename.rsplit(".", 1)[1].lower() if "." in f.filename else "png"
+    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
+    img_id = create_image(f.read(), "poster", mime, f.filename)
+    return jsonify({"id": img_id})
 
 
 @app.route("/api/upload-logo", methods=["POST"])
@@ -298,29 +218,27 @@ def upload_logo():
         return jsonify({"error": "No file"}), 400
     if not allowed_file(f.filename):
         return jsonify({"error": "Type not allowed"}), 400
-    # Optional: artist name for named file
-    artist = request.form.get("artist")
-    # Type can be "logo" or "photo" to differentiate
     img_type = request.form.get("type", "logo")
-    suffix = f"_{img_type}" if img_type else ""
-    return jsonify({"filename": _save_upload(f, LOGO_DIR, artist, suffix)})
+    ext = f.filename.rsplit(".", 1)[1].lower() if "." in f.filename else "png"
+    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
+    img_id = create_image(f.read(), img_type, mime, f.filename)
+    return jsonify({"id": img_id})
 
 
 @app.route("/api/upload-festival-logo", methods=["POST"])
 def upload_festival_logo():
-    """Upload a festival logo (image). Optional `name` for a named file.
-
-    Used by the festival form's logo upload zone (click / drag-drop / paste),
-    so logos can be added to a festival at creation time or later.
-    """
+    """Upload a festival logo (image). Optional `name` for a named file."""
     f = request.files.get("logo")
     if not f or not f.filename:
         return jsonify({"error": "No file"}), 400
     if not allowed_file(f.filename):
         return jsonify({"error": "Type not allowed"}), 400
-    # Optional: festival name for a named, human-readable file
-    name = request.form.get("name")
-    return jsonify({"filename": _save_upload(f, FESTIVAL_LOGO_DIR, name, "_logo")})
+    ext = f.filename.rsplit(".", 1)[1].lower() if "." in f.filename else "png"
+    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
+    img_id = create_image(f.read(), "festival-logo", mime, f.filename)
+    return jsonify({"id": img_id})
 
 
 # ── Autocomplete ──────────────────────────────────────────────────────────────
@@ -493,7 +411,7 @@ def extract_poster():
 
 @app.route("/api/events", methods=["GET"])
 def get_events():
-    return jsonify([e.to_dict() for e in events.values()])
+    return jsonify([e.to_dict() for e in list_events()])
 
 
 @app.route("/api/events", methods=["POST"])
@@ -545,17 +463,16 @@ def create_event():
                 support_present=c.get("support_present"),
                 ticket_link=c.get("ticket_link"),
             )
-    events[ev.id] = ev
-    save_events(events)
+    upsert_event(ev)
     return jsonify(ev.to_dict()), 201
 
 
 @app.route("/api/events/<eid>", methods=["PUT"])
 def update_event(eid):
-    if eid not in events:
+    ev = get_event(eid)
+    if not ev:
         return jsonify({"error": "Not found"}), 404
     data = request.get_json()
-    ev = events[eid]
     if isinstance(ev, Festival):
         ev.name = data.get("name", ev.name)
         ev.city = data.get("city", ev.city)
@@ -603,36 +520,30 @@ def update_event(eid):
                     concert.id = c["id"]
     if "poster" in data:
         ev.poster = data["poster"]
-    save_events(events)
+    upsert_event(ev)
     return jsonify(ev.to_dict())
 
 
 @app.route("/api/events/<eid>", methods=["DELETE"])
 def delete_event(eid):
-    if eid not in events:
+    if not delete_event_db(eid):
         return jsonify({"error": "Not found"}), 404
-    del events[eid]
-    save_events(events)
     return jsonify({"ok": True})
 
 
 @app.route("/api/events/<eid>/invite", methods=["GET"])
 def get_event_invite(eid):
     """Generate an invitation link for an event."""
-    if eid not in events:
+    ev = get_event(eid)
+    if not ev:
         return jsonify({"error": "Event nicht gefunden"}), 404
 
-    ev = events[eid]
-
-    # Create a compact invitation payload
     # Handle artist as list (for co-headlining) or string (backward compatibility)
     artist_for_invite = ev.artist if ev.event_type == "tour" else ""  # type: ignore[attr-defined]
     if isinstance(artist_for_invite, list):
         artist_for_invite = artist_for_invite[0] if artist_for_invite else ""
 
     # Build concerts list based on event type
-    # Tours have multiple concerts in ev.concerts
-    # Festivals store their single date/venue directly on the event
     if ev.event_type == "tour":
         concerts_list = [
             {
@@ -647,15 +558,13 @@ def get_event_invite(eid):
             }
             for c in ev.concerts  # type: ignore[attr-defined]
         ]
-        # Tour- level fields
         invite_data = {
-            "v": 1,
+            "v": 2,
             "t": ev.event_type,
             "n": "",
             "a": artist_for_invite,
             "s": ev.support,  # type: ignore[attr-defined]
             "c": concerts_list,
-            "pt": ev.poster,
             "cm": ev.comment,
         }
     else:  # festival
@@ -668,16 +577,13 @@ def get_event_invite(eid):
                 "e": ev.end_date,  # type: ignore[attr-defined]
             }
         ]
-        # Festival- specific fields
         invite_data = {
-            "v": 1,
+            "v": 2,
             "t": ev.event_type,
             "n": ev.name,
             "a": "",
             "s": [],
             "c": concerts_list,
-            "pt": ev.poster,
-            "fl": ev.logo,  # festival logo filename
             "tm": ev.time,  # type: ignore[attr-defined]
             "tk": ev.ticket_link,  # type: ignore[attr-defined]
             "bw": ev.bands_to_watch,  # type: ignore[attr-defined]
@@ -726,7 +632,7 @@ def import_event_invite():
         invite_data = json.loads(json_str)
 
         # Validate version
-        if invite_data.get("v") != 1:
+        if invite_data.get("v") != 2:
             return jsonify({"error": "Unbekannte Einladungsversion"}), 400
 
         event_type = invite_data.get("t", "tour")
@@ -738,7 +644,6 @@ def import_event_invite():
             ev = Tour(
                 artist=invite_data.get("a", ""),
                 tour_name=invite_data.get("n", "Tour"),
-                poster=invite_data.get("pt"),
             )
             for support in invite_data.get("s", []):
                 ev.support.append(support)
@@ -761,8 +666,6 @@ def import_event_invite():
                 venue=invite_data.get("c", [{}])[0].get("v", "")
                 if invite_data.get("c")
                 else "",
-                poster=invite_data.get("pt"),
-                logo=invite_data.get("fl"),
                 time=invite_data.get("tm"),
                 ticket_link=invite_data.get("tk"),
                 bands_to_watch=invite_data.get("bw", []),
@@ -772,19 +675,17 @@ def import_event_invite():
             if invite_data.get("c"):
                 first_concert = invite_data["c"][0]
                 ev.date = first_concert.get("d", "")
-                # Set end_date from last concert OR from the first concert's end date (for multi-day events)
                 if len(invite_data["c"]) > 1:
                     ev.end_date = invite_data["c"][-1].get("d", "")
                 elif first_concert.get("e"):
                     ev.end_date = first_concert.get("e")
 
-        # Save the event
+        # Save the event to DB
         import uuid
 
         eid = str(uuid.uuid4())[:8]
-        ev.id = eid  # Set event's ID to the short ID for consistency
-        events[eid] = ev
-        save_events(events)
+        ev.id = eid
+        upsert_event(ev)
 
         return jsonify(
             {
@@ -809,8 +710,9 @@ def get_artists():
     (id=None, logo=None, derived=True) so the frontend can display them and
     optionally save them as real catalogue entries.
     """
-    cat_names = {a.name.casefold() for a in catalogue["artists"].values()}
-    result = [a.to_dict() for a in catalogue["artists"].values()]
+    artists = list_artists()
+    cat_names = {a.name.casefold() for a in artists}
+    result = [a.to_dict() for a in artists]
     for name in all_known_bands():
         if name.casefold() not in cat_names:
             result.append(
@@ -837,16 +739,15 @@ def create_artist():
         eventim_name=data.get("eventim_name"),
         eventim_id=data.get("eventim_id"),
     )
-    catalogue["artists"][a.id] = a
-    save_catalogue()
+    upsert_artist(a)
     return jsonify(a.to_dict()), 201
 
 
 @app.route("/api/artists/<aid>", methods=["PUT"])
 def update_artist(aid):
-    if aid not in catalogue["artists"]:
+    a = get_artist(aid)
+    if not a:
         return jsonify({"error": "Not found"}), 404
-    a = catalogue["artists"][aid]
     data = request.get_json()
     a.name = data.get("name", a.name)
     if "logo" in data:
@@ -859,16 +760,14 @@ def update_artist(aid):
         a.eventim_name = data["eventim_name"]
     if "eventim_id" in data:
         a.eventim_id = data["eventim_id"]
-    save_catalogue()
+    upsert_artist(a)
     return jsonify(a.to_dict())
 
 
 @app.route("/api/artists/<aid>", methods=["DELETE"])
 def delete_artist(aid):
-    if aid not in catalogue["artists"]:
+    if not delete_artist_db(aid):
         return jsonify({"error": "Not found"}), 404
-    del catalogue["artists"][aid]
-    save_catalogue()
     return jsonify({"ok": True})
 
 
@@ -882,11 +781,12 @@ def get_venues_catalogue():
     Event-derived entries without a catalogue record are returned as stubs
     (id=None, derived=True) so the frontend can display and optionally save them.
     """
+    venues = list_venues()
     cat_keys = {
-        f"{v.name.casefold()}|{v.city.casefold()}" for v in catalogue["venues"].values()
+        f"{v.name.casefold()}|{v.city.casefold()}" for v in venues
     }
-    result = [v.to_dict() for v in catalogue["venues"].values()]
-    for ev in events.values():
+    result = [v.to_dict() for v in venues]
+    for ev in list_events():
         pairs = []
         if isinstance(ev, Tour):
             pairs = [(c.venue, c.city) for c in ev.concerts if c.venue]
@@ -906,29 +806,26 @@ def get_venues_catalogue():
 def create_venue():
     data = request.get_json()
     v = Venue(name=data["name"], city=data.get("city", ""))
-    catalogue["venues"][v.id] = v
-    save_catalogue()
+    upsert_venue(v)
     return jsonify(v.to_dict()), 201
 
 
 @app.route("/api/venues-catalogue/<vid>", methods=["PUT"])
 def update_venue(vid):
-    if vid not in catalogue["venues"]:
+    v = get_venue(vid)
+    if not v:
         return jsonify({"error": "Not found"}), 404
-    v = catalogue["venues"][vid]
     data = request.get_json()
     v.name = data.get("name", v.name)
     v.city = data.get("city", v.city)
-    save_catalogue()
+    upsert_venue(v)
     return jsonify(v.to_dict())
 
 
 @app.route("/api/venues-catalogue/<vid>", methods=["DELETE"])
 def delete_venue(vid):
-    if vid not in catalogue["venues"]:
+    if not delete_venue_db(vid):
         return jsonify({"error": "Not found"}), 404
-    del catalogue["venues"][vid]
-    save_catalogue()
     return jsonify({"ok": True})
 
 

@@ -1,10 +1,36 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kp
+      POSTGRES_PASSWORD: kp
+      POSTGRES_DB: kp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kp -d kp"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   konzertplaner:
     build: .
     ports:
       # To change the host port, modify the left number (HOST_PORT:CONTAINER_PORT)
       # Example: "8080:5000" to access the app at http://localhost:8080
       - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://kp:kp@db:5432/kp
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
-          - ./data:/app/data
+      # Read-only: migration source only (events.json, catalogue.json)
+      - ./data:/app/data:ro
     restart: unless-stopped
+
+volumes:
+  pgdata:

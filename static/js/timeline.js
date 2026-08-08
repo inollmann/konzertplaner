@@ -375,9 +375,9 @@ export function renderTimeline() {
     if (showLogos) {
       if (e.type === 'festival') {
         if (e.logo) {
-          el.innerHTML = `<img src="/static/festival-logos/${e.logo}" alt="${esc(e.label)}" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;border-radius:4px;padding:2px;">`;
+          el.innerHTML = `<img src="/api/img/${e.logo}" alt="${esc(e.label)}" style="width:${logoSize}px;height:${logoSize}px;object-fit:contain;border-radius:4px;padding:2px;">`;
         } else if (e.poster) {
-          el.innerHTML = `<img src="/static/posters/${e.poster}" alt="${esc(e.label)}" style="width:${logoSize}px;height:${logoSize}px;object-fit:cover;border-radius:4px;">`;
+          el.innerHTML = `<img src="/api/img/${e.poster}" alt="${esc(e.label)}" style="width:${logoSize}px;height:${logoSize}px;object-fit:cover;border-radius:4px;">`;
         } else {
           el.textContent = e.label;
         }
@@ -390,7 +390,7 @@ export function renderTimeline() {
         const imgs = [];
         for (const name of uniq) {
           const a = state.artists.find(ar => ar.name.toLowerCase() === name.toLowerCase());
-          if (a && a.logo) imgs.push(`<img src="/static/logos/${a.logo}" alt="${esc(name)}" style="height:${logoSize}px;width:${logoSize}px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);flex-shrink:0;">`);
+          if (a && a.logo) imgs.push(`<img src="/api/img/${a.logo}" alt="${esc(name)}" style="height:${logoSize}px;width:${logoSize}px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);flex-shrink:0;">`);
         }
         el.innerHTML = imgs.length
           ? `<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;width:100%;height:100%;">${imgs.join('')}</div>`

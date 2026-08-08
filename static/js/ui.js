@@ -85,14 +85,14 @@ export function closeDrawer() {
 /**
  * Build the HTML for an event poster, or a styled placeholder when no poster
  * is set. The poster img opens the lightbox on click.
- * @param {string} poster filename under /static/posters/
+ * @param {string} poster image UUID
  * @param {string} placeholder text/symbol for the placeholder tile
  * @returns {string}
  */
 export function posterEl(poster, placeholder) {
   if (!poster) return `<div class="event-poster-placeholder">${placeholder}</div>`;
-  return `<img class="event-poster" src="/static/posters/${poster}" alt=""
-    onclick="event.stopPropagation();openLightbox('/static/posters/${poster}')" title="Poster vergrößern"
+  return `<img class="event-poster" src="/api/img/${poster}" alt=""
+    onclick="event.stopPropagation();openLightbox('/api/img/${poster}')" title="Poster vergrößern"
     style="cursor:zoom-in">`;
 }
 

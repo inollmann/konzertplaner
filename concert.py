@@ -147,8 +147,7 @@ class Tour(Event):
         Usage (future AI module):
             data = ai_extractor.analyse(image_bytes)
             tour = Tour.from_poster_data(data)
-            events[tour.id] = tour
-            save_events(events)
+            upsert_event(tour)
         """
         # Handle both single artist (string) and multiple artists (list)
         artist_data = extracted.get("artist")

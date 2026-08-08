@@ -138,7 +138,7 @@ function setPosterPreview(which, filename) {
   el.innerHTML = '';
   if (filename) {
     savedPoster[which] = filename;
-    const img = document.createElement('img'); img.src = `/static/posters/${filename}`; el.appendChild(img);
+    const img = document.createElement('img'); img.src = `/api/img/${filename}`; el.appendChild(img);
   } else {
     savedPoster[which] = null;
     el.innerHTML = `<div class="pu-icon">${icon('paintbrush')}</div><div class="pu-label">Poster hochladen</div>`;
@@ -165,7 +165,7 @@ function setFestivalLogoPreview(filename) {
   el.innerHTML = '';
   if (filename) {
     savedFestLogo = filename;
-    const img = document.createElement('img'); img.src = `/static/festival-logos/${filename}`; el.appendChild(img);
+    const img = document.createElement('img'); img.src = `/api/img/${filename}`; el.appendChild(img);
   } else {
     savedFestLogo = null;
     el.innerHTML = `<div class="pu-icon">${icon('tag')}</div><div class="pu-label">Festival-Logo hochladen</div>`;
@@ -196,7 +196,7 @@ export async function uploadFestivalLogoIfNeeded() {
   const fd = new FormData(); fd.append('logo', blob);
   const r = await fetch('/api/upload-festival-logo', { method: 'POST', body: fd });
   if (!r.ok) throw new Error('Upload fehlgeschlagen');
-  return (await r.json()).filename;
+  return (await r.json()).id;
 }
 
 /**
@@ -211,7 +211,7 @@ export async function uploadBlobIfNeeded(which) {
   const fd = new FormData(); fd.append('poster', blob);
   const r = await fetch('/api/upload-poster', { method: 'POST', body: fd });
   if (!r.ok) throw new Error('Upload fehlgeschlagen');
-  return (await r.json()).filename;
+  return (await r.json()).id;
 }
 
 // ── Concert blocks ───────────────────────────────────────────────────

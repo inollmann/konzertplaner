@@ -47,7 +47,7 @@ export function renderArtistList() {
   }
   el.innerHTML = state.artists.map(a => {
     const logoEl = a.logo
-      ? `<div class="logo-drop-zone" style="border-style:solid"><img src="/static/logos/${a.logo}" alt=""></div>`
+      ? `<div class="logo-drop-zone" style="border-style:solid"><img src="/api/img/${a.logo}" alt=""></div>`
       : `<div class="logo-drop-zone">\uD83C\uDFAD</div>`;
     const nameEl = `<span style="flex:1;font-size:14px">${esc(a.name)}</span>`;
     const ratingsSummary = artistRatingsSummary(a.name);
@@ -98,14 +98,14 @@ export function openArtistDetail(a) {
   const photoZone = document.getElementById('adm-photo-zone');
   if (_admCurrentArtist.logo) {
     logoZone.classList.add('has-img');
-    document.getElementById('adm-logo-inner').innerHTML = `<img src="/static/logos/${_admCurrentArtist.logo}" alt="">`;
+    document.getElementById('adm-logo-inner').innerHTML = `<img src="/api/img/${_admCurrentArtist.logo}" alt="">`;
   } else {
     logoZone.classList.remove('has-img');
     document.getElementById('adm-logo-inner').innerHTML = '\uD83C\uDFAD';
   }
   if (_admCurrentArtist.photo) {
     photoZone.classList.add('has-img');
-    document.getElementById('adm-photo-inner').innerHTML = `<img src="/static/logos/${_admCurrentArtist.photo}" alt="">`;
+    document.getElementById('adm-photo-inner').innerHTML = `<img src="/api/img/${_admCurrentArtist.photo}" alt="">`;
   } else {
     photoZone.classList.remove('has-img');
     document.getElementById('adm-photo-inner').innerHTML = '\uD83D\uDCF7';

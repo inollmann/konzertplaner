@@ -165,5 +165,5 @@ export async function uploadArtistImg(blob, artistName = null, imgType = 'logo')
   if (artistName) fd.append('artist', artistName);
   fd.append('type', imgType);
   const r = await fetch('/api/upload-logo', { method: 'POST', body: fd });
-  return (await r.json()).filename;
+  return (await r.json()).id;
 }

@@ -11,14 +11,17 @@ python main.py                     # server on http://localhost:5000, debug=True
 ```
 
 Python **3.13** required (uses `str | None`, `dict[str, ...]`). No `.env`, no config files.
+Requires PostgreSQL — `DATABASE_URL` defaults to `postgresql+psycopg://kp:kp@localhost:5432/kp` (overridable by env). Docker Compose starts a Postgres container automatically.
 
 For running python test code snippets use `uv run` to access the project uv venv.
 The available project skills are stored in `.agents/skills`.
 
 ## Architecture
 
-- `main.py` — Flask app + all routes (`/api/...` plus `/`, `/design-tool`, `/invite/<eid>/<code>`). ~1100 lines, one file.
-- `concert.py` — data models: `Event` base → `Tour` (N concerts) and `Festival` (single date/venue); `Concert`, `Artist`, `Venue` catalogue models. All have `to_dict`/`from_dict`.
+- `main.py` — Flask app + all routes (`/api/...` plus `/`, `/design-tool`, `/invite/<eid>/<code>`). ~1000 lines, one file.
+- `concert.py` — data models: `Event` base → `Tour` (N concerts) and `Festival` (single date/venue); `Concert`, `Artist`, `Venue` catalogue models. All have `to_dict`/`from_dict`. Used as API DTOs.
+- `db.py` — Database layer: SQLModel engine, session, CRUD functions (`list_events`, `get_event`, `upsert_event`, `list_artists`, `upsert_artist`, `list_venues`, `create_image`, `get_image`, etc.), row↔domain mappers, and auto-migration from JSON on first boot.
+- `models.py` — SQLModel table definitions: `Image` (BYTEA), `EventRow` (polymorphic, JSONB `attrs`), `ArtistRow`, `VenueRow`.
 - `static/` — SPA, **no build step**: `index.html` + ES modules under `static/js/` + `style.css`. Served as-is by Flask. Leaflet.js (map) loaded via CDN. Entry point is `static/js/main.js` (`<script type="module">`); inline `onclick` handlers resolve via `globals.js` which assigns all module exports to `window`.
 
 ### Frontend module structure (`static/js/`)
@@ -50,23 +53,24 @@ The available project skills are stored in `.agents/skills`.
 
 **Cross-module communication**: Feature modules dispatch `window` custom events (`filterchange`, `tabchange`, `ratingchange`, `showsfilterchange`) instead of importing each other's render functions — this avoids circular imports. `main.js` listens and orchestrates re-renders.
 
-### In-memory state (critical gotcha)
-`events` and `catalogue` are **module-level dicts loaded once at import**; every mutation rewrites the JSON file. There is **no database**. This only works single-process:
-- Flask `debug=True` reloader is fine (restart re-reads disk), but **never run with multiple workers** (e.g. `gunicorn -w 4`) — workers desync silently.
-- `save_events()` writes atomically (tempfile + `os.replace`); `save_catalogue()` does not — keep it that way or follow the atomic pattern when editing persistence.
+### Database (PostgreSQL via SQLModel)
+All data lives in PostgreSQL — events, artists, venues, and images (BYTEA). The app is **multi-worker safe** (no in-memory state; every request reads/writes the DB). `db.py` creates the engine at import, auto-creates tables via `SQLModel.metadata.create_all`, and auto-migrates from legacy JSON files on first boot if the DB is empty.
+- `DATABASE_URL` defaults to `postgresql://kp:kp@localhost:5432/kp` (local dev); Docker sets it via env to `postgresql://kp:kp@db:5432/kp`.
+- Concerts stay nested as JSONB in `events.attrs` (app filters client-side; scalability win is multi-worker safety, not SQL queries).
+- Images served via `/api/img/<uuid>` route from the `images` table (BYTEA). No on-disk image storage.
 
-## Data & uploads (all gitignored, local-only)
+## Data & uploads (all in PostgreSQL)
 
-- `data/events.json` (events) and `data/catalogue.json` (artists + venues).
-- `load_events()` falls back to legacy `data/tours.json` if `events.json` is absent — don't assume the README's `tours.json` is current; it's stale.
-- `static/posters/`, `static/logos/`, `static/festival-logos/` hold uploaded images. These dirs are auto-created at import (`mkdir parents=True, exist_ok=True`).
-- Docker volume-mounts only `./data:/app/data`; posters/logos uploaded inside the container are lost on rebuild unless you mount those dirs too.
+- **Legacy migration source** (read-only): `data/events.json` and `data/catalogue.json` are read once on first boot if the DB is empty, then images from `static/posters/`, `static/logos/`, `static/festival-logos/` are loaded into the `images` table. After migration, the JSON files are no longer read.
+- `data/events.json` was the former events store; `load_events()` no longer exists — use `list_events()` from `db.py`.
+- Image uploads (`/api/upload-poster`, `/api/upload-logo`, `/api/upload-festival-logo`) now store bytes in the `images` table and return `{"id": "<uuid>"}`. The frontend uses the UUID as the `poster`/`logo`/`photo` field value, and constructs URLs as `/api/img/<uuid>`.
 
 ## Dependencies — pyproject.toml vs requirements.txt disagree
 
 | Package | pyproject.toml (uv/dev) | requirements.txt (Docker) | Actually used? |
 |---|---|---|---|
 | flask, werkzeug | yes | yes | yes (runtime) |
+| sqlmodel, psycopg[binary] | yes | yes | yes (database layer) |
 | requests | yes | **no** | optional — lazy-imported in `main.py` with `try/except`; falls back to `urllib` |
 | pillow | yes | **no** | only by `static/generate_favicons.py` (one-off script), not the app |
 | beautifulsoup4 | no | yes | **never imported** (dead) |
@@ -79,7 +83,8 @@ Proxies `https://public-api.eventim.com` to dodge browser CORS. `_eventim_get()`
 
 ## Invite links
 
-`/invite/<eid>/<code>`: `code` is URL-safe base64 of a JSON blob, version-gated (`"v": 1` required, else 400). Server-side imports the event, saves, and redirects to `/`. When adding fields to an event, update both the encoder (`get_event_invite`) and decoder (`handle_invite`) and bump nothing unless you change the format (then bump `v`).
+`/invite/<eid>/<code>`: `code` is URL-safe base64 of a JSON blob, version-gated (`"v": 2` required, else 400). Server-side imports the event, saves, and redirects to `/`. When adding fields to an event, update both the encoder (`get_event_invite`) and decoder (`handle_invite`) and bump nothing unless you change the format (then bump `v`).
+- **v:2 is lossy**: poster/logo image UUIDs are NOT carried in the invite payload (images live in the DB and can't be shared via URL). Recipients get the event data without images.
 
 ## Backward-compat conventions
 
@@ -98,7 +103,6 @@ Proxies `https://public-api.eventim.com` to dodge browser CORS. `_eventim_get()`
 
 - `plans/` holds long-form implementation specs (e.g. `timeline-reimplementation.md`) with `file:line` references — treat as living design docs, not current state.
 - `.claude/` and `opencode.json` are gitignored (agent config, not app code). `.agents/skills/` + `skills-lock.json` track installed opencode skills.
-- Image upload helper `_save_upload(file, dest_dir, base_name=None, suffix="")` sanitizes names to `lowercase-hyphenated`; pass an artist/festival name for human-readable filenames, omit for UUIDs.
 - Comments and UI strings are **German**; match the language when touching user-facing text.
 - Keep your answerd short and concise. Only present relevant information to the user.
 - When writing code, delegate sub-tasks to sub-agents. Use the main agent only to delegate the tasks and to ensure correct implementation.

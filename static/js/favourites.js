@@ -49,7 +49,7 @@ export function buildFavCard(a) {
   const cs = state.favCardState[a.id] || {};
   const isOpen = !!cs.open;
   const logoHtml = a.logo
-    ? `<div class="fav-artist-logo"><img src="/static/logos/${a.logo}" alt=""></div>`
+    ? `<div class="fav-artist-logo"><img src="/api/img/${a.logo}" alt=""></div>`
     : `<div class="fav-artist-logo">${icon('mic')}</div>`;
   const evimLabel = a.eventim_name
     ? `<div class="fav-artist-meta">Eventim: ${esc(a.eventim_name)}</div>` : '';

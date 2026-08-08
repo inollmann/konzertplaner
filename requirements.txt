@@ -1,3 +1,5 @@
 flask>=3.0
 werkzeug>=3.0
 beautifulsoup4>=4.12
+sqlmodel>=0.0.16
+psycopg[binary]>=3.1
