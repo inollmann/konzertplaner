@@ -21,6 +21,14 @@
 html, body { height: 100%; background: var(--tool-bg); color: var(--tool-text);
   font-family: 'DM Sans', sans-serif; font-size: 14px; overflow: hidden; }
 
+/* ── Inline icons (Lucide sprite, monochrome via currentColor) ── */
+svg.ic {
+  width: 1em; height: 1em; display: inline-block; flex-shrink: 0;
+  vertical-align: -0.16em; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+svg.ic use { fill: inherit; }
+
 /* ── Layout: two panels side by side ── */
 .app { display: flex; height: 100vh; }
 
@@ -147,13 +155,14 @@ html, body { height: 100%; background: var(--tool-bg); color: var(--tool-text);
 </style>
 </head>
 <body>
+<svg id="ic-sprite" style="display:none" aria-hidden="true"><symbol id="i-arrow-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m12 19l-7-7l7-7m7 7H5"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7l-7 7"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path fill="none" d="m7 10l5 5l5-5"/></g></symbol><symbol id="i-clipboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect fill="none" width="8" height="4" x="8" y="2" rx="1" ry="1"/><path fill="none" d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></g></symbol><symbol id="i-rotate-ccw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8"/><path fill="none" d="M3 3v5h5"/></g></symbol><symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle fill="none" cx="12" cy="12" r="4"/><path fill="none" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></g></symbol><symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol><symbol id="i-moon-star" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 5h4m-2-2v4m.985 5.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol><symbol id="i-trees" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0m-3 6v6m6-3v3"/><path fill="none" d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"/></g></symbol><symbol id="i-flower-2" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v1"/><circle fill="none" cx="12" cy="8" r="2"/><path fill="none" d="M12 10v12m0 0c4.2 0 7-1.667 7-5c-4.2 0-7 1.667-7 5m0 0c-4.2 0-7-1.667-7-5c4.2 0 7 1.667 7 5"/></g></symbol><symbol id="i-gem" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M10.5 3L8 9l4 13l4-13l-2.5-6"/><path fill="none" d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3zM2 9h20"/></g></symbol><symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/></symbol></svg>
 <div class="app">
 
   <!-- ── Left: Controls ── -->
   <aside class="controls">
     <div class="controls-header">
       <span class="controls-title">Design Tool</span>
-      <a href="/" style="font-size:12px;color:var(--tool-muted);text-decoration:none" title="Zur App">← App</a>
+      <a href="/" style="font-size:12px;color:var(--tool-muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="Zur App"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg> App</a>
     </div>
     <div class="controls-body">
 
@@ -184,10 +193,10 @@ header { backdrop-filter: blur(12px); }"
       <div class="section">
         <div class="section-label">Aktionen</div>
         <div class="actions">
-          <button class="btn btn-primary" onclick="applyToApp()">▶ In App anwenden</button>
-          <button class="btn btn-secondary" onclick="exportCss()">⬇ Als CSS exportieren</button>
-          <button class="btn btn-secondary" onclick="copyToClipboard()">📋 CSS kopieren</button>
-          <button class="btn btn-danger" onclick="resetAll()">↺ Alles zurücksetzen</button>
+          <button class="btn btn-primary" onclick="applyToApp()"><svg class="ic" aria-hidden="true"><use href="#i-arrow-right"/></svg> In App anwenden</button>
+          <button class="btn btn-secondary" onclick="exportCss()"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Als CSS exportieren</button>
+          <button class="btn btn-secondary" onclick="copyToClipboard()"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg> CSS kopieren</button>
+          <button class="btn btn-danger" onclick="resetAll()"><svg class="ic" aria-hidden="true"><use href="#i-rotate-ccw"/></svg> Alles zurücksetzen</button>
         </div>
       </div>
 
@@ -199,7 +208,7 @@ header { backdrop-filter: blur(12px); }"
     <div class="preview-bar">
       <span class="preview-bar-title">Live-Vorschau</span>
       <span class="preview-url">localhost:5000</span>
-      <button class="preview-reload" onclick="reloadPreview()">⟳ Neu laden</button>
+      <button class="preview-reload" onclick="reloadPreview()"><svg class="ic" aria-hidden="true"><use href="#i-rotate-ccw"/></svg> Neu laden</button>
     </div>
     <iframe class="preview-iframe" id="preview-frame" src="/" title="App-Vorschau"></iframe>
   </div>
@@ -208,6 +217,11 @@ header { backdrop-filter: blur(12px); }"
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Inline icon helper (references the #ic-sprite above) ──────────────
+function icon(name) {
+  return `<svg class="ic" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
+
 // ── Color variable definitions (mirrors main app) ──────────────────────
 const COLOR_VARS = [
   { key: '--accent',        label: 'Akzentfarbe',  group: 'Hauptfarben' },
@@ -226,42 +240,42 @@ const COLOR_VARS = [
 
 const THEMES = {
   dark: {
-    label: '🌑 Dark', description: 'Standard',
+    icon: 'moon', label: 'Dark', description: 'Standard',
     vars: { '--bg':'#0d0d0d','--surface':'#161616','--surface2':'#1f1f1f',
       '--surface3':'#272727','--border':'#2a2a2a','--text':'#f0f0f0',
       '--muted':'#777','--accent':'#e8ff47','--tour':'#38bdf8',
       '--festival':'#a78bfa','--tickets-color':'#4ade80','--watch-color':'#fb923c' },
   },
   light: {
-    label: '☀️ Light', description: 'Hell',
+    icon: 'sun', label: 'Light', description: 'Hell',
     vars: { '--bg':'#f5f5f5','--surface':'#ffffff','--surface2':'#f0f0f0',
       '--surface3':'#e8e8e8','--border':'#d0d0d0','--text':'#111111',
       '--muted':'#666666','--accent':'#1a7a00','--tour':'#0066cc',
       '--festival':'#7c3aed','--tickets-color':'#16a34a','--watch-color':'#ea580c' },
   },
   midnight: {
-    label: '🌌 Midnight', description: 'Dunkelblau',
+    icon: 'moon-star', label: 'Midnight', description: 'Dunkelblau',
     vars: { '--bg':'#04040f','--surface':'#0d0d2b','--surface2':'#131340',
       '--surface3':'#1a1a55','--border':'#252570','--text':'#e8e8ff',
       '--muted':'#6666aa','--accent':'#00ffcc','--tour':'#ff6b9d',
       '--festival':'#ffd700','--tickets-color':'#00e5ff','--watch-color':'#ff9f43' },
   },
   forest: {
-    label: '🌲 Forest', description: 'Dunkelgrün',
+    icon: 'trees', label: 'Forest', description: 'Dunkelgrün',
     vars: { '--bg':'#060e08','--surface':'#0d1a0f','--surface2':'#132216',
       '--surface3':'#1a2e1e','--border':'#243828','--text':'#ddf0e0',
       '--muted':'#5a7a60','--accent':'#7dff6b','--tour':'#4dc8ff',
       '--festival':'#e87dff','--tickets-color':'#6bffb8','--watch-color':'#ffb84d' },
   },
   rose: {
-    label: '🌸 Rose', description: 'Hell-Rosa',
+    icon: 'flower-2', label: 'Rose', description: 'Hell-Rosa',
     vars: { '--bg':'#fff5f7','--surface':'#ffffff','--surface2':'#ffe8ed',
       '--surface3':'#ffd6de','--border':'#ffb3c1','--text':'#2d0010',
       '--muted':'#994466','--accent':'#c0003c','--tour':'#0050bb',
       '--festival':'#6600bb','--tickets-color':'#007a33','--watch-color':'#c05000' },
   },
   slate: {
-    label: '🪨 Slate', description: 'Blau-Grau',
+    icon: 'gem', label: 'Slate', description: 'Blau-Grau',
     vars: { '--bg':'#0f1117','--surface':'#1a1d27','--surface2':'#22263a',
       '--surface3':'#2b304d','--border':'#343860','--text':'#e2e8f0',
       '--muted':'#64748b','--accent':'#f472b6','--tour':'#38bdf8',
@@ -292,8 +306,8 @@ function init() {
 function buildPresets() {
   document.getElementById('preset-grid').innerHTML = Object.entries(THEMES).map(([key, t]) =>
     `<button class="preset-btn" onclick="applyPreset('${key}')">
-      <span class="preset-icon">${t.label.split(' ')[0]}</span>
-      ${t.label.split(' ').slice(1).join(' ')}
+      <span class="preset-icon">${icon(t.icon)}</span>
+      ${t.label}
     </button>`
   ).join('');
 }
@@ -413,7 +427,7 @@ function applyToApp() {
     frame.src = '/';
     setTimeout(applyToPreview, 1500);
   } catch(e) {}
-  toast('✓ In App gespeichert');
+  toast(icon('check') + ' In App gespeichert');
 }
 
 // ── Export CSS ─────────────────────────────────────────────────────────
@@ -438,11 +452,11 @@ function exportCss() {
   a.download = 'konzertplaner-theme.css';
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('⬇ CSS heruntergeladen');
+  toast(icon('download') + ' CSS heruntergeladen');
 }
 
 function copyToClipboard() {
-  navigator.clipboard.writeText(buildCssString()).then(() => toast('✓ CSS kopiert'));
+  navigator.clipboard.writeText(buildCssString()).then(() => toast(icon('check') + ' CSS kopiert'));
 }
 
 function resetAll() {
@@ -454,7 +468,7 @@ function resetAll() {
   document.getElementById('custom-css').value = '';
   buildColorRows();
   applyToPreview();
-  toast('↺ Zurückgesetzt');
+  toast(icon('rotate-ccw') + ' Zurückgesetzt');
 }
 
 // ── Apply custom CSS from localStorage on app load ─────────────────────
@@ -464,7 +478,7 @@ function resetAll() {
 let _toastTimer = null;
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  el.innerHTML = msg;
   el.classList.add('visible');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => el.classList.remove('visible'), 2500);

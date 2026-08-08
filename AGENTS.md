@@ -12,11 +12,43 @@ python main.py                     # server on http://localhost:5000, debug=True
 
 Python **3.13** required (uses `str | None`, `dict[str, ...]`). No `.env`, no config files.
 
+For running python test code snippets use `uv run` to access the project uv venv.
+The available project skills are stored in `.agents/skills`.
+
 ## Architecture
 
 - `main.py` — Flask app + all routes (`/api/...` plus `/`, `/design-tool`, `/invite/<eid>/<code>`). ~1100 lines, one file.
 - `concert.py` — data models: `Event` base → `Tour` (N concerts) and `Festival` (single date/venue); `Concert`, `Artist`, `Venue` catalogue models. All have `to_dict`/`from_dict`.
-- `static/` — SPA, **no build step**: `index.html` + `app.js` (~4400 lines, all the logic) + `style.css`. Served as-is by Flask. Leaflet.js (map) loaded via CDN.
+- `static/` — SPA, **no build step**: `index.html` + ES modules under `static/js/` + `style.css`. Served as-is by Flask. Leaflet.js (map) loaded via CDN. Entry point is `static/js/main.js` (`<script type="module">`); inline `onclick` handlers resolve via `globals.js` which assigns all module exports to `window`.
+
+### Frontend module structure (`static/js/`)
+
+| Module | Responsibility |
+|---|---|
+| `main.js` | Boot, initial fetch, cross-module re-render event orchestration (`tabchange`, `filterchange`, `ratingchange`, `showsfilterchange`) |
+| `globals.js` | Window shim — imports all module exports and assigns them to `window` for inline `onclick` handlers |
+| `state.js` | Central mutable `state` object (avoids ES module read-only binding limitation) + `getEvent(id)` + `today` |
+| `utils.js` | Pure helpers: `esc`, `localIso`, `parseDate`, `fmtDate*`, `fmtPrice`, `dlBlob`, `eventLatestDate`, `eventEarliestDate`, `pipColor`, `venueMapHtml` |
+| `theme.js` | Runtime theming, color presets, design panel |
+| `ui.js` | Generic DOM: modals, drawer, `switchTab`, lightbox, poster, popover |
+| `api.js` | Data fetch/persist: `fetchAll`, `deleteEvent`, `patchEvent`, `reloadCatalogue`, tags, follow |
+| `filters.js` | Filter state + chip toggling, dispatches `filterchange`/`showsfilterchange` events |
+| `list.js` | Event list rendering, tour/festival cards, detail panel |
+| `ratings.js` | Rating storage, rating bars, artist rating summaries |
+| `calendar.js` | Month-grid calendar view |
+| `timeline.js` | Epoch-based virtualized horizontal timeline |
+| `map.js` | Leaflet map, geocoding, `resetMap()` (extracted from duplicated code) |
+| `shows.js` | Shows tab: rated events grouped/sorted, histograms |
+| `event-editor.js` | Create/edit tour/festival modal, pill tags, concert blocks |
+| `catalogues.js` | Artist/venue catalogues, image upload |
+| `favourites.js` | Favourite artists tab, Eventim artist lookup |
+| `notifications.js` | Notification badge/panel, background polling |
+| `eventim.js` | Eventim tour search, concert selection, import |
+| `tools.js` | Location settings, backup/restore, statistics, export (CSV/iCal/HTML) |
+| `types.d.ts` | Ambient type overrides (`getElementById` → `any`, `L` global for Leaflet) |
+| `tsconfig.json` | `checkJs: true` type checking config (at repo root) |
+
+**Cross-module communication**: Feature modules dispatch `window` custom events (`filterchange`, `tabchange`, `ratingchange`, `showsfilterchange`) instead of importing each other's render functions — this avoids circular imports. `main.js` listens and orchestrates re-renders.
 
 ### In-memory state (critical gotcha)
 `events` and `catalogue` are **module-level dicts loaded once at import**; every mutation rewrites the JSON file. There is **no database**. This only works single-process:
@@ -57,7 +89,10 @@ Proxies `https://public-api.eventim.com` to dodge browser CORS. `_eventim_get()`
 
 ## Verification
 
-**There is no test suite, linter, formatter, typecheck, or CI.** No `pytest`, `ruff`, `mypy`, `.github/workflows`. To verify a change: run `python main.py` and exercise the affected feature in the browser at http://localhost:5000. `import concert; ...` smoke-checks are fine for model edits. Do not invent a "run the tests" step — there is none.
+**There is no test suite, linter, formatter, or CI.** No `pytest`, `ruff`, `mypy`, `.github/workflows`. To verify a change:
+- **Type check**: `npx tsc --noEmit` (at repo root; TypeScript installed as dev dependency)
+- **Runtime**: run `python main.py` and exercise the affected feature in the browser at http://localhost:5000.
+- `import concert; ...` smoke-checks are fine for model edits. Do not invent a "run the tests" step — there is none.
 
 ## Working notes
 

@@ -30,6 +30,23 @@
 html, body { height: 100%; background: var(--bg); color: var(--text);
   font-family: 'DM Sans', sans-serif; font-size: 15px; }
 
+/* ─── Inline icons (Lucide sprite, monochrome via currentColor) ──────── */
+/* Sized in em so icons scale with their context's font-size, matching the
+   emoji they replace. stroke="currentColor" lives on each <symbol>; the
+   <use> host inherits text color, so icons track light/dark/midnight themes. */
+svg.ic {
+  width: 1em; height: 1em; display: inline-block; flex-shrink: 0;
+  vertical-align: -0.16em; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+/* Filled glyphs (solid star) ship fill="currentColor" on their <symbol>. */
+/* Leading search icon inside the Eventim search field */
+.search-glass {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); pointer-events: none; font-size: 15px;
+}
+input.search-input { padding-left: 38px; }
+
 /* ─── Header ───────────────────────────────────────────────────────── */
 header {
   display: flex; align-items: center; justify-content: space-between;
@@ -105,7 +122,7 @@ header {
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ─── Filter bar ───────────────────────────────────────────────────── */
-.filter-bar { display: flex; align-items: center; gap: 10px; padding: 14px 32px; flex-wrap: wrap; }
+.filter-bar { display: flex; align-items: center; gap: 10px; padding: 14px 32px 14px 54px; flex-wrap: wrap; }
 .filter-bar span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .filter-chip {
   padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
@@ -122,6 +139,31 @@ header {
 .filter-chip.active-shows-type { border-color: var(--accent);        color: var(--accent);         background: color-mix(in srgb,var(--accent) 8%,transparent); }
 .filter-sep {
   width: 1px; height: 24px; background: var(--border); margin: 0 6px;
+}
+.filter-group { display: inline-flex; align-items: center; gap: 10px; }
+
+/* ─── List tab controls (sub-tabs + sort) ─────────────────────────── */
+main#tab-list { padding-top: 0; }
+#event-list { padding-top: 20px; }
+
+.list-controls {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; padding: 0; flex-wrap: wrap; border-bottom: 1px solid var(--border);
+}
+.list-subtabs { display: flex; gap: 4px; }
+.list-subtab {
+  padding: 9px 22px; background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: color .2s, border-color .2s; margin-bottom: -1px;
+}
+.list-subtab.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+.list-sort { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; }
+.list-sort > span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.filter-chip.active-list-sort {
+  border-color: var(--accent); color: var(--accent);
+  background: color-mix(in srgb,var(--accent) 8%,transparent);
 }
 
 /* ─── Shows Tab ───────────────────────────────────────────────────── */
@@ -242,7 +284,13 @@ main { padding: 24px 32px; min-height: calc(100vh - 130px); }
   text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center;
   gap: 4px; transition: border-color .15s, background .15s;
 }
-.ticket-link-btn::before { content: "🔗"; font-size: 10px; }
+.ticket-link-btn::before {
+  content: ""; display: inline-block; width: 12px; height: 12px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  flex-shrink: 0; margin-right: 2px;
+}
 .ticket-link-btn:hover {
   border-color: #64748b;
   background: color-mix(in srgb,#64748b 8%,transparent);
@@ -1038,13 +1086,13 @@ input[type=color] {
 .search-wrap {
   position: relative; flex: 1; max-width: 320px;
 }
-.search-input {
-  background: var(--surface) !important; border: 1px solid var(--border); border-radius: var(--radius);
-  color: var(--text); padding: 8px 36px 8px 14px; font-family: 'DM Sans', sans-serif;
+input.search-input {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); padding: 8px 36px 8px 38px; font-family: 'DM Sans', sans-serif;
   font-size: 14px; outline: none; width: 100%; transition: border-color .2s;
 }
-.search-input:focus { border-color: var(--accent); }
-.search-input::placeholder { color: var(--muted); }
+input.search-input:focus { border-color: var(--accent); }
+input.search-input::placeholder { color: var(--muted); }
 .search-clear {
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
   background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px;
@@ -1226,6 +1274,17 @@ input[type=color] {
 
 @media (max-width: 640px) {
   header, .tabs, main, .filter-bar { padding-left: 14px; padding-right: 14px; }
+  .filter-bar { padding-left: 36px; }
   .tour-form-top { grid-template-columns: 1fr; }
   .form-grid, .color-grid { grid-template-columns: 1fr; }
 }
+
+/* ─── Unrecognized venues (map tab) ────────────────────────────────── */
+#unrecognized-venues { background: var(--surface); }
+#unrecognized-venues-list .unrecognized-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: var(--surface2); border-radius: 6px;
+}
+#unrecognized-venues-list .unrecognized-info { font-size: 13px; }
+#unrecognized-venues-list .unrecognized-info span:first-child { font-weight: 500; }
+#unrecognized-venues-list .unrecognized-info span:last-child { color: var(--muted); margin-left: 6px; }

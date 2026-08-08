@@ -5,6 +5,7 @@ static/posters/*
 .claude/
 CLAUDE.md
 opencode.json
+node_modules/
 
 # Python-generated files
 __pycache__/

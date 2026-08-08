@@ -21,25 +21,26 @@
 <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+<svg id="ic-sprite" style="display:none" aria-hidden="true"><symbol id="i-menu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 12h16M4 19h16"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497zM15 5l4 4"/></symbol><symbol id="i-trash-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11v6m4-6v6m5-11v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path fill="none" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></g></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7v14"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="m21 21l-4.34-4.34"/><circle fill="none" cx="11" cy="11" r="8"/></g></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.268 21a2 2 0 0 0 3.464 0m-10.47-5.674A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12 19v3m7-12v2a7 7 0 0 1-14 0v-2"/><rect fill="none" width="6" height="13" x="9" y="2" rx="3"/></g></symbol><symbol id="i-building-2" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M10 12h4m-4-4h4m0 13v-3a2 2 0 0 0-4 0v3"/><path fill="none" d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path fill="none" d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></g></symbol><symbol id="i-map-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle fill="none" cx="12" cy="10" r="3"/></g></symbol><symbol id="i-bar-chart-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21v-6m7 6V3m7 18V9"/></symbol><symbol id="i-database" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><ellipse fill="none" cx="12" cy="5" rx="9" ry="3"/><path fill="none" d="M3 5v14a9 3 0 0 0 18 0V5"/><path fill="none" d="M3 12a9 3 0 0 0 18 0"/></g></symbol><symbol id="i-save" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path fill="none" d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></g></symbol><symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path fill="none" d="m7 10l5 5l5-5"/></g></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m5-7l-5-5l-5 5m14 7v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle fill="none" cx="12" cy="12" r="4"/><path fill="none" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></g></symbol><symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol><symbol id="i-moon-star" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 5h4m-2-2v4m.985 5.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594zM20 2v4m2-2h-4"/><circle fill="none" cx="4" cy="20" r="2"/></g></symbol><symbol id="i-trees" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0m-3 6v6m6-3v3"/><path fill="none" d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"/></g></symbol><symbol id="i-flower-2" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"/><circle fill="none" cx="12" cy="8" r="2"/><path fill="none" d="M12 10v12m0 0c4.2 0 7-1.667 7-5c-4.2 0-7 1.667-7 5m0 0c-4.2 0-7-1.667-7-5c4.2 0 7 1.667 7 5"/></g></symbol><symbol id="i-gem" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M10.5 3L8 9l4 13l4-13l-2.5-6"/><path fill="none" d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3zM2 9h20"/></g></symbol><symbol id="i-palette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12 22a1 1 0 0 1 0-20a10 9 0 0 1 10 9a5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="none"/><circle cx="17.5" cy="10.5" r=".5" fill="none"/><circle cx="6.5" cy="12.5" r=".5" fill="none"/><circle cx="8.5" cy="7.5" r=".5" fill="none"/></g></symbol><symbol id="i-paintbrush" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.622 17.897l-10.68-2.913M18.376 2.622a1 1 0 1 1 3.002 3.002L17.36 9.643a.5.5 0 0 0 0 .707l.944.944a2.41 2.41 0 0 1 0 3.408l-.944.944a.5.5 0 0 1-.707 0L8.354 7.348a.5.5 0 0 1 0-.707l.944-.944a2.41 2.41 0 0 1 3.408 0l.944.944a.5.5 0 0 0 .707 0zM9 8c-1.804 2.71-3.97 3.46-6.583 3.948a.507.507 0 0 0-.302.819l7.32 8.883a1 1 0 0 0 1.185.204C12.735 20.405 16 16.792 16 15"/></symbol><symbol id="i-tag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="none"/></g></symbol><symbol id="i-camera" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle fill="none" cx="12" cy="13" r="3"/></g></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M8 2v3m8-3v3"/><rect fill="none" width="18" height="18" x="3" y="3" rx="2"/><path fill="none" d="M3 9h18"/></g></symbol><symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle fill="none" cx="12" cy="12" r="10"/><path fill="none" d="M12 6v6l4 2"/></g></symbol><symbol id="i-guitar" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m11.9 12.1l4.514-4.514M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4zM6 16l2 2m.23-8.15A3 3 0 0 1 11 8a5 5 0 0 1 5 5a3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4a6 6 0 0 1-6-6a4 4 0 0 1 4-4a2 2 0 0 0 1.85-1.23z"/></symbol><symbol id="i-tent" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.5 21L14 3m6.5 18L10 3m5.5 18L12 15l-3.5 6M2 21h20"/></symbol><symbol id="i-ticket" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Zm11-4v2m0 10v2m0-8v2"/></symbol><symbol id="i-bookmark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7l-7 7"/></symbol><symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10v10M7 17L17 7"/></symbol><symbol id="i-chevron-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 18l-6-6l6-6"/></symbol><symbol id="i-chevron-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18l6-6l-6-6"/></symbol><symbol id="i-chevrons-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m11 17l-5-5l5-5m7 10l-5-5l5-5"/></symbol><symbol id="i-chevrons-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 17l5-5l-5-5m7 10l5-5l-5-5"/></symbol><symbol id="i-arrow-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7l-7 7l-7-7"/></symbol><symbol id="i-arrow-up" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12l7-7l7 7m-7 7V5"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m12 19l-7-7l7-7m7 7H5"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 6L9 17l-5-5"/></symbol><symbol id="i-circle-x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle fill="none" cx="12" cy="12" r="10"/><path fill="none" d="m15 9l-6 6m0-6l6 6"/></g></symbol><symbol id="i-star" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M9 18V5l12-2v13"/><circle fill="none" cx="6" cy="18" r="3"/><circle fill="none" cx="18" cy="16" r="3"/></g></symbol><symbol id="i-disc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle fill="none" cx="12" cy="12" r="10"/><circle fill="none" cx="12" cy="12" r="2"/></g></symbol><symbol id="i-clipboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect fill="none" width="8" height="4" x="8" y="2" rx="1" ry="1"/><path fill="none" d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></g></symbol><symbol id="i-rotate-ccw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" d="M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8"/><path fill="none" d="M3 3v5h5"/></g></symbol><symbol id="i-star-filled" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"/></symbol></svg>
 
 <!-- ── Header ─────────────────────────────────────────────────────── -->
 <header>
   <div class="header-left">
-    <button class="burger" onclick="toggleDrawer()" title="Menü">☰</button>
+    <button class="burger" onclick="toggleDrawer()" title="Menü"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
     <div class="logo">KONZERT<span>PLANER</span></div>
   </div>
-  <div class="search-wrap">
+  <div class="search-wrap"><svg class="ic search-glass" aria-hidden="true"><use href="#i-search"/></svg>
     <input class="search-input" id="eventim-search" type="text"
-      placeholder="🔎 Artist auf Eventim suchen…"
+      placeholder="Artist auf Eventim suchen…"
       oninput="onSearchInput()" onkeydown="if(event.key==='Enter')doSearch()">
-    <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+    <button class="search-clear" id="search-clear" onclick="clearSearch()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     <div class="search-spinner" id="search-spinner"></div>
   </div>
   <div class="header-right">
     <button class="notif-btn" id="notif-btn" onclick="toggleNotifPanel()" title="Benachrichtigungen">
-      🔔<span class="notif-badge" id="notif-badge"></span>
+      <svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="notif-badge" id="notif-badge"></span>
     </button>
-    <button class="btn-new" onclick="openEventModal()">＋ Neues Event</button>
+    <button class="btn-new" onclick="openEventModal()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Neues Event</button>
   </div>
 </header>
 
@@ -49,39 +50,37 @@
   <nav class="drawer">
     <div class="drawer-header">
       <span class="drawer-title">Menü</span>
-      <button class="btn-close" onclick="toggleDrawer()">✕</button>
+      <button class="btn-close" onclick="toggleDrawer()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="drawer-body">
       <button class="drawer-item" onclick="openArtistCatalogue()">
-        <span class="di-icon">🎤</span> Artists
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span> Artists
       </button>
       <button class="drawer-item" onclick="openVenueCatalogue()">
-        <span class="di-icon">🏟</span> Venues
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-building-2"/></svg></span> Venues
       </button>
       <div class="drawer-sep"></div>
       <button class="drawer-item" onclick="openLocationSettings()">
-        <span class="di-icon">📍</span> Standort
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-map-pin"/></svg></span> Standort
       </button>
       <button class="drawer-item" onclick="openStatistics()">
-        <span class="di-icon">📊</span> Statistiken
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-bar-chart-2"/></svg></span> Statistiken
       </button>
       <button class="drawer-item" onclick="openBackupModal()">
-        <span class="di-icon">💾</span> Backup
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-database"/></svg></span> Backup
       </button>
       <button class="drawer-item" onclick="openExportModal();closeDrawer()">
-        <span class="di-icon">⬇</span> Export
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg></span> Export
       </button>
       <div class="drawer-sep"></div>
-      <!--
       <button class="drawer-item" onclick="toggleTheme();closeDrawer()">
-        <span class="di-icon">☀️</span> Light Mode / Dark Mode
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span> Light Mode / Dark Mode
       </button>
-      -->
       <button class="drawer-item" onclick="openDesignPanel()">
-        <span class="di-icon">🎨</span> Design anpassen
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg></span> Design anpassen
       </button>
       <button class="drawer-item" onclick="window.open('/design-tool','_blank');closeDrawer()">
-        <span class="di-icon">🖌</span> Design Tool (extern)
+        <span class="di-icon"><svg class="ic" aria-hidden="true"><use href="#i-paintbrush"/></svg></span> Design Tool (extern)
       </button>
     </div>
   </nav>
@@ -99,21 +98,23 @@
 <!-- ── Filter bar ─────────────────────────────────────────────────── -->
 <div class="filter-bar" id="filter-bar">
   <span>Filter:</span>
-  <button class="filter-chip active-upcoming" id="chip-upcoming" onclick="toggleDateFilter('upcoming')">📅 Anstehende Events</button>
-  <button class="filter-chip active-past" id="chip-past" onclick="toggleDateFilter('past')">📅 Vergangene Events</button>
+  <div class="filter-group" id="date-filter-group" style="display:none">
+  <button class="filter-chip active-upcoming" id="chip-upcoming" onclick="toggleDateFilter('upcoming')"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg> Anstehende Events</button>
+  <button class="filter-chip active-past" id="chip-past" onclick="toggleDateFilter('past')"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg> Vergangene Events</button>
   <div class="filter-sep"></div>
-  <button class="filter-chip active-tour" id="chip-tour" onclick="toggleEventTypeFilter('tour')">🎸 Konzerte</button>
-  <button class="filter-chip active-festival" id="chip-festival" onclick="toggleEventTypeFilter('festival')">🎪 Festivals</button>
+  </div>
+  <button class="filter-chip active-tour" id="chip-tour" onclick="toggleEventTypeFilter('tour')"><svg class="ic" aria-hidden="true"><use href="#i-guitar"/></svg> Konzerte</button>
+  <button class="filter-chip active-festival" id="chip-festival" onclick="toggleEventTypeFilter('festival')"><svg class="ic" aria-hidden="true"><use href="#i-tent"/></svg> Festivals</button>
   <div class="filter-sep"></div>
-  <button class="filter-chip" id="chip-tickets"   onclick="toggleFilter('tickets')">🎟 Tickets gekauft</button>
-  <button class="filter-chip" id="chip-watchlist" onclick="toggleFilter('watchlist')">🔖 Merkliste</button>
+  <button class="filter-chip" id="chip-tickets"   onclick="toggleFilter('tickets')"><svg class="ic" aria-hidden="true"><use href="#i-ticket"/></svg> Tickets gekauft</button>
+  <button class="filter-chip" id="chip-watchlist" onclick="toggleFilter('watchlist')"><svg class="ic" aria-hidden="true"><use href="#i-bookmark"/></svg> Merkliste</button>
 </div>
 
 <!-- ── Shows filter bar (hidden by default) ───────────────────────── -->
 <div class="filter-bar" id="shows-filter-bar" style="display:none">
   <button class="filter-chip active-shows-type" id="type-both" onclick="setShowsTypeFilter('both')">Alle</button>
-  <button class="filter-chip" id="type-tour" onclick="setShowsTypeFilter('tour')">🎸 Konzerte</button>
-  <button class="filter-chip" id="type-festival" onclick="setShowsTypeFilter('festival')">🎪 Festivals</button>
+  <button class="filter-chip" id="type-tour" onclick="setShowsTypeFilter('tour')"><svg class="ic" aria-hidden="true"><use href="#i-guitar"/></svg> Konzerte</button>
+  <button class="filter-chip" id="type-festival" onclick="setShowsTypeFilter('festival')"><svg class="ic" aria-hidden="true"><use href="#i-tent"/></svg> Festivals</button>
   <div class="filter-sep"></div>
   <span>Kategorisierung:</span>
   <button class="filter-chip active-shows-cat" id="cat-none" onclick="setShowsCategory('none')">Ohne</button>
@@ -124,17 +125,32 @@
   <button class="filter-chip" id="cat-year" onclick="setShowsCategory('year')">Jahr</button>
   <div class="filter-sep"></div>
   <span>Sortierung:</span>
-  <button class="filter-chip active-shows-sort" id="sort-rating-desc" onclick="setShowsSort('rating-desc')">Bewertung ↓</button>
-  <button class="filter-chip" id="sort-rating-asc" onclick="setShowsSort('rating-asc')">Bewertung ↑</button>
-  <button class="filter-chip" id="sort-date-desc" onclick="setShowsSort('date-desc')">Datum ↓</button>
-  <button class="filter-chip" id="sort-date-asc" onclick="setShowsSort('date-asc')">Datum ↑</button>
-  <button class="filter-chip" id="sort-price-desc" onclick="setShowsSort('price-desc')">Preis ↓</button>
-  <button class="filter-chip" id="sort-price-asc" onclick="setShowsSort('price-asc')">Preis ↑</button>
+  <button class="filter-chip active-shows-sort" id="sort-rating-desc" onclick="setShowsSort('rating-desc')">Bewertung <svg class="ic" aria-hidden="true"><use href="#i-arrow-down"/></svg></button>
+  <button class="filter-chip" id="sort-rating-asc" onclick="setShowsSort('rating-asc')">Bewertung <svg class="ic" aria-hidden="true"><use href="#i-arrow-up"/></svg></button>
+  <button class="filter-chip" id="sort-date-desc" onclick="setShowsSort('date-desc')">Datum <svg class="ic" aria-hidden="true"><use href="#i-arrow-down"/></svg></button>
+  <button class="filter-chip" id="sort-date-asc" onclick="setShowsSort('date-asc')">Datum <svg class="ic" aria-hidden="true"><use href="#i-arrow-up"/></svg></button>
+  <button class="filter-chip" id="sort-price-desc" onclick="setShowsSort('price-desc')">Preis <svg class="ic" aria-hidden="true"><use href="#i-arrow-down"/></svg></button>
+  <button class="filter-chip" id="sort-price-asc" onclick="setShowsSort('price-asc')">Preis <svg class="ic" aria-hidden="true"><use href="#i-arrow-up"/></svg></button>
   <button class="filter-chip" id="sort-alpha" onclick="setShowsSort('alpha')">A-Z</button>
 </div>
 
 <!-- ── List Tab ───────────────────────────────────────────────────── -->
-<main id="tab-list"><div id="event-list"></div></main>
+<main id="tab-list">
+  <div class="list-controls">
+    <div class="list-subtabs">
+      <button class="list-subtab active" id="lsub-upcoming" onclick="switchListSubTab('upcoming')">Anstehende Events</button>
+      <button class="list-subtab" id="lsub-past" onclick="switchListSubTab('past')">Vergangene Events</button>
+    </div>
+    <div class="list-sort">
+      <span>Sortierung:</span>
+      <button class="filter-chip active-list-sort" id="lsort-date-asc" onclick="setListSort('date-asc')">Datum ↑</button>
+      <button class="filter-chip" id="lsort-date-desc" onclick="setListSort('date-desc')">Datum ↓</button>
+      <button class="filter-chip" id="lsort-price-asc" onclick="setListSort('price-asc')">Preis ↑</button>
+      <button class="filter-chip" id="lsort-price-desc" onclick="setListSort('price-desc')">Preis ↓</button>
+    </div>
+  </div>
+  <div id="event-list"></div>
+</main>
 
 <!-- ── Calendar Tab ───────────────────────────────────────────────── -->
 <main id="tab-calendar" style="display:none">
@@ -144,8 +160,8 @@
       <div class="timeline-title">ZEITSTRAHL</div>
       <div class="timeline-controls">
         <button class="timeline-btn timeline-today-btn" onclick="timelineToday()" title="Heute">Heute</button>
-        <button class="timeline-btn" onclick="timelineNavEvent(-1)" title="Vorheriges Event">‹‹</button>
-        <button class="timeline-btn" onclick="timelineNav(-1)" title="Zurück">‹</button>
+        <button class="timeline-btn" onclick="timelineNavEvent(-1)" title="Vorheriges Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-left"/></svg></button>
+        <button class="timeline-btn" onclick="timelineNav(-1)" title="Zurück"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
         <div class="timeline-zoom-seg" id="timeline-zoom-seg">
           <button data-z="0" onclick="tlSetZoom(0)">1 Jahr</button>
           <button data-z="1" class="sel" onclick="tlSetZoom(1)">6 Monate</button>
@@ -153,8 +169,8 @@
           <button data-z="3" onclick="tlSetZoom(3)">1 Monat</button>
         </div>
         <span class="timeline-zoom-label" id="timeline-zoom-label" style="display:none">6 Monate</span>
-        <button class="timeline-btn" onclick="timelineNav(1)" title="Vor">›</button>
-        <button class="timeline-btn" onclick="timelineNavEvent(1)" title="Nächstes Event">››</button>
+        <button class="timeline-btn" onclick="timelineNav(1)" title="Vor"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+        <button class="timeline-btn" onclick="timelineNavEvent(1)" title="Nächstes Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-right"/></svg></button>
       </div>
     </div>
     <div class="timeline-viewport" id="timeline-viewport">
@@ -166,9 +182,9 @@
   </div>
   
   <div class="cal-header">
-    <button class="cal-nav" onclick="calNav(-1)">‹</button>
+    <button class="cal-nav" onclick="calNav(-1)"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
     <div class="cal-title" id="cal-title"></div>
-    <button class="cal-nav" onclick="calNav(1)">›</button>
+    <button class="cal-nav" onclick="calNav(1)"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
   </div>
   <div class="cal-grid" id="cal-grid">
     <div class="cal-day-name">Mo</div><div class="cal-day-name">Di</div>
@@ -197,6 +213,7 @@
   </div>
   <div id="unrecognized-venues" style="display:none; padding: 12px 0; border-top: 1px solid var(--border); margin-top: 12px;">
     <div class="map-legend-title" style="margin-bottom:8px">Diese Locations konnten nicht gefunden werden. Füge sie manuell hinzu:</div>
+    <div id="unrecognized-venues-list" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
 </main>
 
@@ -224,38 +241,25 @@
     <div id="shows-list"></div>
   </div>
 </main>
-    <div id="unrecognized-venues-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-  </div>
-  <style>
-    #unrecognized-venues { background: var(--surface); }
-    #unrecognized-venues-list .unrecognized-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 12px; background: var(--surface2); border-radius: 6px;
-    }
-    #unrecognized-venues-list .unrecognized-info { font-size: 13px; }
-    #unrecognized-venues-list .unrecognized-info span:first-child { font-weight: 500; }
-    #unrecognized-venues-list .unrecognized-info span:last-child { color: var(--muted); margin-left: 6px; }
-  </style>
-</main>
 
 <!-- ── Event edit/create modal ────────────────────────────────────── -->
 <div class="modal-backdrop" id="event-modal" onclick="closeMbg('event-modal',event)">
  <div class="modal">
   <div class="modal-title">
     <span id="event-modal-title">Neues Event</span>
-    <button class="btn-close" onclick="closeModal('event-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('event-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
 
   <!-- type chooser -->
   <div id="type-chooser">
     <div class="event-type-selector">
       <button type="button" class="type-option sel-tour" id="opt-tour" onclick="selectType('tour')">
-        <div class="type-icon">🎸</div>
+        <div class="type-icon"><svg class="ic" aria-hidden="true"><use href="#i-guitar"/></svg></div>
         <span class="type-label">Tour / Konzert</span>
         <div class="type-desc">Artist, Support Acts, mehrere Termine</div>
       </button>
       <button type="button" class="type-option" id="opt-festival" onclick="selectType('festival')">
-        <div class="type-icon">🎪</div>
+        <div class="type-icon"><svg class="ic" aria-hidden="true"><use href="#i-tent"/></svg></div>
         <span class="type-label">Festival</span>
         <div class="type-desc">Einmaliges Event, Bands to Watch</div>
       </button>
@@ -269,7 +273,7 @@
         <div class="poster-upload" id="pu-tour"
              onclick="document.getElementById('fi-tour').click()"
              ondragover="event.preventDefault()" ondrop="handleDrop(event,'tour')">
-          <div class="pu-icon">🖌</div><div class="pu-label">Poster hochladen</div>
+          <div class="pu-icon"><svg class="ic" aria-hidden="true"><use href="#i-paintbrush"/></svg></div><div class="pu-label">Poster hochladen</div>
         </div>
         <div class="paste-hint">Strg+V zum Einfügen</div>
         <input type="file" id="fi-tour" class="hidden" accept="image/*" onchange="handleFile(event,'tour')">
@@ -307,7 +311,7 @@
     <div class="sec">
       <div class="sec-label">Konzerttermine</div>
       <div class="concert-blocks" id="concert-blocks"></div>
-      <button type="button" class="btn-add-block" onclick="addConcertBlock()">＋ Konzert hinzufügen</button>
+      <button type="button" class="btn-add-block" onclick="addConcertBlock()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Konzert hinzufügen</button>
     </div>
 
     <div class="sec">
@@ -323,7 +327,7 @@
         <div class="poster-upload" id="pu-festival"
              onclick="document.getElementById('fi-festival').click()"
              ondragover="event.preventDefault()" ondrop="handleDrop(event,'festival')">
-          <div class="pu-icon">🖌</div><div class="pu-label">Poster hochladen</div>
+          <div class="pu-icon"><svg class="ic" aria-hidden="true"><use href="#i-paintbrush"/></svg></div><div class="pu-label">Poster hochladen</div>
         </div>
         <div class="paste-hint">Strg+V zum Einfügen</div>
         <input type="file" id="fi-festival" class="hidden" accept="image/*" onchange="handleFile(event,'festival')">
@@ -332,7 +336,7 @@
         <div class="poster-upload festival-logo-upload" id="pu-festlogo"
              onclick="document.getElementById('fi-festlogo').click()"
              ondragover="event.preventDefault()" ondrop="handleFestLogoDrop(event)">
-          <div class="pu-icon">🏷</div><div class="pu-label">Festival-Logo hochladen</div>
+          <div class="pu-icon"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg></div><div class="pu-label">Festival-Logo hochladen</div>
         </div>
         <div class="paste-hint">Strg+V zum Einfügen</div>
         <input type="file" id="fi-festlogo" class="hidden" accept="image/*" onchange="handleFestLogoFile(event)">
@@ -390,8 +394,8 @@
         <div class="form-group full">
           <label>Tags</label>
           <div class="tag-checks">
-            <label class="tag-check"><input type="checkbox" id="f-fest-tag-tickets"><div class="check-box">✓</div><span>🎟 Tickets</span></label>
-            <label class="tag-check"><input type="checkbox" id="f-fest-tag-watchlist"><div class="check-box">✓</div><span>🔖 Merkliste</span></label>
+            <label class="tag-check"><input type="checkbox" id="f-fest-tag-tickets"><div class="check-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div><span><svg class="ic" aria-hidden="true"><use href="#i-ticket"/></svg> Tickets</span></label>
+            <label class="tag-check"><input type="checkbox" id="f-fest-tag-watchlist"><div class="check-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div><span><svg class="ic" aria-hidden="true"><use href="#i-bookmark"/></svg> Merkliste</span></label>
           </div>
         </div>
       </div>
@@ -427,13 +431,13 @@
  <div class="modal" style="max-width:560px">
   <div class="modal-title">
     <span>Artists</span>
-    <button class="btn-close" onclick="closeModal('artist-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('artist-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div class="cat-list" id="artist-list"></div>
   <div class="cat-add-row">
     <input type="text" id="new-artist-name" placeholder="Neuer Artist…"
       onkeydown="if(event.key==='Enter')addArtist()">
-    <button class="btn-save" style="padding:9px 18px" onclick="addArtist()">＋ Hinzufügen</button>
+    <button class="btn-save" style="padding:9px 18px" onclick="addArtist()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Hinzufügen</button>
   </div>
  </div>
 </div>
@@ -443,7 +447,7 @@
  <div class="modal" style="max-width:560px">
   <div class="modal-title">
     <span id="adm-title">Artist</span>
-    <button class="btn-close" onclick="closeModal('artist-detail-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('artist-detail-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <!-- Two image slots -->
   <div class="adm-images">
@@ -453,7 +457,7 @@
              onclick="admPickFile('logo')"
              ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'logo')"
              title="Logo: Klicken, Drag & Drop oder Strg+V">
-          <span id="adm-logo-inner">🎤</span>
+          <span id="adm-logo-inner"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span>
         </div>
         <div class="adm-img-slot-label">Logo</div>
       </div>
@@ -461,12 +465,12 @@
       <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:12px;color:var(--muted)">
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
           <input type="radio" name="adm-slot" value="logo" id="adm-slot-logo" checked
-            onchange="if(this.checked)_admLastSlot='logo'" style="accent-color:var(--accent)">
+            onchange="if(this.checked)setAdmSlot('logo')" style="accent-color:var(--accent)">
           Logo aktiv
         </label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
           <input type="radio" name="adm-slot" value="photo" id="adm-slot-photo"
-            onchange="if(this.checked)_admLastSlot='photo'" style="accent-color:var(--accent)">
+            onchange="if(this.checked)setAdmSlot('photo')" style="accent-color:var(--accent)">
           Foto aktiv
         </label>
         <div style="font-size:10px;color:var(--border);margin-top:4px">Klicken · Drag&amp;Drop · Strg+V</div>
@@ -477,7 +481,7 @@
            onclick="admPickFile('photo')"
            ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'photo')"
            title="Foto: Klicken, Drag & Drop oder Strg+V">
-        <span id="adm-photo-inner">📷</span>
+        <span id="adm-photo-inner"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></span>
       </div>
       <div class="adm-img-slot-label">Foto</div>
     </div>
@@ -504,13 +508,13 @@
  <div class="modal" style="max-width:600px">
   <div class="modal-title">
     <span>Venues</span>
-    <button class="btn-close" onclick="closeModal('venue-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('venue-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div class="cat-list" id="venue-list"></div>
   <div class="cat-add-row">
     <input type="text" id="new-venue-name" placeholder="Venue…" style="flex:2">
     <input type="text" id="new-venue-city" placeholder="Stadt…">
-    <button class="btn-save" style="padding:9px 18px;white-space:nowrap" onclick="addVenue()">＋ Hinzufügen</button>
+    <button class="btn-save" style="padding:9px 18px;white-space:nowrap" onclick="addVenue()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Hinzufügen</button>
   </div>
  </div>
 </div>
@@ -520,7 +524,7 @@
  <div class="modal" style="max-width:540px">
   <div class="modal-title">
     <span>Design</span>
-    <button class="btn-close" onclick="closeModal('design-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('design-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div class="color-grid" id="color-grid"></div>
   <div class="form-actions" style="margin-top:20px">
@@ -535,7 +539,7 @@
  <div class="modal" style="max-width:480px">
    <div class="modal-title">
      <span>Standort-Einstellungen</span>
-     <button class="btn-close" onclick="closeModal('location-modal')">✕</button>
+     <button class="btn-close" onclick="closeModal('location-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
    </div>
    <div style="padding:8px 0 16px">
      <div class="form-group">
@@ -559,7 +563,7 @@
  <div class="modal" style="max-width:560px">
    <div class="modal-title">
      <span>Statistiken</span>
-     <button class="btn-close" onclick="closeModal('stats-modal')">✕</button>
+     <button class="btn-close" onclick="closeModal('stats-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
    </div>
    <div id="stats-content" style="padding:8px 0;max-height:70vh;overflow-y:auto"></div>
  </div>
@@ -570,18 +574,18 @@
  <div class="modal" style="max-width:480px">
    <div class="modal-title">
      <span>Backup & Restore</span>
-     <button class="btn-close" onclick="closeModal('backup-modal')">✕</button>
+     <button class="btn-close" onclick="closeModal('backup-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
    </div>
    <div style="padding:8px 0 16px">
      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Exportiere deine Events, Künstler und Einstellungen als JSON-Datei oder stelle sie aus einem Backup wieder her.</p>
      
      <div style="display:flex;flex-direction:column;gap:12px">
-       <button class="btn-save" onclick="exportBackup()">📥 Backup exportieren</button>
+       <button class="btn-save" onclick="exportBackup()"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Backup exportieren</button>
        
        <div style="border-top:1px solid var(--border);padding-top:12px">
          <label style="font-size:13px;color:var(--muted);margin-bottom:8px;display:block">Backup importieren</label>
          <input type="file" id="backup-file" accept=".json" style="display:none" onchange="importBackup(this)">
-         <button class="btn-cancel" onclick="document.getElementById('backup-file').click()">📤 Backup auswählen</button>
+         <button class="btn-cancel" onclick="document.getElementById('backup-file').click()"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Backup auswählen</button>
        </div>
      </div>
      
@@ -598,13 +602,13 @@
 <!-- ── Popover ─────────────────────────────────────────────────────── -->
 <div class="popover" id="popover"></div>
 
-<script src="/static/app.js"></script>
+<script type="module" src="/static/js/main.js"></script>
 
 <!-- Favourites tab -->
 <main id="tab-favourites" style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
     <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Gefolgte Artists</div>
-    <button class="btn-new" style="padding:7px 16px;font-size:13px" onclick="openAddFavouriteModal()">＋ Artist hinzufügen</button>
+    <button class="btn-new" style="padding:7px 16px;font-size:13px" onclick="openAddFavouriteModal()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Artist hinzufügen</button>
   </div>
   <div id="fav-list"></div>
 </main>
@@ -612,10 +616,10 @@
 <!-- Notification panel -->
 <div class="notif-panel" id="notif-panel">
   <div class="notif-panel-header">
-    <span>🔔 Benachrichtigungen</span>
+    <span><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg> Benachrichtigungen</span>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn-sm" onclick="markAllNotifRead()" style="font-size:11px">Alle gelesen</button>
-      <button class="btn-close" onclick="toggleNotifPanel()">✕</button>
+      <button class="btn-close" onclick="toggleNotifPanel()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
   </div>
   <div class="notif-list" id="notif-list"></div>
@@ -626,29 +630,29 @@
  <div class="modal" style="max-width:420px">
   <div class="modal-title">
     <span>Liste exportieren</span>
-    <button class="btn-close" onclick="closeModal('export-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('export-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div style="margin-bottom:20px">
     <div class="sec-label" style="margin-bottom:10px">Inhalt</div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <label class="tag-check" style="font-size:14px">
         <input type="checkbox" id="exp-tickets" checked>
-        <div class="check-box">✓</div>
-        <span>🎟 Tickets gekauft</span>
+        <div class="check-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
+        <span><svg class="ic" aria-hidden="true"><use href="#i-ticket"/></svg> Tickets gekauft</span>
       </label>
       <label class="tag-check" style="font-size:14px">
         <input type="checkbox" id="exp-watchlist" checked>
-        <div class="check-box">✓</div>
-        <span>🔖 Merkliste</span>
+        <div class="check-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
+        <span><svg class="ic" aria-hidden="true"><use href="#i-bookmark"/></svg> Merkliste</span>
       </label>
       <label class="tag-check" style="font-size:14px">
         <input type="checkbox" id="exp-untagged" checked>
-        <div class="check-box">✓</div>
+        <div class="check-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
         <span>Ohne Tag</span>
       </label>
       <label class="tag-check" style="font-size:14px">
         <input type="checkbox" id="exp-past" checked>
-        <div class="check-box">✓</div>
+        <div class="check-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
         <span>Vergangene Events</span>
       </label>
     </div>
@@ -666,7 +670,7 @@
       </label>
       <label style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;transition:border-color .2s" id="fmt-ical-lbl">
         <input type="radio" name="exp-fmt" value="ical" onchange="updateFmtLabels()" style="accent-color:var(--accent)">
-        <div><strong>📅 iCal</strong><div style="color:var(--muted);font-size:11px">Kalender-Apps</div></div>
+        <div><strong><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg> iCal</strong><div style="color:var(--muted);font-size:11px">Kalender-Apps</div></div>
       </label>
     </div>
   </div>
@@ -681,7 +685,7 @@
 <div class="search-results-panel" id="eventim-tours-panel">
   <div class="srp-header">
     <span id="eventim-tours-title">Suche…</span>
-    <button class="btn-close" onclick="closeSearchPanel()">✕</button>
+    <button class="btn-close" onclick="closeSearchPanel()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div class="srp-body">
     <div class="ev-tour-list" id="eventim-tour-list"></div>
@@ -694,11 +698,11 @@
  <div class="modal" style="max-width:640px">
   <div class="modal-title">
     <span id="eventim-concerts-title">Konzerte auswählen</span>
-    <button class="btn-close" onclick="closeModal('eventim-concerts-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('eventim-concerts-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div id="eventim-concerts-body">
     <label class="ev-select-all" onclick="toggleSelectAll()">
-      <div class="check-box" id="select-all-box">✓</div>
+      <div class="check-box" id="select-all-box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
       Alle auswählen / abwählen
     </label>
     <div class="ev-conc-list" id="eventim-concert-list"></div>
@@ -715,7 +719,7 @@
  <div class="modal" style="max-width:480px">
   <div class="modal-title">
     <span>Artist zu Favoriten hinzufügen</span>
-    <button class="btn-close" onclick="closeModal('add-fav-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('add-fav-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div class="form-group" style="margin-bottom:16px">
     <label>Artist suchen</label>
@@ -734,7 +738,7 @@
  <div class="modal" style="max-width:560px">
   <div class="modal-title">
     <span id="notif-event-title">Event speichern</span>
-    <button class="btn-close" onclick="closeModal('notif-event-modal')">✕</button>
+    <button class="btn-close" onclick="closeModal('notif-event-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
   <div id="notif-event-body"></div>
   <div class="form-actions">
@@ -746,7 +750,7 @@
 
 <!-- Lightbox -->
 <div class="lightbox-backdrop" id="lightbox" onclick="closeLightbox()">
-  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-close" onclick="closeLightbox()"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   <img class="lightbox-img" id="lightbox-img" src="" alt="">
 </div>
 
