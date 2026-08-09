@@ -11,7 +11,10 @@ import { state, getEvent } from './state.js';
 
 /**
  * Load all server data in parallel into `state`: events, known bands/venues
- * and the artist/venue catalogue. Does not trigger any rendering.
+ * and the artist/venue catalogue. Also pulls the syncable client-state
+ * blobs (ratings, notifications, location, venue geocoding cache) from the
+ * KV store; on first ever sync (key missing server-side) the existing
+ * localStorage value is uploaded so existing users don't lose their data.
  */
 export async function fetchAll() {
   const [evR, bR, vR, aR, vcR] = await Promise.all([
@@ -23,6 +26,71 @@ export async function fetchAll() {
   state.knownVenues = await vR.json();
   state.artists     = await aR.json();
   state.venuesCat   = await vcR.json();
+
+  await Promise.all([
+    syncKv('ratings', 'kp-ratings', 'ratings'),
+    syncKv('notifications', 'kp-notifs', 'notifications'),
+    syncKv('location', 'kp-location', 'locationSettings'),
+    syncKv('venueCache', 'kp-venue-cache'),
+  ]);
+}
+
+/**
+ * Pull one KV key from the server into `state[stateKey]` (when given) and
+ * the matching localStorage slot. If the key has never been written
+ * server-side (404), upload the current localStorage value once so it
+ * becomes the seed. localStorage is always kept in sync with the
+ * authoritative server value.
+ * @param {string} kvKey     server key ('ratings' | 'notifications' | …)
+ * @param {string} lsKey     localStorage key ('kp-ratings' | …)
+ * @param {string} [stateKey] field on `state` to write (omit for pure
+ *                           localStorage-backed caches like venueCache)
+ */
+async function syncKv(kvKey, lsKey, stateKey) {
+  try {
+    const r = await fetch(`/api/kv/${kvKey}`);
+    if (r.status === 404) {
+      const lsVal = JSON.parse(localStorage.getItem(lsKey) || 'null');
+      if (lsVal !== null) {
+        if (stateKey) state[stateKey] = lsVal;
+        saveKv(kvKey, lsVal);
+      }
+      return;
+    }
+    if (!r.ok) return;
+    const serverVal = await r.json();
+    if (stateKey) state[stateKey] = serverVal;
+    localStorage.setItem(lsKey, JSON.stringify(serverVal));
+  } catch (e) {
+    // network/server error: keep localStorage value already in state
+  }
+}
+
+// ── KV sync: debounced per-key PUT ─────────────────────────────────────────────
+
+const _kvTimers = {};
+
+/**
+ * Persist `blob` under server key `kvKey`, debounced 400ms per key so a
+ * burst of rating/notification changes results in one PUT. Fire-and-forget
+ * on error (localStorage is already updated by the caller, so the UI
+ * stays correct; next boot's syncKv will reconcile).
+ * @param {string} kvKey
+ * @param {any} blob
+ */
+export function saveKv(kvKey, blob) {
+  const prev = _kvTimers[kvKey];
+  if (prev) clearTimeout(prev);
+  _kvTimers[kvKey] = setTimeout(async () => {
+    delete _kvTimers[kvKey];
+    try {
+      await fetch(`/api/kv/${kvKey}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(blob),
+      });
+    } catch (e) { /* offline — keep going, sync next boot */ }
+  }, 400);
 }
 
 /**
@@ -83,6 +151,7 @@ export async function setConcertTag(eventId, concertId, tag, add) {
   if (add) { if (!conc.tags.includes(tag)) conc.tags.push(tag); }
   else { conc.tags = conc.tags.filter(t => t !== tag); }
   await patchEvent(ev);
+  window.dispatchEvent(new CustomEvent('datachange'));
 }
 
 /**
@@ -97,6 +166,7 @@ export async function setFestivalTag(eventId, tag, add) {
   if (add) { if (!ev.tags.includes(tag)) ev.tags.push(tag); }
   else { ev.tags = ev.tags.filter(t => t !== tag); }
   await patchEvent(ev);
+  window.dispatchEvent(new CustomEvent('datachange'));
 }
 
 /**

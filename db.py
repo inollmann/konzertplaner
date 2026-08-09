@@ -10,11 +10,12 @@ import os
 import uuid
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from concert import Artist, Concert, Event, Festival, Tour, Venue
-from models import ArtistRow, EventRow, Image, VenueRow
+from models import ArtistRow, EventRow, Image, KvRow, VenueRow
 
 # ── Engine ────────────────────────────────────────────────────────────────────
 
@@ -371,6 +372,31 @@ def get_image(img_id: str) -> Image | None:
         if not uid:
             return None
         return s.get(Image, uid)
+
+
+# ── CRUD: key-value store (syncable client state) ─────────────────────────────
+
+
+def get_kv(key: str, default: Any = None) -> Any:
+    """Return the stored value for `key`, or `default` (None when unset) if
+    the row does not exist. Value shape is opaque (dict, list, scalar)."""
+    with session() as s:
+        row = s.get(KvRow, key)
+        if row is None:
+            return default
+        return row.value
+
+
+def set_kv(key: str, value: Any) -> None:
+    """Upsert `value` under `key`, bumping `updated_at`."""
+    with session() as s:
+        row = s.get(KvRow, key)
+        if row is None:
+            s.add(KvRow(key=key, value=value))
+        else:
+            row.value = value
+            row.updated_at = datetime.now(UTC)
+        s.commit()
 
 
 # ── Auto-migration from JSON + on-disk images ─────────────────────────────────

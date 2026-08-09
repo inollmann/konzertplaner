@@ -13,7 +13,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { loadColors, loadTheme, applyCustomCss } from './theme.js';
+import { loadTheme, applyCustomCss } from './theme.js';
 import { fetchAll } from './api.js';
 import { renderList } from './list.js';
 import { renderCalendar } from './calendar.js';
@@ -26,7 +26,6 @@ import { updateAllFilterVisuals } from './filters.js';
 import './globals.js';
 
 // ── Boot: theme + initial load ──────────────────────────────────────────
-loadColors();
 loadTheme();
 applyCustomCss();
 
@@ -87,6 +86,11 @@ window.addEventListener('datachange', () => {
   renderCalendar();
   renderTimeline();
   if (state.currentTab === 'shows') renderShows();
+  const bd = document.getElementById('detail-bd');
+  if (bd && bd.classList.contains('open') && state.openDetailId) {
+    const ev = state.allEvents.find(x => x.id === state.openDetailId);
+    if (ev) document.getElementById('detail-panel').innerHTML = window.buildDetailHTML(ev);
+  }
 });
 
 window.addEventListener('showsfilterchange', () => {

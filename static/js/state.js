@@ -38,6 +38,7 @@ export const today = new Date();
  *   favCardState: Record<string, any>,
  *   locationSettings: {city:string, preferred:string[]},
  *   statEvents: Array<any>,
+ *   openDetailId: string|null,
  * }}
  */
 export const state = {
@@ -63,6 +64,7 @@ export const state = {
   favCardState: {},
   locationSettings: JSON.parse(localStorage.getItem('kp-location') || '{"city":"","preferred":[]}'),
   statEvents: [],
+  openDetailId: null,
 };
 
 /**

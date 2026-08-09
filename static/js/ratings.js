@@ -13,10 +13,13 @@
 import { state, getEvent } from './state.js';
 import { esc, localIso, eventLatestDate, fmtDateShort, pipColor } from './utils.js';
 import { icon } from './icons.js';
+import { saveKv } from './api.js';
 
-/** Persist `state.ratings` to localStorage. */
+/** Persist `state.ratings` to localStorage (instant UI cache) and push to
+ *  the server KV store (debounced) so ratings sync across devices. */
 export function saveRatings() {
   localStorage.setItem('kp-ratings', JSON.stringify(state.ratings));
+  saveKv('ratings', state.ratings);
 }
 
 /**

@@ -1,5 +1,7 @@
 """SQLModel table definitions for Konzertplaner (PostgreSQL)."""
 
+from typing import Any
+
 import uuid
 from datetime import UTC, date, datetime
 
@@ -58,3 +60,15 @@ class VenueRow(SQLModel, table=True):
     name: str = ""
     city: str = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class KvRow(SQLModel, table=True):
+    """Generic key-value store for per-user client state that should sync
+    across devices (ratings, notifications, location settings). Value is a
+    JSONB blob (dict or list); structure is opaque to the server."""
+
+    __tablename__ = "kv"
+
+    key: str = Field(primary_key=True)
+    value: Any = Field(sa_column=Column(JSON().with_variant(JSONB, "postgresql")))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

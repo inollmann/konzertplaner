@@ -12,11 +12,13 @@ from db import (
     get_artist,
     get_event,
     get_image,
+    get_kv,
     get_venue,
     init_db,
     list_artists,
     list_events,
     list_venues,
+    set_kv,
     upsert_artist,
     upsert_event,
     upsert_venue,
@@ -848,6 +850,30 @@ def update_venue(vid):
 def delete_venue(vid):
     if not delete_venue_db(vid):
         return jsonify({"error": "Not found"}), 404
+    return jsonify({"ok": True})
+
+
+# ── Key-Value sync store ──────────────────────────────────────────────────────
+# Generic JSONB key-value store for per-user client state that should sync
+# across devices: ratings, notifications, location settings. The frontend
+# uses the keys "ratings", "notifications", "location"; the server is
+# intentionally agnostic about the value shape.
+
+
+@app.route("/api/kv/<key>", methods=["GET"])
+def get_kv_route(key):
+    val = get_kv(key)
+    if val is None:
+        return jsonify(None), 404
+    return jsonify(val)
+
+
+@app.route("/api/kv/<key>", methods=["PUT"])
+def set_kv_route(key):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON object required"}), 400
+    set_kv(key, data)
     return jsonify({"ok": True})
 
 

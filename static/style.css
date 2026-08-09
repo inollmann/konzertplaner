@@ -1383,14 +1383,6 @@ input.search-input::placeholder { color: var(--muted); }
   padding: var(--space-1) var(--space-2); transition: transform var(--dur-fast);
 }
 .follow-btn:hover { transform: scale(1.2); }
-/* Theme toggle */
-.theme-toggle {
-  background: none; border: 1px solid var(--border); border-radius: var(--radius-md);
-  width: 36px; height: 36px; font-size: var(--text-lg); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all var(--dur-fast);
-}
-.theme-toggle:hover { border-color: var(--text); }
 
 /* Notification bell */
 .notif-btn {
@@ -1537,3 +1529,9 @@ input.search-input::placeholder { color: var(--muted); }
 #unrecognized-venues-list .unrecognized-info { font-size: var(--text-sm); }
 #unrecognized-venues-list .unrecognized-info span:first-child { font-weight: 500; }
 #unrecognized-venues-list .unrecognized-info span:last-child { color: var(--muted); margin-left: var(--space-3); }
+
+/* Design modal preset buttons */
+.preset-btn { display: inline-flex; align-items: center; gap: 4px; }
+.preset-btn.preset-active { border-color: var(--accent); color: var(--accent); }
+.preset-del { margin-left: 4px; opacity: .55; cursor: pointer; display: inline-flex; align-items: center; }
+.preset-del:hover { opacity: 1; color: var(--danger); }

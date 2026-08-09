@@ -267,6 +267,7 @@ export function renderFestCard(fest, isPast) {
 export function openDetail(id) {
   const ev = getEvent(id);
   if (!ev) return;
+  state.openDetailId = id;
   const bd = document.getElementById('detail-bd');
   const panel = document.getElementById('detail-panel');
   panel.innerHTML = buildDetailHTML(ev);
@@ -276,6 +277,7 @@ export function openDetail(id) {
 
 /** Close the detail panel and restore body scroll. */
 export function closeDetail() {
+  state.openDetailId = null;
   document.getElementById('detail-bd').classList.remove('open');
   document.body.style.overflow = '';
 }
@@ -405,12 +407,12 @@ export function buildDetailHTML(ev) {
         ${c.price?`<div class="concert-price">${fmtPrice(c.price)}</div>`:''}
         ${c.ticket_link?`<a href="${esc(c.ticket_link)}" target="_blank" rel="noopener" class="ticket-link-btn">Ticketlink</a>`:''}
         <div class="tags">
-          <button class="tag-toggle ${c.tags.includes('tickets')?'active-tickets':''}"
-            onclick="event.stopPropagation();setConcertTag('${ev.id}','${c.id}','tickets',${!c.tags.includes('tickets')});void 0">
+          <button class="tag-toggle ${(c.tags||[]).includes('tickets')?'active-tickets':''}"
+            onclick="event.stopPropagation();setConcertTag('${ev.id}','${c.id}','tickets',${!(c.tags||[]).includes('tickets')});void 0">
             ${icon('ticket')} Tickets
           </button>
-          <button class="tag-toggle ${c.tags.includes('watchlist')?'active-watchlist':''}"
-            onclick="event.stopPropagation();setConcertTag('${ev.id}','${c.id}','watchlist',${!c.tags.includes('watchlist')});void 0">
+          <button class="tag-toggle ${(c.tags||[]).includes('watchlist')?'active-watchlist':''}"
+            onclick="event.stopPropagation();setConcertTag('${ev.id}','${c.id}','watchlist',${!(c.tags||[]).includes('watchlist')});void 0">
             ${icon('bookmark')} Merkliste
           </button>
         </div>

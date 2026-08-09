@@ -18,17 +18,19 @@
 import { state } from './state.js';
 import { esc, parseDate, fmtDateShort, venueMapHtml } from './utils.js';
 import { openModal, closeModal } from './ui.js';
-import { fetchAll } from './api.js';
+import { fetchAll, saveKv } from './api.js';
 import { icon } from './icons.js';
 
 let _notifImportData = null;
 let _lastEventimCheck = {};
 let _pollInterval = null;
 
-/** Cap `state.notifications` to the most recent 50 and persist to localStorage. */
+/** Cap `state.notifications` to the most recent 50 and persist to localStorage
+ *  (instant UI cache) plus the server KV store (debounced) for cross-device sync. */
 export function saveNotifications() {
   state.notifications = state.notifications.slice(-50);
   localStorage.setItem('kp-notifs', JSON.stringify(state.notifications));
+  saveKv('notifications', state.notifications);
 }
 
 /** Update the `#notif-badge` unread count/visibility from `state.notifications`. */

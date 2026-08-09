@@ -6,6 +6,7 @@ static/posters/*
 CLAUDE.md
 opencode.json
 node_modules/
+graphify-out/
 
 # Python-generated files
 __pycache__/

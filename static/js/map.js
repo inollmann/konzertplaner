@@ -24,6 +24,7 @@ import { state } from './state.js';
 import { esc } from './utils.js';
 import { eventVisible } from './filters.js';
 import { icon } from './icons.js';
+import { saveKv } from './api.js';
 
 // ── Module-local state ───────────────────────────────────────────────
 let mapInstance = null;
@@ -46,6 +47,7 @@ function getVenueCache() {
 }
 function saveVenueCache(cache) {
   localStorage.setItem('kp-venue-cache', JSON.stringify(cache));
+  saveKv('venueCache', cache);
 }
 
 /**

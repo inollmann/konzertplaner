@@ -22,8 +22,8 @@
 import { state } from './state.js';
 import { esc, localIso, parseDate, fmtDateShort, fmtPrice, dlBlob, eventLatestDate, eventEarliestDate } from './utils.js';
 import { openModal, closeModal, closeDrawer } from './ui.js';
-import { fetchAll } from './api.js';
-import { loadTheme, loadColors } from './theme.js';
+import { fetchAll, saveKv } from './api.js';
+import { loadTheme } from './theme.js';
 import { updateNotifBadge } from './notifications.js';
 import { icon } from './icons.js';
 
@@ -37,13 +37,16 @@ export function openLocationSettings() {
   openModal('location-modal');
 }
 
-/** Read the location form, persist to `state.locationSettings` + localStorage, close the modal. */
+/** Read the location form, persist to `state.locationSettings` + localStorage
+ *  (instant UI cache) and push to the server KV store (debounced) so the
+ *  setting syncs across devices, then close the modal. */
 export function saveLocationSettings() {
   const city = document.getElementById('location-city').value.trim();
   const preferredStr = document.getElementById('location-preferred').value;
   const preferred = preferredStr.split(',').map(s => s.trim()).filter(s => s);
   state.locationSettings = { city, preferred };
   localStorage.setItem('kp-location', JSON.stringify(state.locationSettings));
+  saveKv('location', state.locationSettings);
   closeModal('location-modal');
 }
 
@@ -83,8 +86,8 @@ export async function exportBackup() {
       colors: JSON.parse(localStorage.getItem('kp-colors') || '{}'),
       customCss: localStorage.getItem('kp-custom-css') || ''
     },
-    ratings: JSON.parse(localStorage.getItem('kp-ratings') || '{}'),
-    notifications: JSON.parse(localStorage.getItem('kp-notifs') || '[]')
+    ratings: state.ratings,
+    notifications: state.notifications
   };
 
   dlBlob(
@@ -142,14 +145,18 @@ export async function importBackup(input) {
       if (backup.settings.location) {
         state.locationSettings = backup.settings.location;
         localStorage.setItem('kp-location', JSON.stringify(state.locationSettings));
-      }
-      if (backup.settings.theme) {
-        localStorage.setItem('kp-theme', backup.settings.theme);
-        loadTheme();
+        saveKv('location', state.locationSettings);
       }
       if (backup.settings.colors) {
         localStorage.setItem('kp-colors', JSON.stringify(backup.settings.colors));
-        loadColors();
+      }
+
+      if (backup.settings.theme) {
+        localStorage.setItem('kp-theme', backup.settings.theme);
+      }
+
+      if (backup.settings.colors || backup.settings.theme) {
+        loadTheme();
       }
       if (backup.settings.customCss) {
         localStorage.setItem('kp-custom-css', backup.settings.customCss);
@@ -159,11 +166,14 @@ export async function importBackup(input) {
     if (backup.ratings) {
       localStorage.setItem('kp-ratings', JSON.stringify(backup.ratings));
       state.ratings = backup.ratings;
+      saveKv('ratings', backup.ratings);
     }
 
     if (backup.notifications) {
-      localStorage.setItem('kp-notifs', JSON.stringify(backup.notifications.slice(-50)));
-      state.notifications = backup.notifications.slice(-50);
+      const notifs = backup.notifications.slice(-50);
+      localStorage.setItem('kp-notifs', JSON.stringify(notifs));
+      state.notifications = notifs;
+      saveKv('notifications', notifs);
       updateNotifBadge();
     }
 
