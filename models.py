@@ -1,9 +1,8 @@
 """SQLModel table definitions for Konzertplaner (PostgreSQL)."""
 
-from typing import Any
-
 import uuid
 from datetime import UTC, date, datetime
+from typing import Any
 
 from sqlalchemy import JSON, Column, LargeBinary
 from sqlalchemy.dialects.postgresql import JSONB
