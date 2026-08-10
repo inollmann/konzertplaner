@@ -1,0 +1,27 @@
+# Local pre-commit hooks. Use the project's uv venv / npm so hook versions
+# always match CI (pyproject.toml / package.json) — no version drift.
+# Install once after clone:  uv run pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (Python)
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: ruff-format
+        name: ruff format (Python)
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: tsc
+        name: tsc --noEmit (JS/TS)
+        entry: npx tsc --noEmit
+        language: system
+        pass_filenames: false        # tsc reads tsconfig.json, no file list
+        files: ^static/js/.*\.(js|d\.ts)$
+        types: [file]

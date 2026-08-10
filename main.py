@@ -634,7 +634,7 @@ def get_event_invite(eid):
     return jsonify(
         {
             "invite_url": invite_url,
-            "event_name": ev.name if ev.event_type == "festival" else ev.artist,  # type: ignore[attr-defined]
+            "event_name": ev.name if ev.event_type == "festival" else artist_for_invite,
         }
     )
 

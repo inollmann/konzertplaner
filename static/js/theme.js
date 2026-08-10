@@ -191,6 +191,18 @@ export function applyCustomCss() {
   document.head.appendChild(style);
 }
 
+function toHexColor(val) {
+  if (!val) return '#000000';
+  const el = document.createElement('div');
+  el.style.color = val;
+  document.body.appendChild(el);
+  const rgb = getComputedStyle(el).color;
+  document.body.removeChild(el);
+  const m = rgb.match(/(\d+),\s*(\d+),\s*(\d+)/);
+  if (!m) return '#000000';
+  return '#' + [m[1], m[2], m[3]].map(n => Number(n).toString(16).padStart(2, '0')).join('');
+}
+
 /** Build the in-app Design modal's preset row + action buttons + color grid. */
 export function buildColorGrid() {
   const grid = document.getElementById('color-grid');
@@ -216,7 +228,7 @@ export function buildColorGrid() {
     const val = getComputedStyle(document.documentElement).getPropertyValue(c.key).trim();
     return `<div class="color-row">
       <label>${c.label}</label>
-      <input type="color" value="${val}" oninput="saveColors('${c.key}',this.value)">
+      <input type="color" value="${toHexColor(val)}" oninput="saveColors('${c.key}',this.value)">
     </div>`;
   }).join('');
 }

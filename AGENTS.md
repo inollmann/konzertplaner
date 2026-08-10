@@ -6,6 +6,7 @@ Local concert/tour planning app: Flask backend + vanilla-JS single-page frontend
 
 ```bash
 uv venv --python 3.13 && uv sync   # dev setup (uv is the package manager)
+uv run pre-commit install          # once after clone — activates .git/hooks/pre-commit
 python main.py                     # server on http://localhost:5000, debug=True
 # or: docker compose up --build    # uses requirements.txt, NOT pyproject.toml
 ```
@@ -94,10 +95,27 @@ Proxies `https://public-api.eventim.com` to dodge browser CORS. `_eventim_get()`
 
 ## Verification
 
-**There is no test suite, linter, formatter, or CI.** No `pytest`, `ruff`, `mypy`, `.github/workflows`. To verify a change:
-- **Type check**: `npx tsc --noEmit` (at repo root; TypeScript installed as dev dependency)
-- **Runtime**: run `python main.py` and exercise the affected feature in the browser at http://localhost:5000.
-- `import concert; ...` smoke-checks are fine for model edits. Do not invent a "run the tests" step — there is none.
+CI (`.github/workflows/ci.yml`) runs on every push to `main` and on PRs across six jobs:
+- **Lint (ruff)**: `uv run ruff check` + `uv run ruff format --check`
+- **Tests (pytest)**: `uv run pytest --cov --cov-report=xml` — 214 tests; 7 e2e tests deselected by default via `-m "not e2e"`
+- **Typecheck (tsc)**: `npx tsc --noEmit` (uses `tsconfig.json`, `checkJs: true`)
+- **Tests (vitest)**: `npm test` — 78 tests across `static/js/*.test.js`
+- **E2E (Playwright)**: `uv run pytest -m e2e` (chromium)
+- **Docker build**: `docker build .`
+
+Local pre-commit hooks (`.pre-commit-config.yaml`, run via `uv run pre-commit run --all-files`):
+- `ruff check --fix` + `ruff format` on staged Python files
+- `tsc --noEmit` when `static/js/**` is touched
+
+Run checks manually:
+- **Lint**: `uv run ruff check && uv run ruff format --check`
+- **Type check**: `npx tsc --noEmit`
+- **Python tests**: `uv run pytest` (add `-m e2e` for Playwright)
+- **JS tests**: `npm test`
+- **All pre-commit hooks**: `uv run pre-commit run --all-files`
+- **Runtime**: run `python main.py` and exercise the affected feature at http://localhost:5000.
+
+`import concert; ...` smoke-checks are also fine for quick model edits.
 
 ## Working notes
 
