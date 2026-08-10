@@ -27,6 +27,8 @@ import { loadTheme } from './theme.js';
 import { updateNotifBadge } from './notifications.js';
 import { icon } from './icons.js';
 
+let _statsWired = false;
+
 // ── Location settings ─────────────────────────────────────────────────
 
 /** Open the location-settings modal, pre-filling fields from `state.locationSettings`. */
@@ -194,7 +196,15 @@ export function openStatistics() {
   closeDrawer();
   const stats = calculateStats();
   state.statEvents = stats.allTicketEvents;
-  document.getElementById('stats-content').innerHTML = renderStatsHtml(stats);
+  const host = document.getElementById('stats-content');
+  host.innerHTML = renderStatsHtml(stats);
+  if (!_statsWired) {
+    _statsWired = true;
+    host.addEventListener('click', e => {
+      const card = e.target.closest('[data-stat-key]');
+      if (card) showStatDetail(card.dataset.statKey);
+    });
+  }
   openModal('stats-modal');
 }
 
@@ -287,26 +297,26 @@ export function renderStatsHtml(s) {
   const maxYear = Math.max(...Object.values(s.byYear), 1);
 
   return `<div class="stat-grid">
-    <div class="stat-card" onclick="showStatDetail('all')">
+    <button class="unstyled stat-card" type="button" data-stat-key="all" style="display:block;padding:var(--space-8);text-align:center">
       <div class="stat-value">${s.totalEvents}</div>
       <div class="stat-label">Events gesamt</div>
-    </div>
-    <div class="stat-card" onclick="showStatDetail('concerts')">
+    </button>
+    <button class="unstyled stat-card" type="button" data-stat-key="concerts" style="display:block;padding:var(--space-8);text-align:center">
       <div class="stat-value">${s.totalConcerts}</div>
       <div class="stat-label">Konzerte</div>
-    </div>
-    <div class="stat-card" onclick="showStatDetail('festivals')">
+    </button>
+    <button class="unstyled stat-card" type="button" data-stat-key="festivals" style="display:block;padding:var(--space-8);text-align:center">
       <div class="stat-value">${s.totalFestivals}</div>
       <div class="stat-label">Festivals</div>
-    </div>
-    <div class="stat-card" onclick="showStatDetail('spent')">
+    </button>
+    <button class="unstyled stat-card" type="button" data-stat-key="spent" style="display:block;padding:var(--space-8);text-align:center">
       <div class="stat-value">${fmtPrice(s.totalSpent)}</div>
       <div class="stat-label">Geschätzt ausgegeben</div>
-    </div>
-    <div class="stat-card full" onclick="showStatDetail('year')">
+    </button>
+    <button class="unstyled stat-card full" type="button" data-stat-key="year" style="display:block;padding:var(--space-8);text-align:center">
       <div class="stat-value">${s.thisYearCount}</div>
       <div class="stat-label">${new Date().getFullYear()} ${s.yearChange !== 0 ? `(${s.yearChange > 0 ? '+' : ''}${s.yearChange}%)` : ''}</div>
-    </div>
+    </button>
   </div>
 
   ${s.topArtists.length ? `<div class="stat-section">

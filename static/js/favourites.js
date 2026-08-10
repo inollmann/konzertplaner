@@ -21,6 +21,7 @@ import { openNotifEventModal } from './notifications.js';
 import { icon } from './icons.js';
 
 let _favSearchTimeout = null;
+let _favListWired = false;
 
 /**
  * Render the favourites list: empty state when no followed artists,
@@ -28,6 +29,20 @@ let _favSearchTimeout = null;
  */
 export async function renderFavourites() {
   const el = document.getElementById('fav-list');
+  if (!_favListWired) {
+    _favListWired = true;
+    el.addEventListener('click', e => {
+      const header = e.target.closest('[data-fav-id]');
+      if (header) { window.toggleFavCard?.(header.dataset.favId, header.dataset.favName); return; }
+      const row = e.target.closest('[data-notif-enc]');
+      if (row) { window.openNotifEventModalEnc?.(row.dataset.notifEnc, row.dataset.artistEnc); return; }
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const row = e.target.closest('[data-notif-enc]');
+      if (row) { e.preventDefault(); window.openNotifEventModalEnc?.(row.dataset.notifEnc, row.dataset.artistEnc); }
+    });
+  }
   const followed = state.artists.filter(a => a.followed && a.id);
   if (!followed.length) {
     el.innerHTML = `<div class="empty-state">
@@ -75,7 +90,7 @@ export function buildFavCard(a) {
         const d = parseDate(c.date);
         const cJson = encodeURIComponent(JSON.stringify(c));
         const aJson = encodeURIComponent(JSON.stringify(a.name));
-        return `<div class="fav-event-row" onclick="openNotifEventModalEnc('${cJson}','${aJson}')">
+        return `<div class="fav-event-row" role="button" tabindex="0" data-notif-enc="${cJson}" data-artist-enc="${aJson}" aria-label="${esc((c.venue||c.name||'Konzert')+(c.city?', '+c.city:''))}">
           <div class="date-block" style="padding-top:0">
             <div class="date-day" style="font-size:1.5rem">${d.day}</div>
             <div class="date-month">${d.month}</div>
@@ -97,14 +112,14 @@ export function buildFavCard(a) {
     }
   }
   return `<div class="fav-card ${isOpen?'open':''}" id="fav-card-${a.id}">
-    <div class="fav-card-header" onclick="toggleFavCard('${a.id}','${(a.eventim_name||a.name).replace(/'/g,"\'")}')">
+    <button class="unstyled fav-card-header" type="button" data-fav-id="${a.id}" data-fav-name="${esc(a.eventim_name||a.name)}" style="display:flex;padding:var(--space-7) var(--space-8)">
       ${logoHtml}
       <div style="flex:1;min-width:0">
         <div class="fav-artist-name">${esc(a.name)}</div>
         ${evimLabel}
       </div>
       <span class="fav-chevron">${icon('chevron-right')}</span>
-    </div>
+    </button>
     <div class="fav-events-body">${bodyHtml}</div>
   </div>`;
 }

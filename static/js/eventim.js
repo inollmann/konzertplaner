@@ -14,7 +14,7 @@
 
 import { state } from './state.js';
 import { esc, parseDate, fmtDateShort } from './utils.js';
-import { openModal, closeModal, switchTab } from './ui.js';
+import { openModal, closeModal, switchTab, showAlert } from './ui.js';
 import { fetchAll } from './api.js';
 import { getLocationCity, getPreferredCities } from './tools.js';
 import { icon } from './icons.js';
@@ -25,6 +25,8 @@ let _currentSearchTerm = '';
 let _currentTour = null;
 let _selectedConcerts = new Set();
 let _eventimTours = [];
+let _tourListWired = false;
+let _concertListWired = false;
 
 /**
  * Input handler for the Eventim search box: toggles the clear button,
@@ -67,7 +69,7 @@ export async function doSearch(page) {
     showToursModal(q, data);
   } catch(err) {
     console.error('Eventim:', err);
-    alert(`Eventim-Suche fehlgeschlagen:\n${err.message}\n\nTipp: F12 → Konsole für Details.`);
+    showAlert(`Eventim-Suche fehlgeschlagen:\n${err.message}\n\nTipp: F12 → Konsole für Details.`);
   } finally {
     spinner.classList.remove('visible');
     document.getElementById('search-clear').classList.toggle('visible',
@@ -98,15 +100,23 @@ export function showToursModal(query, data) {
             ? fmtDateShort(dates[0])
             : `${fmtDateShort(dates[0])} – ${fmtDateShort(dates[dates.length-1])}`)
         : '';
-      return `<div class="ev-tour-item" onclick="showConcertsModal(${i})">
+      return `<button class="unstyled ev-tour-item" type="button" data-tour-idx="${i}">
         <div class="ev-tour-icon">${icon('guitar')}</div>
         <div class="ev-tour-meta">
           <div class="ev-tour-artist">${esc(tour.artist)}</div>
           <div class="ev-tour-name">${esc(tour.tour_name)}${dateRange ? ' · ' + dateRange : ''}</div>
         </div>
         <div class="ev-tour-count">${tour.concerts.length} Termin${tour.concerts.length !== 1 ? 'e' : ''} ${icon('arrow-right')}</div>
-      </div>`;
+      </button>`;
     }).join('');
+  }
+
+  if (!_tourListWired) {
+    _tourListWired = true;
+    list.addEventListener('click', e => {
+      const item = e.target.closest('[data-tour-idx]');
+      if (item) showConcertsModal(Number(item.dataset.tourIdx));
+    });
   }
 
   const pag = document.getElementById('eventim-pagination');
@@ -196,7 +206,7 @@ export function renderConcertSelection() {
   const renderItem = (c, i) => {
     const d = parseDate(c.date);
     const sel = _selectedConcerts.has(c._origIdx);
-    return `<div class="ev-conc-item ${sel ? 'selected' : ''}" onclick="toggleConcert(${c._origIdx})">
+    return `<button class="unstyled ev-conc-item ${sel ? 'selected' : ''}" type="button" data-concert-idx="${c._origIdx}">
       <div class="ev-conc-check"><div class="check-box">${sel ? icon('check') : ''}</div></div>
       <div class="ev-conc-date">
         <div class="date-day">${d.day || '?'}</div>
@@ -214,13 +224,21 @@ export function renderConcertSelection() {
         </div>
         ${c.link ? `<div style="margin-top:4px"><a href="${esc(c.link)}" target="_blank" rel="noopener" class="ticket-link-btn" onclick="event.stopPropagation()" style="font-size:10px;padding:2px 7px">${icon('check')} Eventim</a></div>` : ''}
       </div>
-    </div>`;
+    </button>`;
   };
 
   const priorityHtml = sorted.slice(0, splitIdx).map(renderItem).join('');
   const otherHtml = sorted.slice(splitIdx).map(renderItem).join('');
 
   list.innerHTML = priorityHtml + (otherHtml ? `<div class="ev-conc-divider"><span>Weitere Termine</span></div>` + otherHtml : '');
+
+  if (!_concertListWired) {
+    _concertListWired = true;
+    list.addEventListener('click', e => {
+      const item = e.target.closest('[data-concert-idx]');
+      if (item) toggleConcert(Number(item.dataset.concertIdx));
+    });
+  }
 }
 
 /**
@@ -250,7 +268,7 @@ export function toggleSelectAll() {
  */
 export async function importEventimTour() {
   if (!_currentTour) return;
-  if (_selectedConcerts.size === 0) { alert('Bitte mindestens einen Termin auswählen.'); return; }
+  if (_selectedConcerts.size === 0) { showAlert('Bitte mindestens einen Termin auswählen.'); return; }
 
   const selected = _currentTour.concerts.filter((_, i) => _selectedConcerts.has(i));
   const payload = {
@@ -286,6 +304,6 @@ export async function importEventimTour() {
     const listTab = document.querySelector('.tab');
     if (listTab) switchTab('list', listTab);
   } catch(err) {
-    alert('Fehler beim Speichern: ' + err.message);
+    showAlert('Fehler beim Speichern: ' + err.message);
   }
 }

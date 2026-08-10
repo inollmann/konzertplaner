@@ -16,7 +16,7 @@
 
 import { state, getEvent } from './state.js';
 import { esc, localIso, parseDate, fmtDateShort, eventLatestDate } from './utils.js';
-import { openModal, closeModal, closeDrawer } from './ui.js';
+import { openModal, closeModal, closeDrawer, showAlert, showConfirm } from './ui.js';
 import { reloadCatalogue, uploadArtistImg, toggleFollow } from './api.js';
 import { artistRatingsSummary, artistDetailRatingsHtml } from './ratings.js';
 import { icon } from './icons.js';
@@ -25,6 +25,7 @@ let _admStore = [];  // temp array to pass artist objects safely via index
 let _admCurrentArtist = null;
 let _admPendingBlob   = null;
 let _admLastSlot = 'logo';
+let _artistListWired = false;
 
 /** Open the artist catalogue modal: close drawer, (re)render the list, show the modal. */
 export function openArtistCatalogue() {
@@ -41,6 +42,18 @@ export function openArtistCatalogue() {
 export function renderArtistList() {
   _admStore = [];
   const el = document.getElementById('artist-list');
+  if (!_artistListWired) {
+    _artistListWired = true;
+    el.addEventListener('click', e => {
+      const card = e.target.closest('[data-artist-idx]');
+      if (card) window.openArtistDetailById?.(parseInt(card.dataset.artistIdx));
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('[data-artist-idx]');
+      if (card) { e.preventDefault(); window.openArtistDetailById?.(parseInt(card.dataset.artistIdx)); }
+    });
+  }
   if (!state.artists.length) {
     el.innerHTML = '<div class="empty-state"><div class="icon">'+icon('mic')+'</div><h3>Noch keine Artists gespeichert</h3><p>Füge Artists über die Suche oder Eventim hinzu.</p></div>';
     return;
@@ -54,7 +67,7 @@ export function renderArtistList() {
     if (a.derived) {
       const followStar = a.followed ? icon('star-filled') : icon('star');
       const followStyle = a.followed ? 'color:var(--accent)' : 'color:var(--muted)';
-      return `<div class="cat-item" style="cursor:pointer;flex-wrap:wrap" onclick="openArtistDetailById(${_admStore.push(a)-1})">
+      return `<div class="cat-item" style="flex-wrap:wrap" role="button" tabindex="0" data-artist-idx="${_admStore.push(a)-1}" aria-label="${esc(a.name)}">
         <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
           ${logoEl}${nameEl}
         </div>
@@ -67,7 +80,7 @@ export function renderArtistList() {
     }
     const followStar = a.followed ? icon('star-filled') : icon('star');
     const followStyle = a.followed ? 'color:var(--accent)' : 'color:var(--muted)';
-    return `<div class="cat-item" style="cursor:pointer;flex-wrap:wrap" onclick="openArtistDetailById(${_admStore.push(a)-1})">
+    return `<div class="cat-item" style="flex-wrap:wrap" role="button" tabindex="0" data-artist-idx="${_admStore.push(a)-1}" aria-label="${esc(a.name)}">
       <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
         ${logoEl}${nameEl}
       </div>
@@ -157,11 +170,12 @@ export async function deleteCurrentArtist() {
     closeModal('artist-detail-modal');
     return;
   }
-  if (!confirm(`Artist "${a.name}" löschen?`)) return;
-  await fetch('/api/artists/'+a.id, { method:'DELETE' });
-  await reloadCatalogue();
-  renderArtistList();
-  closeModal('artist-detail-modal');
+  showConfirm(`Artist "${a.name}" löschen?`, async () => {
+    await fetch('/api/artists/'+a.id, { method:'DELETE' });
+    await reloadCatalogue();
+    renderArtistList();
+    closeModal('artist-detail-modal');
+  });
 }
 
 /**
@@ -172,7 +186,7 @@ export async function deleteCurrentArtist() {
  */
 export async function saveArtistDetail() {
   const name = document.getElementById('adm-name').value.trim();
-  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  if (!name) { showAlert('Bitte einen Namen eingeben.'); return; }
   const a = _admCurrentArtist;
   const logoFilename  = _admPendingBlob.logo  ? await uploadArtistImg(_admPendingBlob.logo, name, 'logo')  : (a.logo  || null);
   const photoFilename = _admPendingBlob.photo ? await uploadArtistImg(_admPendingBlob.photo, name, 'photo') : (a.photo || null);
@@ -199,10 +213,11 @@ export async function addArtist() {
 
 /** Delete the artist `id` after confirmation, then reload & re-render. @param {string} id @returns {Promise<void>} */
 export async function deleteArtist(id) {
-  if (!confirm('Artist löschen?')) return;
-  await fetch('/api/artists/'+id, { method:'DELETE' });
-  await reloadCatalogue();
-  renderArtistList();
+  showConfirm('Artist löschen?', async () => {
+    await fetch('/api/artists/'+id, { method:'DELETE' });
+    await reloadCatalogue();
+    renderArtistList();
+  });
 }
 
 /** Open the venue catalogue modal: close drawer, (re)render the list, show the modal. */
@@ -263,10 +278,11 @@ export async function saveVenue(id) {
 
 /** Delete venue `id` after confirmation, then reload & re-render. @param {string} id @returns {Promise<void>} */
 export async function deleteVenue(id) {
-  if (!confirm('Venue löschen?')) return;
-  await fetch('/api/venues-catalogue/'+id, { method:'DELETE' });
-  await reloadCatalogue();
-  renderVenueList();
+  showConfirm('Venue löschen?', async () => {
+    await fetch('/api/venues-catalogue/'+id, { method:'DELETE' });
+    await reloadCatalogue();
+    renderVenueList();
+  });
 }
 
 /**

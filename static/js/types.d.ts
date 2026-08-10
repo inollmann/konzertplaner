@@ -26,6 +26,7 @@ declare global {
   }
   interface EventTarget {
     getBoundingClientRect(): any;
+    closest(selectors: string): any;
   }
 
   const L: any;

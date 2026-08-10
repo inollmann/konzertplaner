@@ -24,6 +24,8 @@ import { icon } from './icons.js';
 import { getRating, ratingBarHtml, renderDetailRatings } from './ratings.js';
 import { eventVisible, getListSort } from './filters.js';
 
+let _listClickWired = false;
+
 function eventMinPrice(ev) {
   if (ev.event_type === 'festival') {
     const p = parseFloat(ev.price);
@@ -63,6 +65,18 @@ function compareEvents(a, b, sort) {
  */
 export function renderList() {
   const el = document.getElementById('event-list');
+  if (!_listClickWired) {
+    _listClickWired = true;
+    el.addEventListener('click', e => {
+      const card = e.target.closest('[data-event-id]');
+      if (card) window.openDetail?.(card.dataset.eventId);
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('[data-event-id]');
+      if (card) { e.preventDefault(); window.openDetail?.(card.dataset.eventId); }
+    });
+  }
   const vis = state.allEvents.filter(ev => eventVisible(ev));
   const todayIso = localIso(new Date());
   const upcoming = [], past = [];
@@ -130,7 +144,7 @@ export function renderWallCard(ev, isPast) {
   const hasTickets = tags.includes('tickets');
   const hasWatch = tags.includes('watchlist');
   const stripe = hasTickets ? ' has-tickets' : (hasWatch ? ' has-watch' : '');
-  return `<div class="poster-card${stripe}" onclick="openDetail('${ev.id}')">
+  return `<button class="unstyled poster-card${stripe}" type="button" data-event-id="${ev.id}">
     <div class="poster-card-img">${posterInner}</div>
     <div class="poster-card-overlay">
       <span class="type-badge ${typeClass}">${typeLabel}</span>
@@ -141,7 +155,7 @@ export function renderWallCard(ev, isPast) {
         ${venue ? `<span>${icon('map-pin')} ${venue}</span>` : ''}
       </div>
     </div>
-  </div>`;
+  </button>`;
 }
 
 /**
@@ -160,7 +174,7 @@ export function renderTourCard(tour, isPast) {
     : tour.concerts;
   const concertsHtml = concerts.map(c => renderConcertRow(c, tour.id, isPast)).join('');
   const earliest = concerts.length ? concerts.reduce((min, c) => !min || c.date < min ? c.date : min, null) : null;
-  return `<div class="event-card" onclick="openDetail('${tour.id}')">
+  return `<div class="event-card" role="button" tabindex="0" data-event-id="${tour.id}" aria-label="${esc(tour.artist)} ${esc(tour.tour_name||'')}">
     <div class="event-header">
       ${ps}
       <div class="event-meta">
@@ -227,7 +241,7 @@ export function renderFestCard(fest, isPast) {
   const bandsHtml = (fest.bands_to_watch||[]).map(b => `<span class="band-chip">${esc(b)}</span>`).join('');
   const allBands = fest.bands_to_watch||[];
   const ratingsHtml = isPast ? allBands.map(b => ratingBarHtml(fest.id, b, true)).join('') : '';
-  return `<div class="event-card festival" onclick="openDetail('${fest.id}')">
+  return `<div class="event-card festival" role="button" tabindex="0" data-event-id="${fest.id}" aria-label="${esc(fest.name)}">
     <div class="event-header">
       ${ps}
       <div class="event-meta">
@@ -340,7 +354,7 @@ export function buildDetailHTML(ev) {
         <div class="detail-close-row">
           <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()" title="Event bearbeiten">${icon('pencil')}</button>
           <button class="btn-icon" onclick="generateInvite('${ev.id}')" title="Event-Einladung erstellen">${icon('link')}</button>
-          <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}" title="Event löschen">${icon('trash-2')}</button>
+          <button class="btn-icon delete" onclick="showConfirm('Event löschen?',()=>{deleteEvent('${ev.id}');closeDetail()})" title="Event löschen">${icon('trash-2')}</button>
           <button class="btn-close" onclick="closeDetail()">${icon('x')}</button>
         </div>
       </div>
@@ -433,7 +447,7 @@ export function buildDetailHTML(ev) {
       <div class="detail-close-row">
         <button class="btn-icon" onclick="openEventModal(getEvent('${ev.id}'));closeDetail()">${icon('pencil')}</button>
         <button class="btn-icon" onclick="generateInvite('${ev.id}')" title="Einladung erstellen">${icon('link')}</button>
-        <button class="btn-icon delete" onclick="if(confirm('Event löschen?')){deleteEvent('${ev.id}');closeDetail()}">${icon('trash-2')}</button>
+        <button class="btn-icon delete" onclick="showConfirm('Event löschen?',()=>{deleteEvent('${ev.id}');closeDetail()})">${icon('trash-2')}</button>
         <button class="btn-close" onclick="closeDetail()">${icon('x')}</button>
       </div>
     </div>

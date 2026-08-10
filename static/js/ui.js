@@ -54,7 +54,8 @@ export function openModal(id) {
  * @param {string} id
  */
 export function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
   document.body.style.overflow = '';
 }
 
@@ -112,7 +113,9 @@ export function closeLightbox() {
 
 /**
  * Position and fill the calendar/concert popover from a concert object.
- * @param {MouseEvent} e trigger event (positions the popover near the cursor)
+ * Accepts both MouseEvent (positioned at cursor) and FocusEvent (positioned
+ * at the element's bounding rect).
+ * @param {any} e trigger event
  * @param {any} c concert descriptor with artist/date/time/venue/price
  */
 export function showPopover(e, c) {
@@ -122,12 +125,86 @@ export function showPopover(e, c) {
     ${c.time ? `<div class="pop-row">${icon('clock')} <span>${esc(c.time)} Uhr</span></div>` : ''}
     <div class="pop-row">${icon('map-pin')} <span>${esc(c.venue)}, ${esc(c.city)}</span></div>
     ${c.price ? `<div class="pop-row">€ <span>${fmtPrice(c.price)}</span></div>` : ''}`;
-  p.style.left = (e.clientX + 12) + 'px';
-  p.style.top = (e.clientY - 10) + 'px';
+  let x, y;
+  if (typeof e.clientX === 'number') {
+    x = e.clientX + 12;
+    y = e.clientY - 10;
+  } else {
+    const rect = (e.currentTarget || e.target)?.getBoundingClientRect?.();
+    x = (rect?.left ?? 0) + 12;
+    y = (rect?.bottom ?? 0) + 4;
+  }
+  p.style.left = x + 'px';
+  p.style.top = y + 'px';
   p.classList.add('vis');
 }
 
 /** Hide the popover. */
 export function hidePopover() {
   document.getElementById('popover').classList.remove('vis');
+}
+
+/**
+ * Show a non-blocking alert dialog with an OK button. Creates the modal
+ * element on first call, reuses it afterwards. Replaces native `alert()`.
+ * @param {string} message
+ * @param {string} [title='Hinweis']
+ */
+export function showAlert(message, title = 'Hinweis') {
+  let m = document.getElementById('alert-dialog');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'alert-dialog';
+    m.className = 'modal-backdrop';
+    m.innerHTML = `<div class="modal" style="max-width:380px">
+      <div class="modal-title"><span id="alert-dialog-title">Hinweis</span>
+        <button class="btn-close" onclick="closeModal('alert-dialog')">${icon('x')}</button></div>
+      <p id="alert-dialog-msg" style="margin-bottom:20px;line-height:1.5"></p>
+      <div class="form-actions">
+        <button class="btn-save" id="alert-dialog-ok">OK</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { if (e.target === m) closeModal('alert-dialog'); });
+    document.getElementById('alert-dialog-ok').addEventListener('click', () => closeModal('alert-dialog'));
+  }
+  document.getElementById('alert-dialog-title').textContent = title;
+  document.getElementById('alert-dialog-msg').textContent = message;
+  openModal('alert-dialog');
+}
+
+/**
+ * Show a confirmation dialog with Ja/Nein buttons. Calls `onConfirm` when
+ * the user clicks "Ja". Creates the modal element on first call, reuses it
+ * afterwards. Replaces native `confirm()`.
+ * @param {string} message
+ * @param {() => void} onConfirm
+ * @param {string} [title='Bestätigen']
+ */
+export function showConfirm(message, onConfirm, title = 'Bestätigen') {
+  let m = document.getElementById('confirm-dialog');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'confirm-dialog';
+    m.className = 'modal-backdrop';
+    m.innerHTML = `<div class="modal" style="max-width:380px">
+      <div class="modal-title"><span id="confirm-dialog-title">Bestätigen</span>
+        <button class="btn-close" onclick="closeModal('confirm-dialog')">${icon('x')}</button></div>
+      <p id="confirm-dialog-msg" style="margin-bottom:20px;line-height:1.5"></p>
+      <div class="form-actions">
+        <button class="btn-cancel" id="confirm-dialog-no">Abbrechen</button>
+        <button class="btn-save" id="confirm-dialog-yes">Bestätigen</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { if (e.target === m) closeModal('confirm-dialog'); });
+    document.getElementById('confirm-dialog-no').addEventListener('click', () => closeModal('confirm-dialog'));
+  }
+  document.getElementById('confirm-dialog-title').textContent = title;
+  document.getElementById('confirm-dialog-msg').textContent = message;
+  document.getElementById('confirm-dialog-yes').onclick = () => {
+    closeModal('confirm-dialog');
+    if (onConfirm) onConfirm();
+  };
+  openModal('confirm-dialog');
 }

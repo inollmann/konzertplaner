@@ -23,7 +23,7 @@
 
 import { state } from './state.js';
 import { esc } from './utils.js';
-import { openModal, closeModal, closeDrawer } from './ui.js';
+import { openModal, closeModal, closeDrawer, showAlert } from './ui.js';
 import { fetchAll } from './api.js';
 import { openDetail, closeDetail } from './list.js';
 import { icon } from './icons.js';
@@ -438,8 +438,8 @@ export async function saveEvent() {
     if (state.currentType === 'festival') {
       const name = document.getElementById('f-fest-name').value.trim();
       const date = document.getElementById('f-fest-date').value;
-      if (!name) { alert('Bitte Festivalnamen angeben.'); return; }
-      if (!date) { alert('Bitte Startdatum angeben.'); return; }
+      if (!name) { showAlert('Bitte Festivalnamen angeben.'); return; }
+      if (!date) { showAlert('Bitte Startdatum angeben.'); return; }
       const tags = [];
       if (document.getElementById('f-fest-tag-tickets').checked)   tags.push('tickets');
       if (document.getElementById('f-fest-tag-watchlist').checked) tags.push('watchlist');
@@ -459,14 +459,14 @@ export async function saveEvent() {
       };
     } else {
       const artistList = [...pillState.artist.tags];
-      if (!artistList.length) { alert('Bitte Artist angeben.'); return; }
+      if (!artistList.length) { showAlert('Bitte Artist angeben.'); return; }
       const blocks = document.querySelectorAll('.concert-block');
       const concerts = [];
       for (const b of blocks) {
         const date  = b.querySelector('.cb-date').value;
         const city  = b.querySelector('.cb-city').value.trim();
         const venue = b.querySelector('.cb-venue').value.trim();
-        if (!date||!city||!venue) { alert('Bitte alle Pflichtfelder der Konzerttermine ausfüllen.'); return; }
+        if (!date||!city||!venue) { showAlert('Bitte alle Pflichtfelder der Konzerttermine ausfüllen.'); return; }
         const tags = [];
         if (b.querySelector('.cb-tag-tickets').checked)   tags.push('tickets');
         if (b.querySelector('.cb-tag-watchlist').checked) tags.push('watchlist');
@@ -503,7 +503,7 @@ export async function saveEvent() {
       openDetail(state.editingId);
     }
   } catch(err) {
-    alert('Fehler: '+err.message);
+    showAlert('Fehler: '+err.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Speichern';
   }
@@ -698,15 +698,15 @@ export async function generateInvite(eventId) {
     const data = await resp.json();
 
     if (!resp.ok) {
-      alert(data.error || 'Einladung konnte nicht erstellt werden');
+      showAlert(data.error || 'Einladung konnte nicht erstellt werden');
       return;
     }
 
     const fullUrl = window.location.origin + data.invite_url;
     await navigator.clipboard.writeText(fullUrl);
-    alert('Einladungslink wurde in die Zwischenablage kopiert!\n\n' + fullUrl);
+    showAlert('Einladungslink wurde in die Zwischenablage kopiert!\n\n' + fullUrl);
 
   } catch (err) {
-    alert('Fehler: ' + err.message);
+    showAlert('Fehler: ' + err.message);
   }
 }

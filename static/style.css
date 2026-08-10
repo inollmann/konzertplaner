@@ -107,6 +107,21 @@
 html, body { height: 100%; background: var(--bg); color: var(--text);
   font-family: 'DM Sans', sans-serif; font-size: 15px; }
 
+/* ─── Unstyled button reset ─────────────────────────────────────────── */
+/* Use on <button> elements that replace clickable <div>s for a11y.
+   Removes default browser button chrome and inherits the app's typography
+   so the element looks identical to the <div> it replaced, while gaining
+   native keyboard focus + Enter/Space activation. Per-component CSS
+   overrides (display, width, text-align) restore the original layout. */
+button.unstyled {
+  font: inherit; color: inherit; background: none; border: none;
+  padding: 0; margin: 0; cursor: pointer; text-align: inherit;
+  display: inline-flex; align-items: center;
+}
+button.unstyled:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
 /* ─── Inline icons (Lucide sprite, monochrome via currentColor) ──────── */
 /* Sized in em so icons scale with their context's font-size, matching the
    emoji they replace. stroke="currentColor" lives on each <symbol>; the
@@ -279,7 +294,7 @@ main#tab-list { padding-top: 0; }
   display: flex; flex-direction: column; gap: var(--space-2);
 }
 .histogram-bar {
-  display: flex; align-items: center; gap: var(--space-5); height: 28px;
+  display: flex; width: 100%; text-align: left; align-items: center; gap: var(--space-5); height: 28px;
   cursor: pointer; transition: all var(--dur-fast); border-radius: var(--radius-sm); padding: 0 var(--space-4);
 }
 .histogram-bar .histogram-bar-fill { background: var(--accent); }
@@ -299,7 +314,7 @@ main#tab-list { padding-top: 0; }
 .histogram-tooltip {
   position: fixed; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-md); padding: var(--space-5) var(--space-7); font-size: 12px; color: var(--text);
-  box-shadow: var(--shadow-md); z-index: 1000; display: none;
+  box-shadow: var(--shadow-md); z-index: 1000; display: none; pointer-events: none;
   max-width: 280px; max-height: 200px; overflow-y: auto;
 }
 .histogram-tooltip-title {
@@ -326,12 +341,28 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 130px)
 
 /* ─── Event cards ──────────────────────────────────────────────────── */
 .event-card {
+  display: block; width: 100%; text-align: left;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-xl); margin-bottom: var(--space-9); overflow: hidden;
   animation: fadeUp var(--dur-slow) var(--ease-out) both; cursor: pointer; transition: border-color var(--dur-med);
 }
 .event-card:hover { border-color: color-mix(in srgb,var(--accent) 40%,transparent); }
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+/* Show-card compact row (Shows tab). Inline-flex by default (single line);
+   wraps to multiple lines on narrow viewports. */
+.show-card-row {
+  display: flex; align-items: center; gap: var(--space-7);
+  flex-wrap: nowrap; white-space: nowrap; overflow: hidden;
+}
+.show-card-row .rating-bar { gap: 2px; flex-shrink: 0; }
+.show-card-rating { flex-shrink: 0; }
+.show-card-act { color: var(--text); }
+.show-meta { color: var(--muted); }
+.show-val { color: var(--text); }
+@media (max-width: 640px) {
+  .show-card-row { flex-wrap: wrap; white-space: normal; overflow: visible; }
+}
 
 /* ─── Poster wall ──────────────────────────────────────────────────── */
 .poster-wall {
@@ -764,6 +795,7 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 130px)
 .cal-date { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: var(--space-1); }
 .cal-events { display: flex; flex-direction: column; gap: var(--space-1); }
 .cal-event {
+  display: block; width: 100%; text-align: left;
   font-size: 10px; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);
   background: var(--surface3); color: var(--muted);
   border-left: 2px solid var(--border);
@@ -1117,7 +1149,7 @@ input[type=color] {
   box-shadow: var(--shadow-md); font-size: var(--text-sm); pointer-events: none;
   opacity: 0; transition: opacity var(--dur-fast);
 }
-.popover.vis { opacity: 1; }
+.popover.vis { opacity: 1; pointer-events: auto; }
 .pop-title { font-family: 'Bebas Neue', sans-serif; font-size: var(--display-xs); letter-spacing: var(--ls-tight); margin-bottom: var(--space-1); }
 .pop-row { color: var(--muted); margin-top: var(--space-1); }
 .pop-row span { color: var(--text); }
@@ -1413,6 +1445,7 @@ input.search-input::placeholder { color: var(--muted); }
 }
 .notif-list { overflow-y: auto; flex: 1; }
 .notif-item {
+  display: block; width: 100%; text-align: left;
   padding: var(--space-6) var(--space-8); border-bottom: 1px solid var(--border); cursor: pointer;
   transition: background var(--dur-fast);
 }

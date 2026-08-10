@@ -17,13 +17,14 @@
 
 import { state } from './state.js';
 import { esc, parseDate, fmtDateShort, venueMapHtml } from './utils.js';
-import { openModal, closeModal } from './ui.js';
+import { openModal, closeModal, showAlert } from './ui.js';
 import { fetchAll, saveKv } from './api.js';
 import { icon } from './icons.js';
 
 let _notifImportData = null;
 let _lastEventimCheck = {};
 let _pollInterval = null;
+let _notifClickWired = false;
 
 /** Cap `state.notifications` to the most recent 50 and persist to localStorage
  *  (instant UI cache) plus the server KV store (debounced) for cross-device sync. */
@@ -53,10 +54,17 @@ export function renderNotifPanel() {
   const el = document.getElementById('notif-list');
   if (!state.notifications.length) { el.innerHTML=`<div class="empty-state"><div class="icon">${icon('bell')}</div><h3>Keine Benachrichtigungen</h3><p>Neue Termine gefolgter Artists erscheinen hier.</p></div>`; return; }
   el.innerHTML = [...state.notifications].reverse().map(n=>`
-    <div class="notif-item ${n.read?'':'unread'}" onclick="onNotifClick('${n.id}')">
+    <button class="unstyled notif-item ${n.read?'':'unread'}" type="button" data-notif-id="${esc(n.id)}">
       <div class="notif-artist">${icon('star-filled')} ${esc(n.artistName)}</div>
       <div class="notif-event">${icon('calendar')} ${n.date?fmtDateShort(n.date):'?'} · ${esc(n.venue||'')}${n.city?', '+esc(n.city):''}</div>
-    </div>`).join('');
+    </button>`).join('');
+  if (!_notifClickWired) {
+    _notifClickWired = true;
+    el.addEventListener('click', e => {
+      const item = e.target.closest('[data-notif-id]');
+      if (item) onNotifClick(item.dataset.notifId);
+    });
+  }
 }
 
 /**
@@ -116,7 +124,7 @@ export async function importNotifEvent() {
     body:JSON.stringify({event_type:'tour',artist:artistName,tour_name:c.name||artistName,
       support:[],poster:null,comment:'',concerts:[{date:c.date||'',time:c.time||null,end_date:null,
       city:c.city||'',venue:c.venue||c.name||'',price:null,ticket_link:c.link||null,tags:[],support_present:[]}]})});
-  if (!r.ok){alert('Fehler beim Speichern.');return;}
+  if (!r.ok){showAlert('Fehler beim Speichern.');return;}
   closeModal('notif-event-modal');
   await fetchAll();
 }

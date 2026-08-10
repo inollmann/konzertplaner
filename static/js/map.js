@@ -25,6 +25,7 @@ import { esc } from './utils.js';
 import { eventVisible } from './filters.js';
 import { icon } from './icons.js';
 import { saveKv } from './api.js';
+import { showAlert, showConfirm } from './ui.js';
 
 // ── Module-local state ───────────────────────────────────────────────
 let mapInstance = null;
@@ -350,14 +351,14 @@ export function saveEditedVenueMarker() {
   pendingEditVenue = null;
   pendingEditCity = null;
 
-  alert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
+  showAlert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
 
   mapInitialized = false;
   initMap();
 }
 
 /**
- * Begin manual placement of an unrecognised venue: tries Google's
+ * Begin manual placement of an unrecognised venue: tries Nominatim's
  * geocode endpoint for an initial position (falling back to the map
  * centre), drops a draggable temp marker with a Save button, and listens
  * for map clicks to reposition it. Called from the inline `onclick` of
@@ -367,7 +368,7 @@ export function saveEditedVenueMarker() {
  */
 export async function addUnrecognizedVenueMarker(venue, city) {
   if (!mapInstance) {
-    alert('Bitte wechsle zuerst zur Karten-Ansicht.');
+    showAlert('Bitte wechsle zuerst zur Karten-Ansicht.');
     return;
   }
 
@@ -384,26 +385,10 @@ export async function addUnrecognizedVenueMarker(venue, city) {
 
   pendingUnrecognizedVenue = { venue, city };
 
-  let initialLatLng = null;
-  const query = encodeURIComponent(`${venue}, ${city || ''}`.replace(/,\s*$/, ''));
-
-  try {
-    const googleResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&sensor=false`);
-    const googleData = await googleResp.json();
-    if (googleData.status === 'OK' && googleData.results && googleData.results.length > 0) {
-      initialLatLng = {
-        lat: googleData.results[0].geometry.location.lat,
-        lng: googleData.results[0].geometry.location.lng
-      };
-      console.log('Google geocoding found:', initialLatLng);
-    }
-  } catch (e) {
-    console.log('Google geocoding failed, trying manual placement:', e);
-  }
-
-  if (!initialLatLng) {
-    initialLatLng = mapInstance.getCenter();
-  }
+  const nominatim = await geocodeVenue(venue, city);
+  const initialLatLng = nominatim
+    ? { lat: nominatim.lat, lng: nominatim.lon }
+    : mapInstance.getCenter();
 
   tempMarkerInstance = L.marker(initialLatLng, { draggable: true }).addTo(mapInstance);
 
@@ -453,7 +438,7 @@ export function saveUnrecognizedVenueMarker() {
   tempMarkerInstance = null;
   pendingUnrecognizedVenue = null;
 
-  alert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
+  showAlert(`Position von "${venue}" gespeichert:\n${newLat.toFixed(5)}, ${newLon.toFixed(5)}`);
 
   mapInitialized = false;
   initMap();
@@ -468,21 +453,17 @@ export function saveUnrecognizedVenueMarker() {
  * @param {string} city
  */
 export function deleteVenueMarker(venue, city) {
-  if (!confirm(`Möchtest du den Marker für "${venue}" in ${city} wirklich löschen? Der Veranstaltungsort wird wieder in die Liste der unbekannten Orte aufgenommen.`)) {
-    return;
-  }
-
-  const cache = getVenueCache();
-  delete cache[`${venue}|${city}`];
-  saveVenueCache(cache);
-
-  const markerIndex = mapMarkers.findIndex(m => m.venueKey === `${venue}|${city}`);
-  if (markerIndex !== -1) {
-    const marker = mapMarkers[markerIndex];
-    mapInstance.removeLayer(marker);
-    mapMarkers.splice(markerIndex, 1);
-  }
-
-  mapInitialized = false;
-  initMap();
+  showConfirm(`Möchtest du den Marker für "${venue}" in ${city} wirklich löschen? Der Veranstaltungsort wird wieder in die Liste der unbekannten Orte aufgenommen.`, () => {
+    const cache = getVenueCache();
+    delete cache[`${venue}|${city}`];
+    saveVenueCache(cache);
+    const markerIndex = mapMarkers.findIndex(m => m.venueKey === `${venue}|${city}`);
+    if (markerIndex !== -1) {
+      const marker = mapMarkers[markerIndex];
+      mapInstance.removeLayer(marker);
+      mapMarkers.splice(markerIndex, 1);
+    }
+    mapInitialized = false;
+    initMap();
+  });
 }

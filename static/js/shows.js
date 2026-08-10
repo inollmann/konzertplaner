@@ -13,18 +13,24 @@
 // upcoming) do NOT apply here — the original shows list shows every
 // rated act regardless of the main filter bar.
 //
-// Inline `onclick`s:
-//   • `renderShowCard` cards call the global `openEventModal(id)` (exposed
-//     on `window` by main.js) — not imported, to avoid a circular dep.
-//   • Histogram bars call `showHistogramTooltip` / `hideHistogramTooltip`
-//     via `onmouseenter`/`onmouseleave`; these are exported here so
-//     main.js can attach them to `window`.
+// Inline `onclick`s have been replaced with delegated event listeners on
+// the container elements (click-to-show for histograms, click-to-open for
+// show cards). The cards are real <button> elements (keyboard-accessible);
+// they call the global `openEventModal(ev)` (exposed on `window` by
+// main.js via globals.js) — not imported, to avoid a circular dep.
+// `showHistogramTooltip` / `hideHistogramTooltip` are exported so main.js
+// can attach them to `window` (used by the global outside-click + Escape
+// dismiss handlers).
 // ══════════════════════════════════════════════════════════════════════
 
-import { state } from './state.js';
-import { pipColor } from './utils.js';
+import { state, getEvent } from './state.js';
+import { esc, pipColor } from './utils.js';
 import { getShowsType, getShowsCategory, getShowsSort } from './filters.js';
 import { icon } from './icons.js';
+
+let _showsClickWired = false;
+const _histClickWired = new Set();
+let _histActiveKey = null;
 
 /**
  * Flatten all rated acts across events into one row per (event × act).
@@ -118,6 +124,16 @@ function processEventActs(event, concert, eventRatings, result, eventType) {
  */
 export function renderShows() {
   const container = document.getElementById('shows-list');
+  if (!_showsClickWired) {
+    _showsClickWired = true;
+    container.addEventListener('click', e => {
+      const card = e.target.closest('[data-event-id]');
+      if (card) {
+        const ev = getEvent(card.dataset.eventId);
+        if (ev) window.openEventModal?.(ev);
+      }
+    });
+  }
   const ratedEvents = getRatedEvents();
 
   if (ratedEvents.length === 0) {
@@ -206,22 +222,21 @@ function renderShowCard(e) {
     return `<div class="rating-pip" style="${style}"></div>`;
   }).join('');
 
-  return `<div class="event-card" onclick="openEventModal('${e.id}')" style="padding:12px 16px">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden">
-      <div class="rating-bar" style="gap:2px;flex-shrink:0">${pips}</div>
-      <strong style="color:${pipColor(rating, rating)};flex-shrink:0">${rating}</strong>
-      <span style="color:var(--text)">${actName}</span>
-      <span style="color:var(--muted)">•</span>
-      <span style="color:var(--muted)">${dateStr}</span>
-      <span style="color:var(--muted)">•</span>
-      <span style="color:var(--muted)">${eventName}</span>
-      <span style="color:var(--muted)">•</span>
-      <span style="color:var(--text)">${venue}</span>
-      ${city ? `<span style="color:var(--muted)">•</span><span style="color:var(--text)">${city}</span>` : ''}
-      ${price ? `<span style="color:var(--muted)">•</span><span style="color:var(--text)">${price}</span>` : ''}
+  return `<button class="unstyled event-card" type="button" data-event-id="${e.id}" style="padding:12px 16px">
+    <div class="show-card-row">
+      <div class="rating-bar">${pips}</div>
+      <strong class="show-card-rating" style="color:${pipColor(rating, rating)}">${rating}</strong>
+      <span class="show-card-act">${esc(actName)}</span>
+      <span class="show-meta">•</span>
+      <span class="show-meta">${dateStr}</span>
+      <span class="show-meta">•</span>
+      <span class="show-meta">${esc(eventName)}</span>
+      <span class="show-meta">•</span>
+      <span class="show-val">${esc(venue)}</span>
+      ${city ? `<span class="show-meta">•</span><span class="show-val">${esc(city)}</span>` : ''}
+      ${price ? `<span class="show-meta">•</span><span class="show-val">${price}</span>` : ''}
     </div>
-    </div>
-  </div>`;
+  </button>`;
 }
 
 /**
@@ -341,16 +356,33 @@ function renderHistogramBars(containerId, counts, events, type, tourCounts, fest
       barContent = `<div class="histogram-bar-fill" style="width:${pct}%"></div>`;
     }
 
-    html += `<div class="histogram-bar" onmouseenter="showHistogramTooltip(event, '${key}', ${JSON.stringify(events[key] || []).replace(/"/g, '&quot;')})" onmouseleave="hideHistogramTooltip()">
+    const eventsJson = esc(JSON.stringify(events[key] || []));
+    html += `<button class="unstyled histogram-bar" type="button" data-hist-key="${esc(String(key))}" data-hist-events="${eventsJson}">
       <span class="histogram-bar-label">${label}</span>
       <div class="histogram-bar-track" style="display:flex">
         ${barContent}
       </div>
       <span class="histogram-bar-count">${count}</span>
-    </div>`;
+    </button>`;
   });
 
   container.innerHTML = html || '<div class="empty-state" style="padding: 40px 0;"><h3>Keine Daten</h3><p>Bewerte Events, um Statistiken zu sehen.</p></div>';
+  if (!_histClickWired.has(container.id)) {
+    _histClickWired.add(container.id);
+    container.addEventListener('click', e => {
+      const bar = e.target.closest('[data-hist-key]');
+      if (!bar) return;
+      const tooltip = document.getElementById('histogram-tooltip');
+      if (tooltip.style.display === 'block' && _histActiveKey === bar.dataset.histKey) {
+        hideHistogramTooltip();
+        return;
+      }
+      _histActiveKey = bar.dataset.histKey;
+      let eventList = [];
+      try { eventList = JSON.parse(bar.dataset.histEvents || '[]'); } catch (_) {}
+      showHistogramTooltip(e, bar.dataset.histKey, eventList);
+    });
+  }
 }
 
 /**
@@ -368,19 +400,27 @@ export function showHistogramTooltip(event, key, eventList) {
     return;
   }
 
-  const listHtml = eventList.map(e => `<div class="histogram-tooltip-item">${e.title || 'Unbekannt'} (${e.city || ''})</div>`).join('');
-  tooltip.innerHTML = `<div class="histogram-tooltip-title">${key}</div><div class="histogram-tooltip-list">${listHtml}</div>`;
+  const listHtml = eventList.map(e => `<div class="histogram-tooltip-item">${esc(e.title || 'Unbekannt')} (${esc(e.city || '')})</div>`).join('');
+  tooltip.innerHTML = `<div class="histogram-tooltip-title">${esc(String(key))}</div><div class="histogram-tooltip-list">${listHtml}</div>`;
   tooltip.style.display = 'block';
 
-  const rect = event.target.getBoundingClientRect();
-  tooltip.style.left = (rect.left + window.scrollX) + 'px';
-  tooltip.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+  const bar = (event.target?.closest?.('.histogram-bar')) || event.target;
+  const rect = bar.getBoundingClientRect();
+  const tw = tooltip.offsetWidth;
+  let left = rect.left + window.scrollX;
+  left = Math.min(left, window.innerWidth - tw - 8);
+  left = Math.max(left, 8);
+  tooltip.style.left = left + 'px';
+  const top = Math.min(rect.bottom + window.scrollY + 8, window.innerHeight + window.scrollY - tooltip.offsetHeight - 8);
+  tooltip.style.top = top + 'px';
 }
 
 /**
- * Hide the histogram tooltip. Called from the inline `onmouseleave`;
- * main.js exposes it on `window`.
+ * Hide the histogram tooltip. Called from the global outside-click + Escape
+ * handlers (main.js) and the delegated bar-click toggle; main.js also
+ * exposes it on `window`.
  */
 export function hideHistogramTooltip() {
   document.getElementById('histogram-tooltip').style.display = 'none';
+  _histActiveKey = null;
 }

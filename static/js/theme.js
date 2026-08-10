@@ -11,7 +11,7 @@
 // loadTheme() runs on boot to restore the full state from localStorage.
 // ══════════════════════════════════════════════════════════════════════
 
-import { closeDrawer, openModal } from './ui.js';
+import { closeDrawer, openModal, showConfirm } from './ui.js';
 import { icon } from './icons.js';
 import { esc } from './utils.js';
 
@@ -160,11 +160,12 @@ export function deletePreset(key) {
   if (!key.startsWith('custom-')) return;
   const custom = getCustomPresets();
   if (!custom[key]) return;
-  if (!confirm('Preset "' + custom[key].name + '" löschen?')) return;
-  delete custom[key];
-  saveCustomPresets(custom);
-  if (getActiveTheme() === key) applyTheme('dark');
-  else buildColorGrid();
+  showConfirm('Preset "' + custom[key].name + '" löschen?', () => {
+    delete custom[key];
+    saveCustomPresets(custom);
+    if (getActiveTheme() === key) applyTheme('dark');
+    else buildColorGrid();
+  });
 }
 
 /** Clear all overrides + active key, restoring style.css :root defaults. */

@@ -362,11 +362,12 @@ export function renderTimeline() {
     const width = k > 1 ? colW : p.span;
     const logoSize = Math.min(width, barH); // logos sized to event width, capped by bar height
 
-    const el = document.createElement('div');
-    let cls = 'timeline-event ' + e.type;
+    const el = document.createElement('button');
+    let cls = 'unstyled timeline-event ' + e.type;
     if (e.tags?.includes('tickets')) cls += ' has-tickets';
     if (e.tags?.includes('watchlist')) cls += ' has-watch';
     el.className = cls;
+    el.type = 'button';
     el.style.left = left + 'px';
     el.style.width = width + 'px';
     el.style.top = '0px';
@@ -400,6 +401,7 @@ export function renderTimeline() {
       el.innerHTML = `<div class="timeline-event-vertical">${esc(e.label)}</div>`;
     }
     el.title = e.label + '\n' + e.iso + (e.end_iso !== e.iso ? ' – ' + e.end_iso : '');
+    el.setAttribute('aria-label', e.label + ', ' + e.iso + (e.end_iso !== e.iso ? ' – ' + e.end_iso : ''));
 
     const dateLabel = document.createElement('div');
     dateLabel.className = 'timeline-event-date';
@@ -407,10 +409,13 @@ export function renderTimeline() {
     dateLabel.textContent = dp[2] + '.' + dp[1] + '.';
     el.appendChild(dateLabel);
 
-    el.setAttribute('onclick', "event.stopPropagation();openDetail('" + e.id + "')");
+    const eventId = e.id;
+    el.addEventListener('click', ev => { ev.stopPropagation(); window.openDetail?.(eventId); });
     if (e.data) {
       el.addEventListener('mouseenter', evt => showPopover(evt, e.data));
       el.addEventListener('mouseleave', hidePopover);
+      el.addEventListener('focus', evt => showPopover(evt, e.data));
+      el.addEventListener('blur', hidePopover);
     }
     eventsContainer.appendChild(el);
   }

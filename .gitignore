@@ -8,6 +8,7 @@ opencode.json
 node_modules/
 graphify-out/
 .playwright-cli
+.playwright-mcp
 
 # Python-generated files
 __pycache__/

@@ -115,9 +115,12 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   window.closeLightbox?.();
   window.closeDetail?.();
+  window.hidePopover?.();
+  window.hideHistogramTooltip?.();
   ['event-modal', 'artist-modal', 'artist-detail-modal', 'venue-modal',
    'design-modal', 'export-modal', 'eventim-concerts-modal', 'add-fav-modal',
    'notif-event-modal', 'stats-modal', 'backup-modal', 'location-modal',
+   'alert-dialog', 'confirm-dialog',
   ].forEach(id => window.closeModal?.(id));
   window.closeSearchPanel?.();
   const np = document.getElementById('notif-panel');
@@ -138,5 +141,17 @@ document.addEventListener('click', e => {
   if (notifPanel && notifPanel.classList.contains('open') &&
       !notifPanel.contains(e.target) && notifBtn && !notifBtn.contains(e.target)) {
     notifPanel.classList.remove('open');
+  }
+  // Dismiss popover on outside click (focus-driven popovers hide on blur,
+  // but mouse-hover popovers need a click dismiss path).
+  const popover = document.getElementById('popover');
+  if (popover && popover.classList.contains('vis') && !popover.contains(e.target)) {
+    window.hidePopover?.();
+  }
+  // Dismiss histogram tooltip on outside click (click-to-show tooltips).
+  const histTooltip = document.getElementById('histogram-tooltip');
+  if (histTooltip && histTooltip.style.display === 'block' &&
+      !e.target.closest('[data-hist-key]')) {
+    window.hideHistogramTooltip?.();
   }
 });

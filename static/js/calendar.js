@@ -13,7 +13,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { state, today } from './state.js';
-import { esc, localIso } from './utils.js';
+import { localIso } from './utils.js';
 import { eventVisible } from './filters.js';
 import { showPopover, hidePopover } from './ui.js';
 
@@ -22,8 +22,9 @@ import { showPopover, hidePopover } from './ui.js';
  * expanded to their individual concerts, festivals contribute a single date
  * range; each entry is matched to a day cell and coloured by type/tag.
  * Today's cell receives a `today` class. Clicking an event opens the detail
- * view via an inline `onclick` that calls the global `openDetail(id)`;
- * hovering a tour concert shows the popover.
+ * view via a click listener that calls the global `openDetail(id)`.
+ * Event chips are real <button> elements (keyboard-accessible); hovering
+ * or focusing a tour concert shows the popover.
  */
 export function renderCalendar() {
   const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni',
@@ -70,17 +71,21 @@ export function renderCalendar() {
 
     entries.filter(e => e.iso === iso || (e.end_iso && e.iso <= iso && e.end_iso >= iso))
       .forEach(e => {
-        const el = document.createElement('div');
+        const el = document.createElement('button');
         const cls = e.type === 'festival' ? 'ev-festival'
           : e.type === 'tour' ? 'ev-tour'
           : e.tags.includes('tickets') ? 'ev-tickets'
           : e.tags.includes('watchlist') ? 'ev-watchlist' : 'ev-tour';
-        el.className = 'cal-event' + (cls ? ' ' + cls : '');
-        el.innerHTML = esc(e.label);
-        el.setAttribute('onclick', "event.stopPropagation();openDetail('" + e.id + "')");
+        el.className = 'unstyled cal-event' + (cls ? ' ' + cls : '');
+        el.type = 'button';
+        el.textContent = e.label;
+        const eventId = e.id;
+        el.addEventListener('click', ev => { ev.stopPropagation(); window.openDetail?.(eventId); });
         if (e.data) {
           el.addEventListener('mouseenter', evt => showPopover(evt, e.data));
           el.addEventListener('mouseleave', hidePopover);
+          el.addEventListener('focus', evt => showPopover(evt, e.data));
+          el.addEventListener('blur', hidePopover);
         }
         evDiv.appendChild(el);
       });
