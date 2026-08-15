@@ -32,6 +32,8 @@ services:
       - ./data:/app/data:ro
       # Dev: mount static/ so changes appear on page reload (no rebuild needed)
       - ./static:/app/static:ro
+      # Read-only: .git so the app can read the running commit SHA
+      - ./.git:/app/.git:ro
     restart: unless-stopped
 
 volumes:

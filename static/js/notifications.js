@@ -34,9 +34,16 @@ export function saveNotifications() {
   saveKv('notifications', state.notifications);
 }
 
+/** Persist the local (non-synced) update notifications to localStorage. */
+export function saveUpdateNotifs() {
+  state.updateNotifs = state.updateNotifs.slice(0, 20);
+  localStorage.setItem('kp-update-notifs', JSON.stringify(state.updateNotifs));
+}
+
 /** Update the `#notif-badge` unread count/visibility from `state.notifications`. */
 export function updateNotifBadge() {
-  const unread = state.notifications.filter(n=>!n.read).length;
+  const unread = state.notifications.filter(n=>!n.read).length
+    + state.updateNotifs.filter(n=>!n.read).length;
   const badge = document.getElementById('notif-badge');
   badge.textContent = unread>9?'9+':String(unread);
   badge.classList.toggle('visible', unread>0);
@@ -52,12 +59,18 @@ export function toggleNotifPanel() {
 /** Render the notification list into `#notif-list` (most recent first). */
 export function renderNotifPanel() {
   const el = document.getElementById('notif-list');
-  if (!state.notifications.length) { el.innerHTML=`<div class="empty-state"><div class="icon">${icon('bell')}</div><h3>Keine Benachrichtigungen</h3><p>Neue Termine gefolgter Artists erscheinen hier.</p></div>`; return; }
-  el.innerHTML = [...state.notifications].reverse().map(n=>`
+  if (!state.notifications.length && !state.updateNotifs.length) { el.innerHTML=`<div class="empty-state"><div class="icon">${icon('bell')}</div><h3>Keine Benachrichtigungen</h3><p>Neue Termine gefolgter Artists erscheinen hier.</p></div>`; return; }
+  const updateRows = state.updateNotifs.map(n=>`
+    <button class="unstyled notif-item ${n.read?'':'unread'}" type="button" data-notif-id="${esc(n.id)}">
+      <div class="notif-artist">${icon('arrow-up-right')} ${esc(n.title)}</div>
+      <div class="notif-event">${esc(n.short_sha)} · ${esc(n.message)}</div>
+    </button>`).join('');
+  const concertRows = [...state.notifications].reverse().map(n=>`
     <button class="unstyled notif-item ${n.read?'':'unread'}" type="button" data-notif-id="${esc(n.id)}">
       <div class="notif-artist">${icon('star-filled')} ${esc(n.artistName)}</div>
       <div class="notif-event">${icon('calendar')} ${n.date?fmtDateShort(n.date):'?'} · ${esc(n.venue||'')}${n.city?', '+esc(n.city):''}</div>
     </button>`).join('');
+  el.innerHTML = updateRows + concertRows;
   if (!_notifClickWired) {
     _notifClickWired = true;
     el.addEventListener('click', e => {
@@ -73,6 +86,14 @@ export function renderNotifPanel() {
  * @param {string} notifId
  */
 export function onNotifClick(notifId) {
+  if (notifId.startsWith('update-')) {
+    const u = state.updateNotifs.find(n=>n.id===notifId);
+    if (!u) return;
+    u.read = true; saveUpdateNotifs(); updateNotifBadge(); renderNotifPanel();
+    if (u.link) window.open(u.link, '_blank', 'noopener');
+    document.getElementById('notif-panel').classList.remove('open');
+    return;
+  }
   const notif = state.notifications.find(n=>n.id===notifId);
   if (!notif) return;
   notif.read=true; saveNotifications(); updateNotifBadge(); renderNotifPanel();
@@ -83,7 +104,8 @@ export function onNotifClick(notifId) {
 /** Mark every notification as read, persist and refresh badge + panel. */
 export function markAllNotifRead() {
   state.notifications.forEach(n=>n.read=true);
-  saveNotifications(); updateNotifBadge(); renderNotifPanel();
+  state.updateNotifs.forEach(n=>n.read=true);
+  saveNotifications(); saveUpdateNotifs(); updateNotifBadge(); renderNotifPanel();
 }
 
 /**

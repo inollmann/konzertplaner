@@ -24,6 +24,7 @@ import * as list      from './list.js';
 import * as logoEditor from './logo-editor.js';
 import * as map       from './map.js';
 import * as notifs    from './notifications.js';
+import * as updates   from './updates.js';
 import * as ratings   from './ratings.js';
 import * as shows     from './shows.js';
 import * as state     from './state.js';
@@ -36,7 +37,7 @@ const w = /** @type {any} */ (window);
 
 for (const [name, mod] of Object.entries({
   api, calendar, catalogues, editor, eventim, favourites, filters,
-  icons, list, logoEditor, map, notifs, ratings, shows, state, theme, timeline, tools, ui,
+  icons, list, logoEditor, map, notifs, ratings, shows, state, theme, timeline, tools, ui, updates,
 })) {
   for (const [exportName, value] of Object.entries(mod)) {
     w[exportName] = value;

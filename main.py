@@ -1069,5 +1069,136 @@ def eventim_prices():
     return jsonify(data), status
 
 
+# ── GitHub repo-update check ────────────────────────────────────────────
+# Returns the latest commit on the repo's main branch and whether the
+# running app is behind. The upstream result is cached in the KV store
+# for 10 minutes so we stay well within GitHub's unauthenticated rate
+# limit (60 req/h per IP). The running commit is read from the local
+# .git dir — available in dev and via the read-only .git bind-mount in
+# Docker (no `git` binary required).
+
+_GITHUB_API = "https://api.github.com"
+_REPO_OWNER = "inollmann"
+_REPO_NAME = "konzertplaner"
+_REPO_BRANCH = "main"
+_GITHUB_HEADERS = {
+    "User-Agent": "konzertplaner",
+    "Accept": "application/vnd.github+json",
+}
+
+
+def _read_git_sha() -> str | None:
+    """Return the HEAD commit SHA of the local checkout, or None if it
+    cannot be determined. Tries `git rev-parse` first (dev), then falls
+    back to parsing .git directly (Docker, no git binary)."""
+    import subprocess
+
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(BASE_DIR), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
+    # Fallback: parse .git directly (works without the git binary, e.g.
+    # inside the Docker image where .git is bind-mounted read-only).
+    git_dir = BASE_DIR / ".git"
+    if not git_dir.exists():
+        return None
+    try:
+        head_file = git_dir / "HEAD"
+        ref = head_file.read_text().strip()
+        if ref.startswith("ref:"):
+            ref_path = ref.split(" ", 1)[1]
+            loose = git_dir / ref_path
+            if loose.exists():
+                return loose.read_text().strip()
+            packed = git_dir / "packed-refs"
+            if packed.exists():
+                for line in packed.read_text().splitlines():
+                    if line.endswith(" " + ref_path):
+                        return line.split()[0]
+        else:
+            return ref
+    except Exception:
+        return None
+    return None
+
+
+CURRENT_SHA: str | None = _read_git_sha()
+
+
+def _github_get(path: str) -> tuple[dict | list, int]:
+    """Fetch from the GitHub REST API, return (data, status_code). Uses
+    `requests` when available (dev), `urllib` otherwise (Docker)."""
+    url = f"{_GITHUB_API}{path}"
+    if _REQUESTS_AVAILABLE:
+        try:
+            r = _requests.get(url, headers=_GITHUB_HEADERS, timeout=12)  # type: ignore[union-attr]
+            if r.status_code != 200:
+                try:
+                    body = r.json()
+                except Exception:
+                    body = {"error": f"HTTP {r.status_code}", "detail": r.text[:300]}
+                return body, r.status_code
+            return r.json(), 200
+        except Exception as e:
+            return {"error": str(e)}, 502
+    import urllib.request
+
+    req = urllib.request.Request(url, headers=_GITHUB_HEADERS)
+    try:
+        with urllib.request.urlopen(req, timeout=12) as r:
+            return json.loads(r.read()), r.status
+    except Exception as e:
+        return {"error": str(e)}, 502
+
+
+@app.route("/api/repo-update")
+def repo_update():
+    """Return the latest commit on the repo's main branch and whether the
+    running app is behind it. The upstream result is cached in the KV
+    store for 10 minutes to respect GitHub's rate limit."""
+    from datetime import UTC, datetime
+
+    cache = get_kv("repo-update") or {}
+    now = datetime.now(UTC)
+    fresh = False
+    if cache.get("checked_at"):
+        try:
+            age = now - datetime.fromisoformat(cache["checked_at"])
+            fresh = age.total_seconds() < 600
+        except Exception:
+            fresh = False
+    if not fresh:
+        data, status = _github_get(f"/repos/{_REPO_OWNER}/{_REPO_NAME}/commits/{_REPO_BRANCH}")
+        if status != 200:
+            return jsonify(data), status
+        commit = data
+        latest = {
+            "sha": commit["sha"],
+            "short_sha": commit["sha"][:7],
+            "message": (commit["commit"]["message"] or "").splitlines()[0][:200],
+            "author": commit["commit"]["author"]["name"],
+            "date": commit["commit"]["author"]["date"],
+            "url": f"https://github.com/{_REPO_OWNER}/{_REPO_NAME}/commit/{commit['sha']}",
+        }
+        cache = {
+            "latest": latest,
+            "repo_url": f"https://github.com/{_REPO_OWNER}/{_REPO_NAME}",
+            "commits_url": f"https://github.com/{_REPO_OWNER}/{_REPO_NAME}/commits/{_REPO_BRANCH}",
+            "checked_at": now.isoformat(),
+        }
+        set_kv("repo-update", cache)
+    payload = dict(cache)
+    payload["current_sha"] = CURRENT_SHA
+    payload["behind"] = bool(CURRENT_SHA) and CURRENT_SHA != cache["latest"]["sha"]
+    return jsonify(payload)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

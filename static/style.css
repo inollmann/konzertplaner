@@ -1576,6 +1576,26 @@ input.search-input::placeholder { color: var(--muted); }
   overflow: hidden;
 }
 .notif-panel.open { display: flex; }
+/* ── Update-available toast (top-right) ─────────────────────────────── */
+.update-toast {
+  position: fixed; top: 64px; right: 16px; z-index: 300;
+  display: flex; align-items: center; gap: var(--space-4);
+  max-width: 360px; padding: var(--space-5) var(--space-6);
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  opacity: 0; transform: translateX(12px);
+  transition: opacity .25s, transform .25s;
+  pointer-events: none; cursor: default;
+}
+.update-toast.visible { opacity: 1; transform: translateX(0); pointer-events: auto; }
+.update-toast-icon { color: var(--accent); display: flex; }
+.update-toast-body { flex: 1; min-width: 0; }
+.update-toast-title { font-weight: 600; font-size: var(--text-sm); }
+.update-toast-sub { font-size: 12px; color: var(--muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.update-toast-link { color: var(--muted); display: flex; padding: var(--space-1); }
+.update-toast-link:hover { color: var(--accent); }
 .notif-panel-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: var(--space-6) var(--space-8); border-bottom: 1px solid var(--border); flex-shrink: 0;

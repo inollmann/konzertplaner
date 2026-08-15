@@ -22,6 +22,7 @@ import { initMap, resetMap } from './map.js';
 import { renderShows } from './shows.js';
 import { renderFavourites } from './favourites.js';
 import { updateNotifBadge, checkFavArtistEvents, startFavPolling } from './notifications.js';
+import { checkForUpdate } from './updates.js';
 import { updateAllFilterVisuals } from './filters.js';
 import './globals.js';
 
@@ -40,7 +41,7 @@ async function boot() {
 boot();
 
 // ── Background polling for favourite-artist events ─────────────────────
-setTimeout(() => { checkFavArtistEvents(); startFavPolling(); }, 5000);
+setTimeout(() => { checkFavArtistEvents(); startFavPolling(); checkForUpdate(); }, 5000);
 updateNotifBadge();
 
 // ── Cross-module re-render orchestration ───────────────────────────────
