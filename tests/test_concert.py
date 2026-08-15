@@ -693,6 +693,7 @@ def test_artist_to_dict_keys_and_values():
         "followed",
         "eventim_name",
         "eventim_id",
+        "logo_mono",
     }
     assert d["id"] == a.id
     assert d["name"] == "Band"
@@ -700,6 +701,7 @@ def test_artist_to_dict_keys_and_values():
     assert d["photo"] == "p.png"
     assert d["followed"] is True
     assert d["eventim_name"] == "The Band"
+    assert d["logo_mono"] is None
     assert d["eventim_id"] == "12345"
 
 
@@ -711,6 +713,7 @@ def test_artist_round_trip_to_dict_from_dict():
         followed=True,
         eventim_name="The Band",
         eventim_id="12345",
+        logo_mono="mono-uuid",
     )
     a2 = Artist.from_dict(a.to_dict())
     assert a2.id == a.id
@@ -720,6 +723,7 @@ def test_artist_round_trip_to_dict_from_dict():
     assert a2.followed is True
     assert a2.eventim_name == "The Band"
     assert a2.eventim_id == "12345"
+    assert a2.logo_mono == "mono-uuid"
 
 
 def test_artist_from_dict_preserves_id():
@@ -734,6 +738,7 @@ def test_artist_from_dict_defaults():
     assert a.followed is False
     assert a.eventim_name is None
     assert a.eventim_id is None
+    assert a.logo_mono is None
 
 
 # ── Venue ─────────────────────────────────────────────────────────────────────

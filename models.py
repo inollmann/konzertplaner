@@ -45,6 +45,7 @@ class ArtistRow(SQLModel, table=True):
     name: str = ""
     logo_id: uuid.UUID | None = None
     photo_id: uuid.UUID | None = None
+    logo_mono_id: uuid.UUID | None = None
     followed: bool = False
     eventim_name: str | None = None
     eventim_id: str | None = None

@@ -14,7 +14,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc, parseDate, venueMapHtml } from './utils.js';
+import { esc, parseDate, venueMapHtml, artistLogoSrc, artistLogoClass } from './utils.js';
 import { openModal, closeModal, switchTab } from './ui.js';
 import { reloadCatalogue } from './api.js';
 import { openNotifEventModal } from './notifications.js';
@@ -63,8 +63,9 @@ export async function renderFavourites() {
 export function buildFavCard(a) {
   const cs = state.favCardState[a.id] || {};
   const isOpen = !!cs.open;
-  const logoHtml = a.logo
-    ? `<div class="fav-artist-logo"><img src="/api/img/${a.logo}" alt=""></div>`
+  const logoSrc = artistLogoSrc(a);
+  const logoHtml = logoSrc
+    ? `<div class="fav-artist-logo"><img class="${artistLogoClass(a)}" src="/api/img/${logoSrc}" alt=""></div>`
     : `<div class="fav-artist-logo">${icon('mic')}</div>`;
   const evimLabel = a.eventim_name
     ? `<div class="fav-artist-meta">Eventim: ${esc(a.eventim_name)}</div>` : '';

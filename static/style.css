@@ -1205,6 +1205,112 @@ input[type=color] {
   max-height: 300px;
   width: auto; height: auto; border-radius: var(--radius-lg);
 }
+/* ─── Monochrome logos: light-mode invert ─────────────────────────── */
+/* A processed logo is stored white-on-transparent. In the light theme,
+   CSS invert(1) turns pure white into pure black while leaving alpha
+   untouched, giving the "black version for light mode" for free — no
+   second asset, no themechange re-render plumbing needed. */
+:root.light img.mono-logo { filter: invert(1); }
+/* ─── Logo editor overlay button (on the detail-popup logo zone) ──── */
+.logo-edit-btn {
+  position: absolute; top: 6px; right: 6px;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  border: 1px solid var(--border); border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--text); cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
+  z-index: 2;
+}
+.logo-edit-btn:hover {
+  background: var(--accent); color: #fff; transform: scale(1.08);
+}
+/* The edit button only appears when the zone has an image; ensure the
+   zone positions it. */
+.adm-logo-zone.has-img { position: relative; }
+/* ─── Logo editor modal ───────────────────────────────────────────── */
+.ie-layout {
+  display: flex; gap: var(--space-8); align-items: flex-start;
+  flex-wrap: wrap;
+}
+.ie-canvas-wrap { flex-shrink: 0; position: relative; }
+#ie-canvas {
+  display: block; max-width: 100%; width: 400px; height: auto;
+  border-radius: var(--radius-lg);
+  /* checkerboard so transparency is visible */
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%),
+    linear-gradient(-45deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%),
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+.ie-controls { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: var(--space-5); }
+.ie-hint { font-size: 12px; color: var(--muted); }
+.ie-row { display: flex; flex-direction: column; gap: var(--space-2); }
+.ie-row > label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.ie-color-row { display: flex; align-items: center; gap: var(--space-3); }
+.ie-color-row input[type="color"] { width: 36px; height: 36px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; background: none; }
+.ie-color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.ie-color-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: var(--radius-sm); }
+.ie-hex { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--text); }
+.ie-pick-btn { display: flex; align-items: center; gap: 4px; }
+.ie-pick-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ie-check { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: 13px; color: var(--text); font-weight: normal; }
+.ie-check input { accent-color: var(--accent); }
+.ie-preview-row { display: flex; align-items: center; gap: var(--space-3); }
+.ie-preview-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.ie-swatch {
+  width: 56px; height: 56px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.ie-swatch-dark  { background: var(--bg); }
+.ie-swatch-light { background: #ececec; }
+.ie-swatch img { max-width: 80%; max-height: 80%; object-fit: contain; }
+.ie-help { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 0; }
+/* Crop tool button + crop-mode actions */
+.ie-tool-row { flex-direction: row; }
+.ie-tool-btn { display: flex; align-items: center; gap: 4px; }
+.ie-tool-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ie-crop-actions { display: flex; gap: var(--space-3); }
+/* While crop mode is active, the bg/tolerance/feather controls have no
+   visible effect (canvas shows the original), so dim + disable them. */
+#logo-edit-modal.cropping .ie-row:not(.ie-tool-row) { opacity: .45; pointer-events: none; }
+/* Crop overlay sits over the canvas; a huge box-shadow on the selection
+   box dims everything outside it, clipped to the overlay bounds. */
+#ie-crop-overlay {
+  position: absolute; inset: 0; overflow: hidden;
+  cursor: crosshair; border-radius: var(--radius-lg);
+}
+#ie-crop-sel {
+  position: absolute; display: none;
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45);
+  cursor: move;
+}
+/* 8 resize handles — small squares centered on each edge/corner. */
+.ie-h {
+  position: absolute; width: 12px; height: 12px;
+  background: var(--surface); border: 1.5px solid var(--accent);
+  border-radius: 2px;
+}
+/* Handles sit just inside the selection border so they're never clipped by
+   the overlay's overflow:hidden (works for any selection position). */
+.ie-h-nw { top: 2px; left: 2px; cursor: nwse-resize; }
+.ie-h-n  { top: 2px; left: 50%; margin-left: -6px; cursor: ns-resize; }
+.ie-h-ne { top: 2px; right: 2px; cursor: nesw-resize; }
+.ie-h-e  { top: 50%; right: 2px; margin-top: -6px; cursor: ew-resize; }
+.ie-h-se { bottom: 2px; right: 2px; cursor: nwse-resize; }
+.ie-h-s  { bottom: 2px; left: 50%; margin-left: -6px; cursor: ns-resize; }
+.ie-h-sw { bottom: 2px; left: 2px; cursor: nesw-resize; }
+.ie-h-w  { top: 50%; left: 2px; margin-top: -6px; cursor: ew-resize; }
+@media (max-width: 600px) {
+  .ie-layout { flex-direction: column; }
+  #ie-canvas { width: 100%; }
+}
 /* ─── Rating bar ──────────────────────────────────────────────────── */
 .rating-row {
   display: flex; align-items: center; gap: var(--space-5); padding: var(--space-2) 0; flex-wrap: nowrap;

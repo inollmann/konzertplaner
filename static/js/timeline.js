@@ -21,7 +21,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { state } from './state.js';
-import { esc } from './utils.js';
+import { esc, artistLogoSrc, artistLogoClass } from './utils.js';
 import { eventVisible } from './filters.js';
 import { showPopover, hidePopover } from './ui.js';
 
@@ -391,7 +391,8 @@ export function renderTimeline() {
         const imgs = [];
         for (const name of uniq) {
           const a = state.artists.find(ar => ar.name.toLowerCase() === name.toLowerCase());
-          if (a && a.logo) imgs.push(`<img src="/api/img/${a.logo}" alt="${esc(name)}" style="height:${logoSize}px;width:${logoSize}px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);flex-shrink:0;">`);
+          const logoSrc = a ? artistLogoSrc(a) : null;
+          if (a && logoSrc) imgs.push(`<img class="${artistLogoClass(a)}" src="/api/img/${logoSrc}" alt="${esc(name)}" style="height:${logoSize}px;width:${logoSize}px;border-radius:50%;object-fit:cover;border:1px solid var(--bg);flex-shrink:0;">`);
         }
         el.innerHTML = imgs.length
           ? `<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;width:100%;height:100%;">${imgs.join('')}</div>`

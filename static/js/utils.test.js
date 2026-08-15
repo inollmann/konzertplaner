@@ -1,6 +1,7 @@
 import {
   esc, localIso, parseDate, fmtDateShort, fmtDateLong, fmtPrice,
   eventLatestDate, eventEarliestDate, pipColor, venueMapHtml,
+  artistLogoSrc, artistLogoClass,
 } from './utils.js';
 
 describe('esc', () => {
@@ -184,5 +185,36 @@ describe('venueMapHtml', () => {
   });
   it('uses the provided zoom level', () => {
     expect(venueMapHtml('Arena', 'Berlin', 12)).toContain('z=12');
+  });
+});
+
+describe('artistLogoSrc', () => {
+  it('prefers logo_mono over logo', () => {
+    expect(artistLogoSrc({ logo: 'orig', logo_mono: 'mono' })).toBe('mono');
+  });
+  it('falls back to the original logo when logo_mono is absent', () => {
+    expect(artistLogoSrc({ logo: 'orig' })).toBe('orig');
+  });
+  it('falls back to the original logo when logo_mono is null', () => {
+    expect(artistLogoSrc({ logo: 'orig', logo_mono: null })).toBe('orig');
+  });
+  it('returns null when neither logo nor logo_mono exist', () => {
+    expect(artistLogoSrc({})).toBeNull();
+    expect(artistLogoSrc({ logo: null, logo_mono: null })).toBeNull();
+  });
+});
+
+describe('artistLogoClass', () => {
+  it('returns mono-logo when logo_mono is present', () => {
+    expect(artistLogoClass({ logo: 'orig', logo_mono: 'mono' })).toBe('mono-logo');
+  });
+  it('returns empty string when only the original logo exists', () => {
+    expect(artistLogoClass({ logo: 'orig' })).toBe('');
+  });
+  it('returns empty string when logo_mono is null', () => {
+    expect(artistLogoClass({ logo: 'orig', logo_mono: null })).toBe('');
+  });
+  it('returns empty string when no logos exist', () => {
+    expect(artistLogoClass({})).toBe('');
   });
 });

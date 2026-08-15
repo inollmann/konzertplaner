@@ -22,6 +22,7 @@ def test_get_artists_after_create(client):
         "followed",
         "eventim_name",
         "eventim_id",
+        "logo_mono",
     }
     assert a["name"] == "New Artist"
     assert a["followed"] is True
@@ -29,6 +30,7 @@ def test_get_artists_after_create(client):
     assert a["photo"] is None
     assert a["eventim_name"] is None
     assert a["eventim_id"] is None
+    assert a["logo_mono"] is None
 
 
 def test_get_artists_merge_with_events(client):
@@ -115,6 +117,18 @@ def test_put_artist_update(client):
     assert data["name"] == "New"
     assert data["followed"] is True
     assert data["logo"] is not None
+
+
+def test_put_artist_logo_mono_persists(client):
+    create = client.post("/api/artists", json={"name": "Band"})
+    aid = create.get_json()["id"]
+    mono_id = str(uuid.uuid4())
+    resp = client.put(f"/api/artists/{aid}", json={"logo_mono": mono_id})
+    assert resp.status_code == 200
+    assert resp.get_json()["logo_mono"] == mono_id
+    # Confirmed persisted across a fresh GET.
+    got = client.get("/api/artists").get_json()[0]
+    assert got["logo_mono"] == mono_id
 
 
 def test_put_artist_nonexistent(client):

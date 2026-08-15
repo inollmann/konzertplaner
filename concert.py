@@ -374,6 +374,7 @@ class Artist:
         followed: bool = False,
         eventim_name: str | None = None,
         eventim_id: str | None = None,
+        logo_mono: str | None = None,
     ):
         self.id: str = str(uuid.uuid4())
         self.name: str = name
@@ -382,6 +383,7 @@ class Artist:
         self.followed: bool = followed  # star / follow toggle
         self.eventim_name: str | None = eventim_name  # confirmed Eventim artist name
         self.eventim_id: str | None = eventim_id  # Eventim productGroupId / attractionId
+        self.logo_mono: str | None = logo_mono  # processed white-on-transparent variant UUID
 
     def to_dict(self) -> dict:
         return {
@@ -392,6 +394,7 @@ class Artist:
             "followed": self.followed,
             "eventim_name": self.eventim_name,
             "eventim_id": self.eventim_id,
+            "logo_mono": self.logo_mono,
         }
 
     @classmethod
@@ -403,6 +406,7 @@ class Artist:
             followed=data.get("followed", False),
             eventim_name=data.get("eventim_name"),
             eventim_id=data.get("eventim_id"),
+            logo_mono=data.get("logo_mono"),
         )
         a.id = data["id"]
         return a

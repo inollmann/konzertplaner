@@ -778,6 +778,8 @@ def update_artist(aid):
     a.name = data.get("name", a.name)
     if "logo" in data:
         a.logo = data["logo"]
+    if "logo_mono" in data:
+        a.logo_mono = data["logo_mono"]
     if "photo" in data:
         a.photo = data["photo"]
     if "followed" in data:

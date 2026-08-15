@@ -8,7 +8,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 /** @typedef {{id:string, event_type:string, concerts?:Array, tags?:Array, [k:string]:any}} Event */
-/** @typedef {{id:string, name:string, city:string, logo?:string, photo?:string, followed?:boolean, derived?:boolean, eventim_name?:string}} Artist */
+/** @typedef {{id:string, name:string, city:string, logo?:string, logo_mono?:string, photo?:string, followed?:boolean, derived?:boolean, eventim_name?:string}} Artist */
 /** @typedef {{id:string, name:string, city:string, derived?:boolean}} VenueCat */
 
 export const today = new Date();

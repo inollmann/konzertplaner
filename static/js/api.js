@@ -226,12 +226,18 @@ export async function toggleFollow(artistId, follow) {
  * Upload an artist logo/photo blob and return the stored filename.
  * @param {Blob} blob
  * @param {string|null} [artistName] human-readable name for the file
- * @param {string} [imgType='logo'] 'logo' | 'photo'
+ * @param {string} [imgType='logo'] 'logo' | 'photo' | 'logo-mono'
+ * @param {string} [filename] explicit filename (canvas Blobs have none);
+ *   falls back to `blob.name` then 'upload.png'. A named extension is
+ *   required — the backend's allowed_file() rejects extensionless blobs.
  * @returns {Promise<string|null>} filename, or null if no blob was given
  */
-export async function uploadArtistImg(blob, artistName = null, imgType = 'logo') {
+export async function uploadArtistImg(blob, artistName = null, imgType = 'logo', filename = undefined) {
   if (!blob) return null;
-  const fd = new FormData(); fd.append('logo', blob);
+  // `Blob` has no `name` (only `File` does); cast so the fallback works for
+  // File uploads while canvas Blobs pass an explicit filename.
+  const name = /** @type {any} */ (blob).name;
+  const fd = new FormData(); fd.append('logo', blob, filename || name || 'upload.png');
   if (artistName) fd.append('artist', artistName);
   fd.append('type', imgType);
   const r = await fetch('/api/upload-logo', { method: 'POST', body: fd });

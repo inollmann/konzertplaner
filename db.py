@@ -12,6 +12,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import inspect as sa_inspect
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from concert import Artist, Concert, Event, Festival, Tour, Venue
@@ -185,6 +186,7 @@ def row_to_artist(row: ArtistRow) -> Artist:
         followed=row.followed,
         eventim_name=row.eventim_name,
         eventim_id=row.eventim_id,
+        logo_mono=str(row.logo_mono_id) if row.logo_mono_id else None,
     )
     a.id = str(row.id)
     return a
@@ -196,6 +198,7 @@ def artist_to_row(artist: Artist) -> ArtistRow:
         name=artist.name,
         logo_id=_img_id_to_uuid(artist.logo),
         photo_id=_img_id_to_uuid(artist.photo),
+        logo_mono_id=_img_id_to_uuid(artist.logo_mono),
         followed=artist.followed,
         eventim_name=artist.eventim_name,
         eventim_id=artist.eventim_id,
@@ -289,7 +292,15 @@ def upsert_artist(artist: Artist) -> Artist:
     with session() as s:
         existing = s.get(ArtistRow, row.id)
         if existing:
-            for col in ("name", "logo_id", "photo_id", "followed", "eventim_name", "eventim_id"):
+            for col in (
+                "name",
+                "logo_id",
+                "photo_id",
+                "logo_mono_id",
+                "followed",
+                "eventim_name",
+                "eventim_id",
+            ):
                 setattr(existing, col, getattr(row, col))
             existing.updated_at = datetime.now(UTC)
         else:
@@ -467,5 +478,14 @@ def _auto_migrate():
 
 def init_db():
     SQLModel.metadata.create_all(engine)
+    # Lightweight column migration: create_all only creates missing tables,
+    # not columns. Add new columns to existing tables when absent, so an
+    # already-provisioned database picks up schema additions. The existence
+    # check via `inspect` is dialect-agnostic (works on PostgreSQL and the
+    # SQLite test DB, where create_all already added the column).
+    with engine.begin() as c:
+        cols = {col["name"] for col in sa_inspect(c).get_columns("artists")}
+        if "logo_mono_id" not in cols:
+            c.exec_driver_sql("ALTER TABLE artists ADD COLUMN logo_mono_id UUID")
     if os.environ.get("KP_TESTING") != "1":
         _auto_migrate()

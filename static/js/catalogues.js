@@ -15,7 +15,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { state, getEvent } from './state.js';
-import { esc, localIso, parseDate, fmtDateShort, eventLatestDate } from './utils.js';
+import { esc, localIso, parseDate, fmtDateShort, eventLatestDate, artistLogoSrc, artistLogoClass } from './utils.js';
 import { openModal, closeModal, closeDrawer, showAlert, showConfirm } from './ui.js';
 import { reloadCatalogue, uploadArtistImg, toggleFollow } from './api.js';
 import { artistRatingsSummary, artistDetailRatingsHtml } from './ratings.js';
@@ -59,8 +59,9 @@ export function renderArtistList() {
     return;
   }
   el.innerHTML = state.artists.map(a => {
-    const logoEl = a.logo
-      ? `<div class="logo-drop-zone" style="border-style:solid"><img src="/api/img/${a.logo}" alt=""></div>`
+    const logoSrc = artistLogoSrc(a);
+    const logoEl = logoSrc
+      ? `<div class="logo-drop-zone" style="border-style:solid"><img class="${artistLogoClass(a)}" src="/api/img/${logoSrc}" alt=""></div>`
       : `<div class="logo-drop-zone">\uD83C\uDFAD</div>`;
     const nameEl = `<span style="flex:1;font-size:14px">${esc(a.name)}</span>`;
     const ratingsSummary = artistRatingsSummary(a.name);
@@ -110,8 +111,17 @@ export function openArtistDetail(a) {
   const logoZone  = document.getElementById('adm-logo-zone');
   const photoZone = document.getElementById('adm-photo-zone');
   if (_admCurrentArtist.logo) {
+    const logoSrc = artistLogoSrc(_admCurrentArtist);
+    const logoCls = artistLogoClass(_admCurrentArtist);
+    // Sparkles overlay button: opens the monochrome logo editor on the
+    // original `logo`. The button stops propagation so the zone's own
+    // onclick (file picker) isn't triggered.
+    const editBtn = `<button class="logo-edit-btn" type="button"
+        title="Logo auf weiß/transparent bearbeiten"
+        onclick="event.stopPropagation(); openLogoEditorById('${_admCurrentArtist.id}')">${icon('sparkles')}</button>`;
     logoZone.classList.add('has-img');
-    document.getElementById('adm-logo-inner').innerHTML = `<img src="/api/img/${_admCurrentArtist.logo}" alt="">`;
+    document.getElementById('adm-logo-inner').innerHTML =
+      `<img class="${logoCls}" src="/api/img/${logoSrc}" alt="">${editBtn}`;
   } else {
     logoZone.classList.remove('has-img');
     document.getElementById('adm-logo-inner').innerHTML = '\uD83C\uDFAD';

@@ -13,6 +13,29 @@ export function esc(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/**
+ * Resolve which logo image UUID to display for an artist: the processed
+ * monochrome variant takes priority over the original. Returns null when
+ * the artist has no logo at all.
+ * @param {any} a artist catalogue entry
+ * @returns {string|null}
+ */
+export function artistLogoSrc(a) {
+  return a.logo_mono || a.logo || null;
+}
+
+/**
+ * CSS class for an artist logo `<img>`: `mono-logo` when the displayed
+ * image is the processed white-on-transparent variant (so the light-mode
+ * `filter: invert(1)` rule in style.css turns it black), empty string
+ * otherwise.
+ * @param {any} a artist catalogue entry
+ * @returns {string}
+ */
+export function artistLogoClass(a) {
+  return a.logo_mono ? 'mono-logo' : '';
+}
+
 /** YYYY-MM-DD in the *local* timezone (avoids UTC offset shifting the date). */
 export function localIso(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
