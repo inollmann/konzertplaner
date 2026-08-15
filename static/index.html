@@ -450,41 +450,28 @@
     <span id="adm-title">Artist</span>
     <button class="btn-close" onclick="closeModal('artist-detail-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
   </div>
-  <!-- Two image slots -->
+  <!-- Image display slots (display-only) + universal upload dropzone -->
   <div class="adm-images">
     <div class="adm-images-top">
       <div class="adm-img-slot" style="flex-shrink:0">
-        <div class="adm-logo-zone" id="adm-logo-zone"
-             onclick="admPickFile('logo')"
-             ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'logo')"
-             title="Logo: Klicken, Drag & Drop oder Strg+V">
+        <div class="adm-logo-zone" id="adm-logo-zone" title="Logo">
           <span id="adm-logo-inner"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span>
         </div>
         <div class="adm-img-slot-label">Logo</div>
       </div>
-      <!-- Active slot selector inline with logo -->
-      <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:12px;color:var(--muted)">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
-          <input type="radio" name="adm-slot" value="logo" id="adm-slot-logo" checked
-            onchange="if(this.checked)setAdmSlot('logo')" style="accent-color:var(--accent)">
-          Logo aktiv
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
-          <input type="radio" name="adm-slot" value="photo" id="adm-slot-photo"
-            onchange="if(this.checked)setAdmSlot('photo')" style="accent-color:var(--accent)">
-          Foto aktiv
-        </label>
-        <div style="font-size:9px;color:var(--border);margin-top:4px">Klicken · Drag&amp;Drop · Strg+V</div>
-      </div>
     </div>
     <div class="adm-img-slot" style="width:100%">
-      <div class="adm-photo-zone" id="adm-photo-zone"
-           onclick="admPickFile('photo')"
-           ondragover="event.preventDefault()" ondrop="admHandleDrop(event,'photo')"
-           title="Foto: Klicken, Drag & Drop oder Strg+V">
+      <div class="adm-photo-zone" id="adm-photo-zone" title="Foto">
         <span id="adm-photo-inner"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></span>
       </div>
       <div class="adm-img-slot-label">Foto</div>
+    </div>
+    <div class="adm-dropzone" id="adm-dropzone"
+         onclick="admPickFile()" ondragover="event.preventDefault()"
+         ondragenter="admDragEnter(event)" ondragleave="admDragLeave(event)" ondrop="admHandleDrop(event)"
+         tabindex="0" title="Bild hochladen, Drag & Drop oder Strg+V">
+      <svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg>
+      <span>Bild hierher ziehen, klicken oder Strg+V</span>
     </div>
   </div>
 
@@ -572,7 +559,23 @@
   </div>
  </div>
 
- <!-- ── Venue catalogue modal ──────────────────────────────────────── -->
+  <!-- ── Image destination choice modal ─────────────────────────────── -->
+  <div class="modal-backdrop" id="adm-upload-choice-modal" onclick="closeMbg('adm-upload-choice-modal',event)">
+   <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span>Bild hinzufügen</span>
+      <button class="btn-close" onclick="closeModal('adm-upload-choice-modal')"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="adm-choice-preview-wrap"><img id="adm-choice-preview" alt=""></div>
+    <p class="adm-choice-hint">Wohin soll das Bild?</p>
+    <div class="adm-choice-actions">
+      <button class="btn-save" onclick="admChooseDest('logo')">Logo</button>
+      <button class="btn-save" onclick="admChooseDest('photo')">Bandfoto</button>
+    </div>
+   </div>
+  </div>
+
+  <!-- ── Venue catalogue modal ──────────────────────────────────────── -->
 <div class="modal-backdrop" id="venue-modal" onclick="closeMbg('venue-modal',event)">
  <div class="modal" style="max-width:600px">
   <div class="modal-title">

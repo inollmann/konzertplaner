@@ -764,6 +764,7 @@ def create_artist():
         followed=data.get("followed", False),
         eventim_name=data.get("eventim_name"),
         eventim_id=data.get("eventim_id"),
+        logo_mono=data.get("logo_mono"),
     )
     upsert_artist(a)
     return jsonify(a.to_dict()), 201

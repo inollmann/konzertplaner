@@ -23,6 +23,8 @@ let _ieArtist = null;       // current Artist object
 let _ieImage = null;        // HTMLImageElement of the source logo
 let _ieCanvas, _ieCtx;      // preview canvas + 2d context
 let _ieOrigData = null;     // Uint8ClampedArray of the (possibly cropped) pixels
+let _ieSourceUrl = null;    // image source URL — '/api/img/<uuid>' or a 'blob:' URL
+let _ieSourceBlob = null;   // pending upload blob (set when source is a new upload); null when re-editing a server logo
 let _ieBgColor = [255, 255, 255]; // sampled background RGB
 let _ieTolerance = 40;      // RGB Euclidean distance threshold
 let _ieFeather = true;      // anti-alias the alpha edge
@@ -53,7 +55,39 @@ export function openLogoEditorById(id) {
  */
 export function openLogoEditor(a) {
   if (!a.logo) { showAlert('Bitte zuerst ein Logo hochladen.'); return; }
+  _openEditor(a, '/api/img/' + a.logo);
+}
+
+/**
+ * Open the logo editor for artist `a` using a pending upload `blob` as the
+ * source — lets the user edit the monochrome logo immediately after picking
+ * a file, without first saving the artist card. The `blob` is the staged
+ * upload from the destination-choice popup in `catalogues.js`; it is NOT
+ * yet persisted. On save, the raw blob is uploaded as `logo` and the
+ * processed canvas as `logo_mono` (both fields in one PUT). Derived/new
+ * artists have no `id`, so saving is blocked in `saveLogoEdit` with a hint.
+ * @param {any} a artist catalogue entry (may be derived/new)
+ * @param {Blob} blob pending logo upload
+ */
+export function openLogoEditorFromBlob(a, blob) {
+  _openEditor(a, URL.createObjectURL(blob), blob);
+}
+
+/**
+ * Shared open: reset state, prime the canvas + controls, set the image
+ * source URL, and kick off loading. `_exitCrop()` first so any stale crop
+ * state from a previous session closed mid-crop (closeModal doesn't call
+ * _exitCrop) is cleared — otherwise the next open starts with a dimmed,
+ * crosshair-over-canvas, highlighted-toggle state.
+ * @param {any} a artist
+ * @param {string} srcUrl image source URL (server or blob:)
+ * @param {Blob | null} [srcBlob] pending upload blob (null when re-editing a server logo)
+ */
+function _openEditor(a, srcUrl, srcBlob = null) {
   _ieArtist = a;
+  _exitCrop();
+  _ieSourceUrl = srcUrl;
+  _ieSourceBlob = srcBlob;
   _ieBgColor = [255, 255, 255];
   _ieTolerance = 40;
   _ieFeather = true;
@@ -110,7 +144,7 @@ async function _loadAndDraw() {
   img.onerror = () => {
     document.getElementById('ie-hint').textContent = 'Logo konnte nicht geladen werden.';
   };
-  img.src = '/api/img/' + _ieArtist.logo;
+  img.src = _ieSourceUrl;
 }
 
 /**
@@ -326,31 +360,64 @@ export function leFeatherChange(e) {
 }
 
 /**
- * Persist the processed canvas as the artist's `logo_mono`: export the
- * canvas to a PNG blob, upload it (as `type=logo-mono`), PUT the new UUID
- * onto the artist, then reload the catalogue and close the modal.
+ * Persist the processed canvas as the artist's `logo_mono`. When the source
+ * was a new upload blob (`_ieSourceBlob`), the raw blob is also uploaded as
+ * `logo` (original colors) and both fields are PUT in one request — so the
+ * full "upload → bg-remove → crop → save" flow persists both the original
+ * logo and its monochrome derivative. When re-editing a server logo (no
+ * `_ieSourceBlob`), only `logo_mono` is PUT (the original `logo` is kept).
  * @returns {Promise<void>}
  */
 export async function saveLogoEdit() {
   if (!_ieArtist || !_ieOrigData) { showAlert('Nichts zu speichern.'); return; }
-  const blob = await new Promise(resolve => _ieCanvas.toBlob(resolve, 'image/png'));
-  if (!blob) { showAlert('Export fehlgeschlagen.'); return; }
+  // Exit crop mode + repaint the processed canvas before exporting, so
+  // saving while still cropping exports the monochrome result (crop mode
+  // shows the original via _showOriginal, which would otherwise be saved).
+  _exitCrop();
+  _render();
+  const monoBlob = await new Promise(resolve => _ieCanvas.toBlob(resolve, 'image/png'));
+  if (!monoBlob) { showAlert('Export fehlgeschlagen.'); return; }
+  // Derived/new artists have no `id` — can't PUT. Stage the mono canvas + raw
+  // upload blob as pending; catalogues.js persists both when the card is saved.
+  if (!_ieArtist.id) {
+    window.dispatchEvent(new CustomEvent('logo-pending', {
+      detail: { monoBlob, rawBlob: _ieSourceBlob }
+    }));
+    if (_ieSourceUrl && _ieSourceUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(/** @type {string} */ (_ieSourceUrl));
+    }
+    closeModal('logo-edit-modal');
+    return;
+  }
   // Canvas Blobs have no filename; pass one explicitly so the backend's
   // allowed_file() extension check passes (api.js uploadArtistImg default
   // would yield "blob", which has no extension and is rejected).
-  const logoMonoId = await uploadArtistImg(blob, _ieArtist.name, 'logo-mono', 'logo-mono.png');
+  const logoMonoId = await uploadArtistImg(monoBlob, _ieArtist.name, 'logo-mono', 'logo-mono.png');
+  // When the source was a new upload, also persist the raw blob as `logo`
+  // (original colors). Both fields go in one PUT.
+  /** @type {Record<string, string>} */
+  const payload = { logo_mono: logoMonoId };
+  if (_ieSourceBlob) {
+    const logoId = await uploadArtistImg(_ieSourceBlob, _ieArtist.name, 'logo', 'logo.png');
+    payload.logo = logoId;
+  }
   await fetch('/api/artists/' + _ieArtist.id, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ logo_mono: logoMonoId }),
+    body: JSON.stringify(payload),
   });
   await reloadCatalogue();
-  // If the artist detail modal is still open, refresh its logo preview so
-  // the new mono version is visible immediately.
+  // Re-seed the artist detail modal so the new logo + mono are visible.
+  // Both fields are now persisted (when source was a blob, `logo` was just
+  // uploaded too), so openArtistDetail(refreshed) won't lose any pending
+  // upload — there is none. Revoke the blob URL if the source was a blob.
   const adm = document.getElementById('artist-detail-modal');
   if (adm && adm.classList.contains('open')) {
     const refreshed = state.artists.find(x => x.id === _ieArtist.id);
     if (refreshed) window.openArtistDetail?.(refreshed);
+  }
+  if (_ieSourceUrl && _ieSourceUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(/** @type {string} */ (_ieSourceUrl));
   }
   closeModal('logo-edit-modal');
 }

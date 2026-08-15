@@ -17,6 +17,8 @@
   --link:          #99aecc;
   --link-soldout:  #64748b;
   --placeholder:   #444;
+  --checker-base:  #1a1a1a;
+  --checker-sq:    #2a2a2a;
 
   /* ── Radius ── */
   --radius-sm:   4px;
@@ -96,6 +98,8 @@
   --link:          #5b7a9e;
   --link-soldout:  #475569;
   --placeholder:   #999;
+  --checker-base:  #fff;
+  --checker-sq:    #ccc;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1205,12 +1209,40 @@ input[type=color] {
   max-height: 300px;
   width: auto; height: auto; border-radius: var(--radius-lg);
 }
+/* ─── Universal image upload dropzone (artist detail) ──────────────── */
+.adm-dropzone {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-4); padding: var(--space-6);
+  border: 2px dashed var(--border); border-radius: var(--radius-xl);
+  cursor: pointer; color: var(--muted); font-size: 13px;
+  transition: border-color var(--dur-med), background var(--dur-med), color var(--dur-med);
+}
+.adm-dropzone:hover, .adm-dropzone:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  color: var(--text); outline: none;
+}
+.adm-dropzone .ic { font-size: 20px; flex-shrink: 0; }
+.adm-dropzone.drag-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+}
+/* prevent dragenter/leave flicker when the cursor crosses child elements */
+.adm-dropzone > * { pointer-events: none; }
+/* ─── Image destination choice modal ─────────────────────────────── */
+.adm-choice-preview-wrap { display: flex; justify-content: center; margin-bottom: var(--space-6); }
+.adm-choice-preview-wrap img { max-width: 100%; max-height: 50vh; object-fit: contain; border-radius: var(--radius-lg); }
+.adm-choice-hint { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: var(--space-6); }
+.adm-choice-actions { display: flex; gap: var(--space-5); }
+.adm-choice-actions .btn-save { flex: 1; }
 /* ─── Monochrome logos: light-mode invert ─────────────────────────── */
 /* A processed logo is stored white-on-transparent. In the light theme,
    CSS invert(1) turns pure white into pure black while leaving alpha
    untouched, giving the "black version for light mode" for free — no
    second asset, no themechange re-render plumbing needed. */
-:root.light img.mono-logo { filter: invert(1); }
+:root.light img.mono-logo,
+.ie-swatch-light img.mono-logo { filter: invert(1); }
 /* ─── Logo editor overlay button (on the detail-popup logo zone) ──── */
 .logo-edit-btn {
   position: absolute; top: 6px; right: 6px;
@@ -1238,12 +1270,12 @@ input[type=color] {
   display: block; max-width: 100%; width: 400px; height: auto;
   border-radius: var(--radius-lg);
   /* checkerboard so transparency is visible */
-  background-color: #fff;
+  background-color: var(--checker-base);
   background-image:
-    linear-gradient(45deg, #ccc 25%, transparent 25%),
-    linear-gradient(-45deg, #ccc 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #ccc 75%),
-    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    linear-gradient(45deg, var(--checker-sq) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checker-sq) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker-sq) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checker-sq) 75%);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
 }

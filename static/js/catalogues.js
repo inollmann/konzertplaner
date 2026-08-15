@@ -2,11 +2,11 @@
 // catalogues.js — artist & venue catalogue management
 //
 // Renders the artist/venue catalogue lists and popups and owns the
-// artist-detail image picker (click / drag-drop / paste). The picker tracks
-// which slot (logo|photo) was last interacted with in the module-local
-// `_admLastSlot`; the inline radio `onchange` handlers in index.html can't
-// see module scope, so they call the exported `setAdmSlot()` bridge instead
-// of writing the variable directly.
+// artist-detail image upload flow. The user drops/clicks/pastes an image
+// into the universal dropzone (#adm-dropzone), which opens a destination
+// popup (#adm-upload-choice-modal) offering "Logo" (opens the monochrome
+// logo editor on the blob) or "Bandfoto" (stages it directly as the photo).
+// The logo/photo display zones are display-only.
 //
 // `_admStore` is a throwaway array rebuilt on every `renderArtistList()`
 // so the inline `onclick="openArtistDetailById(N)"` handlers can address
@@ -20,11 +20,13 @@ import { openModal, closeModal, closeDrawer, showAlert, showConfirm } from './ui
 import { reloadCatalogue, uploadArtistImg, toggleFollow } from './api.js';
 import { artistRatingsSummary, artistDetailRatingsHtml } from './ratings.js';
 import { icon } from './icons.js';
+import { openLogoEditorFromBlob } from './logo-editor.js';
 
 let _admStore = [];  // temp array to pass artist objects safely via index
 let _admCurrentArtist = null;
 let _admPendingBlob   = null;
-let _admLastSlot = 'logo';
+let _admChoiceBlob     = null;  // blob staged in the destination-choice popup
+let _admPendingLogoMono = null;  // pending mono blob (derived artist, persisted on saveArtistDetail)
 let _artistListWired = false;
 
 /** Open the artist catalogue modal: close drawer, (re)render the list, show the modal. */
@@ -104,8 +106,9 @@ export function openArtistDetailById(idx) { openArtistDetail(_admStore[idx]); }
  */
 export function openArtistDetail(a) {
   _admCurrentArtist = typeof a === 'string' ? JSON.parse(a) : a;
-  _admPendingBlob   = { logo: null, photo: null };
-  _admLastSlot      = 'logo';
+  _admPendingBlob     = { logo: null, photo: null };
+  _admPendingLogoMono = null;
+  _admChoiceBlob      = null;
   document.getElementById('adm-title').textContent = _admCurrentArtist.derived ? 'Artist speichern' : 'Artist bearbeiten';
   document.getElementById('adm-name').value = _admCurrentArtist.name;
   const logoZone  = document.getElementById('adm-logo-zone');
@@ -137,35 +140,78 @@ export function openArtistDetail(a) {
   openModal('artist-detail-modal');
 }
 
-/** Open a file picker for the given image slot and preview the chosen file. @param {string} slot 'logo'|'photo' */
-export function admPickFile(slot) {
-  _admLastSlot = slot;
-  const radio = document.getElementById('adm-slot-'+slot);
-  if (radio) radio.checked = true;
+/** Open a file picker; the chosen image goes to the destination popup. */
+export function admPickFile() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
-  input.onchange = () => { if (input.files[0]) admPreviewBlob(input.files[0], slot); };
+  input.onchange = () => { if (input.files[0]) admNewImage(input.files[0]); };
   input.click();
 }
 
-/** Handle a drop of an image file onto the given slot and preview it. @param {DragEvent} e @param {string} slot */
-export function admHandleDrop(e, slot) {
+/** Mark the dropzone as an active drop target. @param {DragEvent} e */
+export function admDragEnter(e) { /** @type {Element} */ (e.currentTarget).classList.add('drag-over'); }
+/** Clear the active drop-target state. @param {DragEvent} e */
+export function admDragLeave(e) { /** @type {Element} */ (e.currentTarget).classList.remove('drag-over'); }
+/** Handle a drop onto the universal dropzone → destination popup. @param {DragEvent} e */
+export function admHandleDrop(e) {
   e.preventDefault();
-  _admLastSlot = slot;
-  const radio = document.getElementById('adm-slot-'+slot);
-  if (radio) radio.checked = true;
+  /** @type {Element} */ (e.currentTarget).classList.remove('drag-over');
   const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('image/')) admPreviewBlob(f, slot);
+  if (f && f.type.startsWith('image/')) admNewImage(f);
 }
 
-/** Preview `blob` in the given slot and stash it for the next save. @param {Blob} blob @param {string} slot */
-export function admPreviewBlob(blob, slot) {
-  _admPendingBlob[slot] = blob;
-  const zoneId  = slot === 'logo' ? 'adm-logo-zone'  : 'adm-photo-zone';
-  const innerId = slot === 'logo' ? 'adm-logo-inner'  : 'adm-photo-inner';
-  const zone = document.getElementById(zoneId);
+/**
+ * Stage `blob` and open the destination-choice popup showing a preview and
+ * the Logo / Bandfoto buttons. Entry point for all image inputs (click,
+ * drop, paste).
+ * @param {Blob} blob
+ */
+export function admNewImage(blob) {
+  _admChoiceBlob = blob;
+  document.getElementById('adm-choice-preview').src = URL.createObjectURL(blob);
+  openModal('adm-upload-choice-modal');
+}
+
+/**
+ * Handle the user's destination choice from the popup. Closes the popup,
+ * then either opens the logo editor (Logo) or stages the photo (Bandfoto).
+ * If the target slot already has an image (persisted or pending), confirm
+ * the replacement first. The staged `_admChoiceBlob` is consumed and cleared.
+ * @param {string} slot 'logo' | 'photo'
+ */
+export function admChooseDest(slot) {
+  const blob = _admChoiceBlob;
+  _admChoiceBlob = null;
+  closeModal('adm-upload-choice-modal');
+  if (!blob) return;
+  if (slot === 'logo') {
+    _confirmReplace('logo', () => openLogoEditorFromBlob(_admCurrentArtist, blob));
+  } else {
+    _confirmReplace('photo', () => setPhotoPreview(blob));
+  }
+}
+
+/**
+ * If the given slot already has an image (persisted on the artist or staged
+ * as a pending blob), ask before replacing; otherwise call `onYes` directly.
+ * @param {string} slot 'logo' | 'photo'
+ * @param {() => void} onYes
+ */
+function _confirmReplace(slot, onYes) {
+  const existing = _admCurrentArtist[slot] || _admPendingBlob[slot];
+  if (existing) {
+    showConfirm(`Aktuelles ${slot === 'logo' ? 'Logo' : 'Foto'} ersetzen?`, onYes);
+  } else {
+    onYes();
+  }
+}
+
+/** Stage `blob` as the pending photo and update the photo display zone. @param {Blob} blob */
+function setPhotoPreview(blob) {
+  _admPendingBlob.photo = blob;
+  const zone = document.getElementById('adm-photo-zone');
   zone.classList.add('has-img');
-  document.getElementById(innerId).innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="">`;
+  document.getElementById('adm-photo-inner').innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="">`;
 }
 
 /**
@@ -198,9 +244,10 @@ export async function saveArtistDetail() {
   const name = document.getElementById('adm-name').value.trim();
   if (!name) { showAlert('Bitte einen Namen eingeben.'); return; }
   const a = _admCurrentArtist;
-  const logoFilename  = _admPendingBlob.logo  ? await uploadArtistImg(_admPendingBlob.logo, name, 'logo')  : (a.logo  || null);
-  const photoFilename = _admPendingBlob.photo ? await uploadArtistImg(_admPendingBlob.photo, name, 'photo') : (a.photo || null);
-  const payload = { name, logo: logoFilename, photo: photoFilename };
+  const logoFilename    = _admPendingBlob.logo  ? await uploadArtistImg(_admPendingBlob.logo,  name, 'logo',     'logo.png')     : (a.logo     || null);
+  const logoMonoFilename = _admPendingLogoMono  ? await uploadArtistImg(_admPendingLogoMono, name, 'logo-mono', 'logo-mono.png') : (a.logo_mono || null);
+  const photoFilename   = _admPendingBlob.photo ? await uploadArtistImg(_admPendingBlob.photo, name, 'photo')                   : (a.photo    || null);
+  const payload = { name, logo: logoFilename, logo_mono: logoMonoFilename, photo: photoFilename };
   if (a.derived || !a.id) {
     await fetch('/api/artists', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   } else {
@@ -295,19 +342,22 @@ export async function deleteVenue(id) {
   });
 }
 
-/**
- * Set the active image slot (logo|photo) used by paste/click targeting.
- * Bridge for the inline radio `onchange` handlers in index.html, which
- * can't reach module scope directly.
- * @param {string} slot 'logo'|'photo'
- */
-export function setAdmSlot(slot) {
-  _admLastSlot = slot;
-}
-
-document.addEventListener('paste', async e => {
+document.addEventListener('paste', e => {
   if (!document.getElementById('artist-detail-modal').classList.contains('open')) return;
   for (const item of e.clipboardData.items) {
-    if (item.type.startsWith('image/')) { admPreviewBlob(item.getAsFile(), _admLastSlot); break; }
+    if (item.type.startsWith('image/')) { admNewImage(item.getAsFile()); break; }
   }
 }, true);
+
+// Logo editor dispatches `logo-pending` when the user applies an edit on a
+// derived/new artist (no `id`): the mono canvas blob + raw upload blob are
+// staged here as pending and persisted when the artist card is saved.
+window.addEventListener('logo-pending', (e) => {
+  const { monoBlob, rawBlob } = /** @type {CustomEvent} */ (e).detail;
+  _admPendingLogoMono = monoBlob;
+  _admPendingBlob.logo = rawBlob;
+  const zone = document.getElementById('adm-logo-zone');
+  zone.classList.add('has-img');
+  document.getElementById('adm-logo-inner').innerHTML =
+    `<img class="mono-logo" src="${URL.createObjectURL(monoBlob)}" alt="">`;
+});
