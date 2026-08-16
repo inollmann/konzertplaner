@@ -7,6 +7,24 @@
 
 import { icon } from './icons.js';
 
+/**
+ * Great-circle distance between two `{lat, lon}` points in kilometres.
+ * Pure, no DOM or network. Symmetric; 0 for identical points.
+ * @param {{lat:number, lon:number}|null} a
+ * @param {{lat:number, lon:number}|null} b
+ * @returns {number} distance in km, or `Infinity` when either side is null
+ */
+export function haversineKm(a, b) {
+  if (!a || !b) return Infinity;
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+
 /** HTML-escape a value for safe interpolation into template strings. */
 export function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')

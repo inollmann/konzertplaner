@@ -51,6 +51,46 @@ function saveVenueCache(cache) {
   saveKv('venueCache', cache);
 }
 
+// ── City geocoding cache (localStorage `kp-city-cache`) ──────────────
+function getCityCache() {
+  try { return JSON.parse(localStorage.getItem('kp-city-cache') || '{}'); }
+  catch { return {}; }
+}
+function saveCityCache(cache) {
+  localStorage.setItem('kp-city-cache', JSON.stringify(cache));
+  saveKv('cityCache', cache);
+}
+
+/**
+ * Geocode a city via Nominatim, caching the result in localStorage
+ * (`kp-city-cache`) keyed by the lowercased city name. Returns
+ * `{lat, lon}` or `null` when no result is found / the request fails.
+ * Used by the favourites-tab "nearby" filter (cheaper & higher cache
+ * hit-rate than per-venue geocoding).
+ * @param {string} city
+ * @returns {Promise<{lat:number, lon:number}|null>}
+ */
+export async function geocodeCity(city) {
+  const key = (city || '').trim().toLowerCase();
+  if (!key) return null;
+  const cache = getCityCache();
+  if (cache[key]) return cache[key];
+  const query = encodeURIComponent(city.trim());
+  try {
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
+      headers: { 'User-Agent': 'Konzertplaner/1.0' }
+    });
+    const data = await resp.json();
+    if (data && data.length > 0) {
+      const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      cache[key] = coords;
+      saveCityCache(cache);
+      return coords;
+    }
+  } catch (e) { console.error('City geocoding error:', e); }
+  return null;
+}
+
 /**
  * Geocode a venue via Nominatim, caching the result in localStorage
  * (`kp-venue-cache`) keyed by `venue|city`. Returns `{lat, lon}` or

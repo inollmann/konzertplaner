@@ -1,7 +1,7 @@
 import {
   esc, localIso, parseDate, fmtDateShort, fmtDateLong, fmtPrice,
   eventLatestDate, eventEarliestDate, pipColor, venueMapHtml,
-  artistLogoSrc, artistLogoClass,
+  artistLogoSrc, artistLogoClass, haversineKm,
 } from './utils.js';
 
 describe('esc', () => {
@@ -216,5 +216,36 @@ describe('artistLogoClass', () => {
   });
   it('returns empty string when no logos exist', () => {
     expect(artistLogoClass({})).toBe('');
+  });
+});
+
+describe('haversineKm', () => {
+  it('returns 0 for identical points', () => {
+    const p = { lat: 52.52, lon: 13.405 };
+    expect(haversineKm(p, p)).toBeCloseTo(0, 6);
+  });
+  it('is symmetric', () => {
+    const a = { lat: 52.52, lon: 13.405 };
+    const b = { lat: 48.137, lon: 11.575 };
+    expect(haversineKm(a, b)).toBeCloseTo(haversineKm(b, a), 6);
+  });
+  it('matches the known Berlin→Munich distance (~504 km)', () => {
+    const berlin = { lat: 52.52, lon: 13.405 };
+    const munich = { lat: 48.137, lon: 11.575 };
+    const d = haversineKm(berlin, munich);
+    expect(d).toBeGreaterThan(500);
+    expect(d).toBeLessThan(510);
+  });
+  it('returns Infinity when either point is null', () => {
+    expect(haversineKm(null, { lat: 1, lon: 1 })).toBe(Infinity);
+    expect(haversineKm({ lat: 1, lon: 1 }, null)).toBe(Infinity);
+  });
+  it('returns Infinity when both points are null', () => {
+    expect(haversineKm(null, null)).toBe(Infinity);
+  });
+  it('is zero for nearby points in the same city', () => {
+    const a = { lat: 50.0, lon: 8.0 };
+    const b = { lat: 50.001, lon: 8.001 };
+    expect(haversineKm(a, b)).toBeLessThan(0.2);
   });
 });
