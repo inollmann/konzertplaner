@@ -44,6 +44,22 @@
         "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 4; docker compose up -d --build 2>&1 \\| Select-Object -Last 1$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 3; docker compose up -d --build 2>&1 \\| Select-Object -Last 1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 6$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

@@ -240,12 +240,22 @@ Available glyphs include: `menu`, `x`, `pencil`, `trash-2`, `link`, `plus`,
   are accent-coloured lines. Event signs flank both sides alternating
   (tour = `--tour` cyan, festival = `--festival` pink). A distance fog
   fades far elements into the horizon (fog colour = background, so the far
-  road merges cleanly with the sky). The camera is pitched down (~70° FOV,
+  road merges cleanly with the sky). Beyond the signs a procedural grey
+  cityscape lines both sides: recycling-pool buildings (varied width /
+  height / depth) with canvas-generated facades — dark grey walls and a
+  grid of windows, some lit warm (`#fff2c0` / `#ffd36b`) and some dark.
+  Both buildings are keyed by world-slot so the layout is stable and
+  streams past as the camera drives. The camera is pitched down (~70° FOV,
   look target below the road) so the horizon sits near the top of the panel
-  and the road fills the frame. The current-position date sits in the panel
-  header, in line with the `Heute` / prev / next controls (day+month white,
-  year accent). Navigation via scroll, drag, the
-  `Heute` button and prev/next-event buttons.
+  and the road fills the frame. The panel has no outer box (border /
+  background / radius removed) and its 3D view aligns flush with the
+  calendar's tile grid: the view's top edge meets the first grey calendar
+  tile row (below the Mo/Di/Mi weekday header) and its bottom edge meets the
+  bottom tile row. The header is three-part — `Heute` left-aligned, the
+  current-position date centred above the view (day+month white, year
+  accent), and the prev/next-event buttons right-aligned (matching the
+  calendar nav buttons' size). Navigation via scroll, drag, the `Heute`
+  button and prev/next-event buttons.
 - **Map** — Leaflet + OpenStreetMap tiles. Markers grouped by geocoded
   venue, coloured tour/festival/mixed, with a count badge. Unrecognised
   venues fall into a manual-placement list. Geocoding via Nominatim,

@@ -565,25 +565,30 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
      Filterleiste ≈ 174px) und dem main-Innenabstand oben/unten, damit das
      Panel ohne Seiten-Scrollen vollständig sichtbar ist. */
   height: calc(100vh - 174px - var(--space-10) - var(--space-10));
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-7);
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.road-panel .road-canvas {
-  flex: 1 1 auto;
-  min-height: 0;
-}
+/* Header exakt so hoch wie die Kalender-Kopfzeile (.cal-header), damit die
+   Oberkante der Three.js-Ansicht mit der Oberkante der Kalender-Tiles
+   fluchtet. */
+/* Header so hoch wie Kalender-Kopfzeile (.cal-header, 47px) — damit die
+   Buttons mit den Kalender-Nav-Buttons fluchten — plus Abstand in Höhe der
+   Wochentag-Zeile (.cal-day-name, 22px) und deren Gap (2px), damit die
+   Oberkante der Three.js-Ansicht mit der ersten grauen Kalender-Tile-Reihe
+   fluchtet (nicht mit der Mo/Di/Mi-Zeile). */
 .road-header {
+  height: 47px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  padding: 0 0 var(--space-8);
+  margin-bottom: 24px;
 }
+.road-header-side { display: flex; align-items: center; gap: var(--space-3); flex: 1 1 0; min-width: 0; }
+.road-header-left { justify-content: flex-start; }
+.road-header-right { justify-content: flex-end; }
 .road-controls {
   display: flex;
   gap: var(--space-3);
@@ -595,9 +600,9 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-7);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   transition: background var(--dur-fast);
 }
 .timeline-btn:hover { background: var(--border); }
@@ -618,19 +623,18 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
   letter-spacing: var(--ls-display);
   line-height: 1;
   color: #fff;
-  text-align: left;
+  text-align: center;
   margin: 0;
-  min-width: 0;
+  flex-shrink: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .road-date .road-date-dmy { color: #fff; }
 .road-date .road-date-year { color: var(--accent); }
 .road-canvas {
   position: relative;
   width: 100%;
-  height: 460px;
+  flex: 1 1 auto;
+  min-height: 0;
   background: var(--surface2);
   border-radius: var(--radius-md);
   overflow: hidden;

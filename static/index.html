@@ -175,9 +175,11 @@
     <!-- 3D Road Timeline (right) -->
     <div class="road-panel" id="road-panel">
       <div class="road-header">
-        <div class="road-date" id="road-date"></div>
-        <div class="road-controls">
+        <div class="road-header-side road-header-left">
           <button class="timeline-btn timeline-today-btn" onclick="roadToday()" title="Heute">Heute</button>
+        </div>
+        <div class="road-date" id="road-date"></div>
+        <div class="road-header-side road-header-right">
           <button class="timeline-btn" onclick="roadNavEvent(-1)" title="Vorheriges Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-left"/></svg></button>
           <button class="timeline-btn" onclick="roadNavEvent(1)" title="Nächstes Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-right"/></svg></button>
         </div>

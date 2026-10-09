@@ -1,4 +1,4 @@
-const CACHE_NAME = 'konzertplaner-v13';
+const CACHE_NAME = 'konzertplaner-v26';
 
 // Install Event: Cache Ressourcen
 self.addEventListener('install', (event) => {

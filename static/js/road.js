@@ -52,6 +52,24 @@ const FOG_FAR = ROAD_VISIBLE_DAYS + 4; // Nebel voll (Z ab Kamera)
 const EPOCH = Date.UTC(2020, 0, 1);
 const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 
+// ── Stadtbild (Kulisse aus einfacher Geometrie) ─────────────────────────
+// Graue Gebäude säumen die Straße beidseitig, mit erleuchteten Fenstern.
+// Die Kulisse ist NICHT an Events gebunden, sondern als festes Welt-Raster
+// entlang Z aufgebaut: pro Rasterplatz k werden Größe/Fensterbild
+// deterministisch aus k abgeleitet, sodass die Stadt beim Scrollen stabil
+// stehen bleibt (nur die Kamera fährt).
+const BUILD_SPACING = 9;        // Z-Abstand zwischen Gebäude-Rasterplätzen
+const BUILD_INNER_X = 9.5;      // Innenkante (straßenzugewandt) der Gebäude
+const BUILD_PRESETS = [
+  { w: 6, h: 10, d: 6 },
+  { w: 7, h: 15, d: 6 },
+  { w: 5, h: 19, d: 5 },
+  { w: 8, h: 8,  d: 7 },
+  { w: 6, h: 13, d: 6 },
+  { w: 9, h: 23, d: 8 },
+];
+const BUILD_VARIANTS = 4;       // Anzahl Fenster-Texturvarianten je Größe
+
 // ── Pure Logik (für Tests) ──────────────────────────────────────────────
 /** Differenz in Tagen zwischen einem ms-Timestamp und dem Straßen-Mittelpunkt. */
 export function dayOffsetDays(ms, centerMs) { return (ms - centerMs) / DAY_MS; }
@@ -96,6 +114,9 @@ let dayCellPool = [];     // gepoolte Tages-Zellen (Mittelstreifen-Striche + Tag
 let monthLabelPool = [];  // gepoolte Monatsnamen auf der Fahrbahn
 let yearLabelPool = [];   // gepoolte Jahreszahlen auf der Fahrbahn (rechte Seite)
 let signPool = [];        // gepoolte Event-Schilder (Groups)
+let buildPool = [];       // gepoolte Gebäude-Platzhalter (Stadtbild)
+let cityGeos = null;      // geteilte Geometrien (Einheitsbox)
+let cityMats = [];        // geteilte Fenster-Materialien (Preset × Variante)
 let roadMesh = null;
 let roadGroup = null;     // Gruppiert Fahrbahn + Linien, wandert mit der Kamera
 let posLine = null;       // Akzent-Querlinie an der aktuellen Fahrtposition
@@ -177,6 +198,7 @@ export function initRoad() {
   raycaster = new THREE.Raycaster();
 
   buildRoad();
+  initCityscape();
   buildTodayMarker();
   buildPosLine();
 
@@ -240,8 +262,8 @@ function buildRoad() {
   // Seitenlinien: Akzentlinien an beiden Rändern (durch Nebel auslaufend)
   const edgeMat = new THREE.MeshBasicMaterial({ color: cssColor('--accent', new THREE.Color(0xe8ff47)), transparent: true, opacity: 0.6 });
   for (const side of [-1, 1]) {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, roadLen), edgeMat);
-    line.position.set(side * (ROAD_HALF - 0.3), 0.0, roadLen / 2 - 40);
+    const line = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, roadLen), edgeMat);
+    line.position.set(side * (ROAD_HALF - 0.42), 0.0, roadLen / 2 - 40);
     roadGroup.add(line);
   }
 
@@ -265,6 +287,109 @@ function buildPosLine() {
   const mat = new THREE.MeshBasicMaterial({ color: cssColor('--accent', new THREE.Color(0xe8ff47)) });
   posLine = new THREE.Mesh(new THREE.BoxGeometry(ROAD_WIDTH + 0.3, 0.05, 0.15), mat);
   scene.add(posLine);
+}
+
+/** Deterministischer Pseudo-Zufall (0..1) aus zwei ganzen Zahlen.
+ *  Ohne Seed-Objekt, damit die Stadt bei jedem Frame identisch aufgebaut
+ *  wird (nur die Kamera fährt, das Welt-Raster bleibt stehen). */
+function rnd(a, b) {
+  let x = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263);
+  x = Math.imul(x ^ (x >>> 13), 1274126177);
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+}
+
+/** Fenster-Textur für ein Gebäude: graue Fassade mit Raster aus erleuchteten
+ *  (warm-gelben) und dunklen Fenstern. Lit/dunkel deterministisch aus `seed`. */
+function makeBuildingTexture(seed, preset) {
+  const S = 256;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#3a3a41';
+  ctx.fillRect(0, 0, S, S);
+  const cols = Math.max(2, Math.round(preset.w * 1.1));
+  const rows = Math.max(3, Math.round(preset.h * 1.1));
+  const pad = S * 0.06;
+  const cellW = (S - pad * 2) / cols;
+  const cellH = (S - pad * 2) / rows;
+  const winW = cellW * 0.6, winH = cellH * 0.55;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = r * 31 + c * 7 + 1;
+      const lit = rnd(seed, cell) > 0.5;
+      ctx.fillStyle = lit ? (rnd(seed, cell * 3) > 0.6 ? '#fff2c0' : '#ffd36b') : '#22232a';
+      const x = pad + c * cellW + (cellW - winW) / 2;
+      const y = pad + r * cellH + (cellH - winH) / 2;
+      ctx.fillRect(x, y, winW, winH);
+    }
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/** Baut die Stadtbild-Kulisse auf: graue Gebäude (Boxen mit Fenster-Textur)
+ *  beidseitig der Straße, dazwischen Straßenlaternen. Anders als Fahrbahn und
+ *  Schilder ist die Stadt an ein FESTES Welt-Raster entlang Z gebunden: pro
+ *  Rasterplatz `worldK` werden Größe/Fensterbild deterministisch aus `worldK`
+ *  abgeleitet. Pro Frame werden nur die Rasterplätze im Sichtfenster in einen
+ *  Pool aus Platzhalter-Meshes gelegt (Recycling), sodass die Stadt beim
+ *  Scrollen korrekt an der Kamera vorbeizieht und stabil stehen bleibt.
+ *  Der Distanz-Nebel (scene.fog) blendet ferne Gebäude automatisch aus. */
+function initCityscape() {
+  cityGeos = { box: new THREE.BoxGeometry(1, 1, 1) };
+  cityMats = [];
+  for (let pi = 0; pi < BUILD_PRESETS.length; pi++) {
+    for (let v = 0; v < BUILD_VARIANTS; v++) {
+      const seed = pi * 1000 + v * 137 + 7;
+      cityMats.push(new THREE.MeshBasicMaterial({ map: makeBuildingTexture(seed, BUILD_PRESETS[pi]) }));
+    }
+  }
+}
+
+/** Ein gepoolter Gebäude-Platzhalter: Einheitsbox (per scale auf die
+ *  Preset-Maße gebracht), damit kein Geometrie-Austausch nötig ist. */
+function makeBuilding() {
+  const mesh = new THREE.Mesh(cityGeos.box, cityMats[0]);
+  mesh.visible = false;
+  scene.add(mesh);
+  mesh.userData = { worldK: null, side: 0, preset: BUILD_PRESETS[0] };
+  return mesh;
+}
+
+/** Recycelt den Pool: ordnet die Rasterplätze im Sichtfenster zu und setzt
+ *  Positionen in Weltkoordinaten (die Meshes hängen direkt an der Szene). */
+function renderCityscape(camZ) {
+  const slots = Math.ceil((FOG_FAR + 40) / BUILD_SPACING) + 2;
+  ensurePool(buildPool, slots * 2, makeBuilding);
+  const kStart = Math.floor((camZ - 40) / BUILD_SPACING);
+  let s = 0;
+  for (let i = 0; i < slots; i++) {
+    for (const side of [-1, 1]) {
+      const mesh = buildPool[s++];
+      const worldK = kStart + i;
+      if (mesh.userData.worldK !== worldK || mesh.userData.side !== side) {
+        const pi = Math.floor(rnd(worldK, side * 3) * BUILD_PRESETS.length) % BUILD_PRESETS.length;
+        const preset = BUILD_PRESETS[pi];
+        const variant = Math.floor(rnd(worldK * 7 + 1, side * 5 + 2) * BUILD_VARIANTS) % BUILD_VARIANTS;
+        mesh.material = cityMats[pi * BUILD_VARIANTS + variant];
+        mesh.scale.set(preset.w, preset.h, preset.d);
+        mesh.userData.preset = preset;
+        mesh.userData.worldK = worldK;
+        mesh.userData.side = side;
+      }
+      const preset = mesh.userData.preset;
+      const z = worldK * BUILD_SPACING + (rnd(worldK, side * 13) - 0.5) * 2.0;
+      const x = side * (BUILD_INNER_X + preset.w / 2 + rnd(worldK, side * 17) * 1.5);
+      // Weltkoordinaten: die Meshes hängen direkt an der Szene (kein Group-
+      // Offset), daher position.z = absolute Welt-Z (kamera-unabhängig).
+      mesh.position.set(x, preset.h / 2, z);
+      mesh.visible = true;
+    }
+  }
+  for (let i = s; i < buildPool.length; i++) buildPool[i].visible = false;
 }
 
 // ── Pool-Helfer ─────────────────────────────────────────────────────────
@@ -408,7 +533,7 @@ function makeSign() {
   // Schild-Plane (Text) — doppelseitig, unlit (immer sichtbar)
   const tex = makeSignTexture('', '', '#888');
   const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(5.2, 2.4),
+    new THREE.PlaneGeometry(5.6, 2.4),
     new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
   );
   plane.userData.sign = true;
@@ -418,12 +543,14 @@ function makeSign() {
   // Betrachter zeigt und nicht gespiegelt von hinten sichtbar ist.
   plane.rotation.y = Math.PI;
   g.add(plane);
-  // Schaft (Pfosten)
+  // Schaft (Pfosten) — reicht nur bis zur Unterkante des Schilds (Schild-
+  // Mitte y=2.6, Höhe 2.4 → Unterkante y=1.4)
+  const poleH = 2.6 - 2.4 / 2;
   const pole = new THREE.Mesh(
-    new THREE.BoxGeometry(0.14, 2.6, 0.14),
+    new THREE.BoxGeometry(0.14, poleH, 0.14),
     new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true })
   );
-  pole.position.set(0, 1.3, 0);
+  pole.position.set(0, poleH / 2, 0);
   g.add(pole);
   g.visible = false;
   scene.add(g);
@@ -431,54 +558,51 @@ function makeSign() {
   return g;
 }
 
-/** Erzeugt eine Canvas-Textur für ein Event-Schild (Name + Datum, Kategorie-Farbe). */
+/** Erzeugt eine Canvas-Textur für ein Event-Schild im Stil eines deutschen
+ *  Ortsschilds (Ortstafel): abgerundete Platte mit Innenumrandung und
+ *  zentrierter Schrift — aber mit der Event-Kategorie-Farbe als Hintergrund
+ *  und weißer Schrift/Umrandung (statt gelb/schwarz). */
 function makeSignTexture(label, dateText, colorHex) {
-  const w = 512, h = 240;
+  const w = 512, h = 220;
   const cv = document.createElement('canvas');
   cv.width = w; cv.height = h;
   const ctx = cv.getContext('2d');
   const col = colorHex || '#888';
   const font = '"Bebas Neue", sans-serif';
-  // Dunkle Platte mit dezentem Verlauf (oben etwas heller)
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, '#1c2026');
-  grad.addColorStop(0.5, '#15181d');
-  grad.addColorStop(1, '#0f1114');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
-  // Kräftige Kopfzeile (Kategorie) über die volle Breite
+  ctx.clearRect(0, 0, w, h);
+  // Ortsschild-Form: abgerundete Platte in der Kategorie-Farbe
+  const pad = 8;
+  const r = 34;
   ctx.fillStyle = col;
-  ctx.fillRect(0, 0, w, 50);
-  // Leuchtender Außenrahmen in Kategorie-Farbe
-  ctx.strokeStyle = col;
-  ctx.lineWidth = 6;
-  ctx.strokeRect(3, 3, w - 6, h - 6);
-  // Dezenter Innenschatten unter der Kopfzeile (Tiefe)
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(3, 52, w - 6, 6);
-  // Künstler-Name groß (Bebas Neue, weiß). Schriftgröße so weit verkleinern,
+  roundRect(ctx, pad, pad, w - pad * 2, h - pad * 2, r);
+  ctx.fill();
+  // Schwarze Innenumrandung (entspricht dem schwarzen Rahmen der echten Ortstafel)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 7;
+  roundRect(ctx, pad + 13, pad + 13, w - (pad + 13) * 2, h - (pad + 13) * 2, r - 9);
+  ctx.stroke();
+  // Künstler-Name groß in Schwarz, zentriert. Schriftgröße so weit verkleinern,
   // dass der (ggf. gekürzte) Text in die Schildbreite passt — sonst läuft er
   // über, solange die Webfont noch nicht geladen ist.
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0,0,0,0.7)';
-  ctx.shadowBlur = 8;
   let name = (label || '').toUpperCase();
   if (name.length > 18) name = name.slice(0, 17) + '…';
-  const maxW = w - 60;
-  let size = 78;
+  const maxW = w - 130;
+  let size = 92;
   do {
     ctx.font = `bold ${size}px ${font}`;
     if (ctx.measureText(name).width <= maxW) break;
     size -= 2;
-  } while (size > 26);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(name, w / 2, 96);
-  // Datum klein darunter — in der Kategorie-Farbe, kräftig
-  ctx.shadowBlur = 4;
-  ctx.fillStyle = col;
-  ctx.font = 'bold 40px "DM Sans", sans-serif';
-  ctx.fillText(dateText, w / 2, 172);
+  } while (size > 30);
+  ctx.fillStyle = '#000000';
+  ctx.fillText(name, w / 2, dateText ? h / 2 - 20 : h / 2 + 2);
+  // Datum klein darunter, ebenfalls in Schwarz
+  if (dateText) {
+    ctx.font = 'bold 36px "DM Sans", sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.fillText(dateText, w / 2, h / 2 + 42);
+  }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
@@ -579,6 +703,10 @@ export function renderRoad() {
   // immer direkt unter der Kamera in Richtung Horizont verläuft.
   if (roadGroup) roadGroup.position.z = camZ;
 
+  // Stadtbild-Kulisse: festes Welt-Raster, per Pool recycelt (zieht an der
+  // Kamera vorbei, bleibt aber an seinen Welt-Z-Positionen stehen).
+  renderCityscape(camZ);
+
   const days = visibleDayWindow(roadCenterMs, 4);
 
   // ── Mittelstreifen als Datums-Indikator ───────────────────────────────
@@ -664,6 +792,11 @@ export function renderRoad() {
 
   // Event-Schilder (nur im Sichtfenster, alternierend links/rechts)
   const entries = collectEntries();
+  // Stabile Seitenzuordnung: Index in der *vollständigen* Liste statt im
+  // Sichtfenster, damit Schilder beim Scrollen nicht plötzlich die Seite
+  // wechseln (der Sichtfenster-Index verschiebt sich laufend).
+  const sideById = new Map();
+  for (let idx = 0; idx < entries.length; idx++) sideById.set(entries[idx].id + '|' + entries[idx].iso, idx % 2 === 0 ? 1 : -1);
   const visible = entries.filter(e => {
     const z = dateZ(new Date(e.iso + 'T12:00:00').getTime());
     const off = z - camZ;
@@ -675,8 +808,8 @@ export function renderRoad() {
     const e = visible[i];
     const z = dateZ(new Date(e.iso + 'T12:00:00').getTime());
     g.visible = true;
-    // alternierend links/rechts
-    const side = (i % 2 === 0) ? 1 : -1;
+    // alternierend links/rechts (stabil pro Event)
+    const side = sideById.get(e.id + '|' + e.iso) || 1;
     g.position.set(side * SIGN_X, 0, z);
     g.userData.id = e.id;
     const color = e.type === 'festival' ? cssColor('--festival', new THREE.Color(0xff4d8d)) : cssColor('--tour', new THREE.Color(0x19c6e6));
