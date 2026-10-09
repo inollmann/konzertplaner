@@ -17,6 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
 <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -155,43 +156,34 @@
 
 <!-- ── Calendar Tab ───────────────────────────────────────────────── -->
 <main id="tab-calendar" style="display:none">
-  <!-- Timeline View -->
-  <div class="timeline-container">
-    <div class="timeline-header">
-      <div class="timeline-title">ZEITSTRAHL</div>
-      <div class="timeline-controls">
-        <button class="timeline-btn timeline-today-btn" onclick="timelineToday()" title="Heute">Heute</button>
-        <button class="timeline-btn" onclick="timelineNavEvent(-1)" title="Vorheriges Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-left"/></svg></button>
-        <button class="timeline-btn" onclick="timelineNav(-1)" title="Zurück"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
-        <div class="timeline-zoom-seg" id="timeline-zoom-seg">
-          <button data-z="0" onclick="tlSetZoom(0)">1 Jahr</button>
-          <button data-z="1" class="sel" onclick="tlSetZoom(1)">6 Monate</button>
-          <button data-z="2" onclick="tlSetZoom(2)">3 Monate</button>
-          <button data-z="3" onclick="tlSetZoom(3)">1 Monat</button>
+  <div class="calendar-layout">
+    <!-- Calendar (left) -->
+    <div class="calendar-panel">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calNav(-1)"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+        <div class="cal-title" id="cal-title"></div>
+        <button class="cal-nav" onclick="calNav(1)"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+      </div>
+      <div class="cal-grid" id="cal-grid">
+        <div class="cal-day-name">Mo</div><div class="cal-day-name">Di</div>
+        <div class="cal-day-name">Mi</div><div class="cal-day-name">Do</div>
+        <div class="cal-day-name">Fr</div><div class="cal-day-name">Sa</div>
+        <div class="cal-day-name">So</div>
+      </div>
+    </div>
+
+    <!-- 3D Road Timeline (right) -->
+    <div class="road-panel" id="road-panel">
+      <div class="road-header">
+        <div class="road-date" id="road-date"></div>
+        <div class="road-controls">
+          <button class="timeline-btn timeline-today-btn" onclick="roadToday()" title="Heute">Heute</button>
+          <button class="timeline-btn" onclick="roadNavEvent(-1)" title="Vorheriges Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-left"/></svg></button>
+          <button class="timeline-btn" onclick="roadNavEvent(1)" title="Nächstes Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-right"/></svg></button>
         </div>
-        <span class="timeline-zoom-label" id="timeline-zoom-label" style="display:none">6 Monate</span>
-        <button class="timeline-btn" onclick="timelineNav(1)" title="Vor"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
-        <button class="timeline-btn" onclick="timelineNavEvent(1)" title="Nächstes Event"><svg class="ic" aria-hidden="true"><use href="#i-chevrons-right"/></svg></button>
       </div>
+      <div class="road-canvas" id="road-canvas"></div>
     </div>
-    <div class="timeline-viewport" id="timeline-viewport">
-      <div class="timeline-track" id="timeline-track">
-        <div class="timeline-axis" id="timeline-axis"></div>
-        <div class="timeline-events" id="timeline-events"></div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="cal-header">
-    <button class="cal-nav" onclick="calNav(-1)"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
-    <div class="cal-title" id="cal-title"></div>
-    <button class="cal-nav" onclick="calNav(1)"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
-  </div>
-  <div class="cal-grid" id="cal-grid">
-    <div class="cal-day-name">Mo</div><div class="cal-day-name">Di</div>
-    <div class="cal-day-name">Mi</div><div class="cal-day-name">Do</div>
-    <div class="cal-day-name">Fr</div><div class="cal-day-name">Sa</div>
-    <div class="cal-day-name">So</div>
   </div>
 </main>
 

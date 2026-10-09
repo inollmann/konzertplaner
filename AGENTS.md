@@ -14,6 +14,22 @@ python main.py                     # server on http://localhost:5000, debug=True
 Python **3.13** required (uses `str | None`, `dict[str, ...]`). No `.env`, no config files.
 Requires PostgreSQL — `DATABASE_URL` defaults to `postgresql+psycopg://kp:kp@localhost:5432/kp` (overridable by env). Docker Compose starts a Postgres container automatically.
 
+### Windows + WSL share one checkout (TypeScript binary gotcha)
+
+This project is committed from **both** Windows (PowerShell) and WSL, which share one
+`node_modules/`. TypeScript 7 ships its compiler as a **per-platform binary**
+(`@typescript/typescript-<os>-<arch>`), and npm only installs the one matching the OS that
+last ran `npm install`. The other OS then fails with
+`Unable to resolve @typescript/typescript-linux-x64` (or `…-win32-x64`).
+
+Handled by `scripts/tsc-check.mjs`: the `tsc` pre-commit hook and `npm run typecheck` call it,
+and a `postinstall` hook runs it with `--ensure`. It installs the current platform's binary on
+demand (`npm install --no-save --force`) without touching `package.json`. No action needed —
+just be aware the binary is pruned/re-added as you switch OSes.
+
+Windows also needs `pre-commit` on its own PATH (`uv tool install pre-commit`) because the
+`uv` venv is Linux-only; the installed hook falls back to the PATH binary.
+
 For running python test code snippets use `uv run` to access the project uv venv.
 The available project skills are stored in `.agents/skills`.
 

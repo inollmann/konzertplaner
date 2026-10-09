@@ -17,7 +17,7 @@ import { loadTheme, applyCustomCss } from './theme.js';
 import { fetchAll } from './api.js';
 import { renderList } from './list.js';
 import { renderCalendar } from './calendar.js';
-import { initTimeline, renderTimeline, timelineToday } from './timeline.js';
+import { initRoad, renderRoad, roadToday } from './road.js';
 import { initMap, resetMap } from './map.js';
 import { renderShows } from './shows.js';
 import { renderFavourites } from './favourites.js';
@@ -34,8 +34,8 @@ async function boot() {
   await fetchAll();
   renderList();
   renderCalendar();
-  initTimeline();
-  renderTimeline();
+  initRoad();
+  renderRoad();
 }
 
 boot();
@@ -64,7 +64,7 @@ window.addEventListener('tabchange', (/** @type {CustomEvent} */ e) => {
   }
   switch (tab) {
     case 'list':      renderList(); break;
-    case 'calendar': renderCalendar(); renderTimeline(); timelineToday(); break;
+    case 'calendar': renderCalendar(); renderRoad(); roadToday(); break;
     case 'map':       setTimeout(() => { initMap(); }, 100); break;
     case 'shows':     renderShows(); break;
     case 'favourites': renderFavourites(); break;
@@ -74,7 +74,7 @@ window.addEventListener('tabchange', (/** @type {CustomEvent} */ e) => {
 window.addEventListener('filterchange', () => {
   renderList();
   renderCalendar();
-  renderTimeline();
+  renderRoad();
   if (state.currentTab === 'map') resetMap();
 });
 
@@ -85,7 +85,7 @@ window.addEventListener('listviewchange', () => {
 window.addEventListener('datachange', () => {
   renderList();
   renderCalendar();
-  renderTimeline();
+  renderRoad();
   if (state.currentTab === 'shows') renderShows();
   const bd = document.getElementById('detail-bd');
   if (bd && bd.classList.contains('open') && state.openDetailId) {

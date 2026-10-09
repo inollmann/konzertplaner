@@ -23,9 +23,9 @@ Design goals:
   price, tags, support acts, ratings) but never cramped — soft corners via
   `--radius-*` tokens, 1px low-opacity borders, and surface layering carry the
   hierarchy instead of heavy rules.
-- **Signature element**: the ZEITSTRAHL timeline — the app's distinctive
-  view, announced by an accent-coloured title with an animated underline
-  reveal (see §6 Motion).
+- **Signature element**: the Zeitstrahl — a 3D road timeline in the calendar
+  tab where depth is time; the camera drives along the road past event signs
+  coloured by category (see §6).
 - **No build step**: the SPA is plain ES modules served as-is by Flask. No
   framework, no bundler, no CSS preprocessor. This is a selling point and
   must be preserved.
@@ -65,7 +65,7 @@ Fluid display sizes (Bebas Neue) using `clamp()` for responsive scaling:
 | Token            | Min     | Preferred           | Max     | Usage                           |
 |-------------------|---------|---------------------|---------|---------------------------------|
 | `--display-xl`    | 1.6rem  | `4vw + 1rem`        | 2.2rem  | `.stat-value`                   |
-| `--display-lg`     | 1.4rem  | `3vw + .8rem`       | 2rem    | Logo, modal/detail titles, ZEITSTRAHL |
+| `--display-lg`     | 1.4rem  | `3vw + .8rem`       | 2rem    | Logo, modal/detail titles       |
 | `--display-md`     | 1.2rem  | `2vw + .7rem`       | 1.5rem  | `.cal-title`, `.event-title`, empty-state h3 |
 | `--display-sm`     | 1.1rem  | `1vw + .8rem`       | 1.3rem  | Card titles, drawer, headers     |
 | `--display-xs`     | 1rem    | `.5vw + .85rem`     | 1.1rem  | Popovers, type labels            |
@@ -140,7 +140,7 @@ border only). This scale is independent of the secondary palette.
 Two families, both via Google Fonts CDN (loaded in `index.html` `<link>`):
 
 - **Bebas Neue** — display. Used for the logo `KONZERTPLANER`, section
-  headings, modal titles, timeline title `ZEITSTRAHL`, date blocks,
+  headings, modal titles, the road date header, date blocks,
   statistics values, poster-card titles. Letter-spacing via `--ls-*` tokens.
   Weight: 400 (the only weight). Sizes via `--display-*` tokens (fluid
   `clamp()` — see §2).
@@ -228,13 +228,24 @@ Available glyphs include: `menu`, `x`, `pencil`, `trash-2`, `link`, `plus`,
   z 500). Image scales 0.92 → 1 over `--dur-slow`.
 - **Drawer** — left slide-in, lightest overlay (`--overlay-dim`, no blur),
   280px width.
-- **Timeline** — epoch-based (2000-01-01 → 2100-01-01), virtualised,
-  drag-to-scroll, zoom levels (1 Jahr / 6 Monate / 3 Monate / 1 Monat).
-  Single-row layout with interval partitioning for overlaps. Logos/posters
-  shown at 6M and below. Today line labelled `HEUTE`. The title `ZEITSTRAHL`
-  is the app's signature element: `--display-lg` size, `--accent` colour,
-  with an animated accent underline (`@keyframes drawIn`, 0 → 100% width
-  over `--dur-slow` with `--ease-out` and 0.1s delay).
+- **Road timeline (Zeitstrahl)** — a 3D road (Three.js) in the calendar
+  tab: the camera sits on the road and drives along +Z, where depth is
+  time (≈1 day per unit). The dashed centre line is the date indicator:
+  each dash = 1 day and each gap = 1 day, with the day-of-month written
+  directly on the road surface (dash cells get a dark, road-coloured
+  number; gap cells a light number). At each month start the month name is
+  written left-aligned on the left lane and the year right-aligned on the
+  right lane, both in the accent colour (`--accent`), so together with the
+  centred day number they read as "OKT 1 2026". The two outer road borders
+  are accent-coloured lines. Event signs flank both sides alternating
+  (tour = `--tour` cyan, festival = `--festival` pink). A distance fog
+  fades far elements into the horizon (fog colour = background, so the far
+  road merges cleanly with the sky). The camera is pitched down (~70° FOV,
+  look target below the road) so the horizon sits near the top of the panel
+  and the road fills the frame. The current-position date sits in the panel
+  header, in line with the `Heute` / prev / next controls (day+month white,
+  year accent). Navigation via scroll, drag, the
+  `Heute` button and prev/next-event buttons.
 - **Map** — Leaflet + OpenStreetMap tiles. Markers grouped by geocoded
   venue, coloured tour/festival/mixed, with a count badge. Unrecognised
   venues fall into a manual-placement list. Geocoding via Nominatim,
@@ -258,8 +269,7 @@ Motion is token-driven and minimal:
 - **Easing tokens**: `--ease-out` (cubic-bezier for entrances), `--ease-std`
   (ease for most transitions).
 - **Entrance animations**: `@keyframes fadeUp` (opacity + translateY) on
-  event cards, poster cards, favourite cards. `@keyframes drawIn` (width
-  0 → 100%) on the ZEITSTRAHL title underline. `@keyframes spin` on the
+  event cards, poster cards, favourite cards. `@keyframes spin` on the
   search spinner.
 - **Hover micro-interactions**: colour/border transitions (`--dur-fast`),
   poster-card image zoom (scale 1.05, `--dur-slow`), pip hover (scaleY

@@ -13,7 +13,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { state, today } from './state.js';
-import { localIso } from './utils.js';
+import { localIso, esc } from './utils.js';
 import { eventVisible } from './filters.js';
 import { showPopover, hidePopover } from './ui.js';
 
@@ -29,7 +29,8 @@ import { showPopover, hidePopover } from './ui.js';
 export function renderCalendar() {
   const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni',
     'Juli','August','September','Oktober','November','Dezember'];
-  document.getElementById('cal-title').textContent = `${MONTHS_DE[state.calMonth]} ${state.calYear}`;
+  document.getElementById('cal-title').innerHTML =
+    `${esc(MONTHS_DE[state.calMonth])} <span class="cal-title-year">${esc(String(state.calYear))}</span>`;
   const grid = document.getElementById('cal-grid');
   while (grid.children.length > 7) grid.removeChild(grid.lastChild);
 

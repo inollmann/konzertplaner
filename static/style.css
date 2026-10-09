@@ -347,7 +347,7 @@ main#tab-list { padding-top: 0; }
 .shows-category-header:first-child { margin-top: 0; }
 
 /* ─── Main content ─────────────────────────────────────────────────── */
-main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 130px); }
+main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px); }
 
 /* ─── Event cards ──────────────────────────────────────────────────── */
 .event-card {
@@ -547,49 +547,55 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 130px)
 .bands-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .band-chip { font-size: 12px; padding: var(--space-1) var(--space-5); border-radius: var(--radius-pill); background: color-mix(in srgb,var(--festival) 10%,transparent); color: var(--festival); border: 1px solid color-mix(in srgb,var(--festival) 25%,transparent); }
 
-/* ─── Timeline ────────────────────────────────────────────────────── */
-.timeline-container {
-  margin-bottom: var(--space-9);
+/* ─── Calendar layout (2-col: calendar + road) ───────────────────── */
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 640px);
+  gap: var(--space-7);
+  align-items: stretch;
+}
+.calendar-panel { min-width: 0; display: flex; flex-direction: column; }
+
+/* ─── 3D Road Timeline ────────────────────────────────────────────── */
+.road-panel {
+  position: sticky;
+  top: var(--space-5);
+  align-self: start;
+  /* Feste Höhe = Viewport minus App-Chrome (Header + Tab-Leiste +
+     Filterleiste ≈ 174px) und dem main-Innenabstand oben/unten, damit das
+     Panel ohne Seiten-Scrollen vollständig sichtbar ist. */
+  height: calc(100vh - 174px - var(--space-10) - var(--space-10));
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
-.timeline-header {
+.road-panel .road-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.road-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
-}
-.timeline-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: var(--display-lg);
-  letter-spacing: var(--ls-display);
-  color: var(--accent);
-}
-.timeline-title::after {
-  content: '';
-  display: block;
-  height: 2px;
-  width: 0;
-  background: var(--accent);
-  margin-top: var(--space-2);
-  animation: drawIn var(--dur-slow) var(--ease-out) .1s forwards;
-}
-@keyframes drawIn {
-  to { width: 100%; }
-}
-.timeline-controls {
-  display: flex;
   gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.road-controls {
+  display: flex;
+  gap: var(--space-3);
   align-items: center;
+  flex-shrink: 0;
 }
 .timeline-btn {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text);
-  padding: var(--space-2) var(--space-5);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   font-size: 14px;
   transition: background var(--dur-fast);
@@ -605,177 +611,35 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 130px)
   background: color-mix(in srgb,var(--accent) 85%,#000);
   border-color: color-mix(in srgb,var(--accent) 85%,#000);
 }
-.timeline-zoom-label {
-  font-size: 12px;
-  color: var(--muted);
-  min-width: 60px;
-  text-align: center;
-}
-/* zoom segmented control */
-.timeline-zoom-seg {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--surface2);
-}
-.timeline-zoom-seg button {
-  background: transparent;
-  border: none;
-  border-right: 1px solid var(--border);
-  color: var(--muted);
-  padding: var(--space-2) var(--space-5);
-  cursor: pointer;
-  font-size: 12px;
-  transition: background var(--dur-fast), color var(--dur-fast);
-}
-.timeline-zoom-seg button:last-child { border-right: none; }
-.timeline-zoom-seg button:hover { background: var(--border); color: var(--text); }
-.timeline-zoom-seg button.sel {
-  background: var(--accent);
-  color: var(--btn-text);
-  font-weight: 600;
-}
-.timeline-viewport {
-  position: relative;
-  height: 200px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  background: var(--surface2);
-  border-radius: var(--radius-md);
-  cursor: grab;
-}
-.timeline-viewport:active { cursor: grabbing; }
-.timeline-track {
-  position: relative;
-  height: 100%;
-  min-width: 100%;
-}
-.timeline-axis {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 28px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-}
-.timeline-month-marker {
-  position: absolute;
-  bottom: 0;
-  height: 100%;
-  border-left: 1px solid var(--border);
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: var(--space-2);
-  font-size: 10px;
-  color: var(--muted);
-}
-.timeline-month-label {
-  position: absolute;
-  bottom: 18px;
-  left: 4px;
-  white-space: nowrap;
-}
-.timeline-day-tick {
-  position: absolute;
-  bottom: 0;
-  height: 30%;
-  border-left: 1px solid var(--border);
-  opacity: 0.4;
-}
-.timeline-day-label {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  font-size: 8px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.timeline-event-date {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  font-size: 9px;
+/* current-position date header: day+month white, year accent, Bebas Neue */
+.road-date {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: var(--display-md);
+  letter-spacing: var(--ls-display);
   line-height: 1;
-  color: var(--text);
-  background: color-mix(in srgb, var(--bg) 75%, transparent);
-  padding: 1px var(--space-1);
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
-}
-.timeline-today-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--accent);
-  z-index: 5;
-}
-.timeline-today-label {
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
-  color: var(--accent);
-  white-space: nowrap;
-}
-.timeline-events {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 28px;
-}
-.timeline-event {
-  position: absolute;
-  min-height: 28px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  padding: var(--space-2) var(--space-4);
+  color: #fff;
+  text-align: left;
+  margin: 0;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
-  transition: transform var(--dur-fast), filter var(--dur-fast);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
 }
-.timeline-event:hover {
-  transform: scale(1.02);
-  filter: brightness(1.15);
-  z-index: 10;
-}
-.timeline-event.tour {
-  background: color-mix(in srgb,var(--tour) 70%,transparent);
-  color: #fff;
-  border-left: 3px solid var(--tour);
-}
-.timeline-event.festival {
-  background: color-mix(in srgb,var(--festival) 70%,transparent);
-  color: #fff;
-  border-left: 3px solid var(--festival);
-}
-/* subtle tickets/watchlist accents (don't override the type color) */
-.timeline-event.has-tickets  { box-shadow: var(--shadow-stripe-tickets); }
-.timeline-event.has-watch    { box-shadow: var(--shadow-stripe-watch); }
-.timeline-event-vertical {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  white-space: nowrap;
+.road-date .road-date-dmy { color: #fff; }
+.road-date .road-date-year { color: var(--accent); }
+.road-canvas {
+  position: relative;
+  width: 100%;
+  height: 460px;
+  background: var(--surface2);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 10px;
-  font-weight: 500;
-  max-height: 100%;
-  padding: var(--space-1) 0;
+  cursor: grab;
+  touch-action: none;
 }
+.road-canvas:active { cursor: grabbing; }
+.road-canvas canvas { display: block; width: 100%; height: 100%; }
+
 /* festival logo in detail view */
 .detail-festival-logo {
   width: 44px; height: 44px;
@@ -794,7 +658,8 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 130px)
 }
 .cal-nav:hover { background: var(--border); }
 .cal-title { font-family: 'Bebas Neue', sans-serif; font-size: var(--display-md); letter-spacing: var(--ls-display); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-1); }
+.cal-title .cal-title-year { color: var(--accent); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto; grid-auto-rows: 1fr; gap: var(--space-1); flex: 1 1 auto; min-height: 0; }
 .cal-day-name { text-align: center; font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: var(--space-2) 0; }
 .cal-cell {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -1662,6 +1527,12 @@ input.search-input::placeholder { color: var(--muted); }
   #map-container { height: calc(100% - 120px); }
 }
 
+@media (max-width: 1100px) {
+  .calendar-layout { grid-template-columns: 1fr; }
+  .road-panel { position: static; height: auto; }
+  .road-panel .road-canvas { flex: 0 0 auto; height: 400px; }
+}
+
 @media (max-width: 640px) {
   /* Existing rules */
   header, .tabs, main, .filter-bar { padding-left: var(--space-7); padding-right: var(--space-7); }
@@ -1698,9 +1569,9 @@ input.search-input::placeholder { color: var(--muted); }
     padding: var(--space-6) var(--space-7);
   }
 
-  /* Timeline: shorter viewport, compact controls */
-  .timeline-viewport { height: 160px; }
-  .timeline-zoom-seg button { font-size: 11px; padding: 2px 6px; }
+  /* Timeline/Road: shorter canvas, compact controls */
+  .road-panel { height: auto; }
+  .road-panel .road-canvas { flex: 0 0 auto; height: 340px; }
 
   /* Map: more space for controls */
   #map-container { height: calc(100% - 180px); }
@@ -1729,7 +1600,7 @@ input.search-input::placeholder { color: var(--muted); }
   /* Logo: smaller */
   .logo { font-size: var(--display-md); letter-spacing: var(--ls-display); }
 
-  /* Timeline: hide event-skip buttons on very small screens */
+  /* Timeline/Road: hide event-skip buttons on very small screens */
   .timeline-today-btn { font-size: 11px; padding: 2px 8px; }
 
   /* Poster wall: 2 columns minimum */

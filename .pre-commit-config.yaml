@@ -20,7 +20,11 @@ repos:
 
       - id: tsc
         name: tsc --noEmit (JS/TS)
-        entry: npx tsc --noEmit
+        # Uses a helper that installs the platform-specific TypeScript binary
+        # on demand — Windows and WSL share one node_modules/, but TS 7 ships
+        # per-platform binaries, so whichever OS didn't run the last install
+        # would otherwise fail to resolve its compiler.
+        entry: node scripts/tsc-check.mjs
         language: system
         pass_filenames: false        # tsc reads tsconfig.json, no file list
         files: ^static/js/.*\.(js|d\.ts)$

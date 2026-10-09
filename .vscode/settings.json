@@ -1,0 +1,49 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "docker compose": true,
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; docker compose up -d --build 2>&1 \\| Select-Object -Last 4$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; docker compose up -d --build 2>&1 \\| Select-Object -Last 3$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; docker compose up -d --build 2>&1 \\| Select-Object -Last 2$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 12$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 4; docker compose up -d --build 2>&1 \\| Select-Object -Last 2$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 8$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; docker compose up -d --build 2>&1 \\| Select-Object -Last 1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 5; docker compose up -d --build 2>&1 \\| Select-Object -Last 1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npx\\.exe\" tsc --noEmit; & \"\\$env:LOCALAPPDATA\\\\vite-plus\\\\bin\\\\npm\\.exe\" test 2>&1 \\| Select-Object -Last 4; docker compose up -d --build 2>&1 \\| Select-Object -Last 1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

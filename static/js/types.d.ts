@@ -30,6 +30,7 @@ declare global {
   }
 
   const L: any;
+  const THREE: any;
   interface Window {
     [key: string]: any;
   }
