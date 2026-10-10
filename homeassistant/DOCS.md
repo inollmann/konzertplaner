@@ -21,7 +21,9 @@ Die Weboberfläche ist nach dem Start über die Port-Weiterleitung erreichbar:
 - Von außen: `http://<HA-HOST>:8069`
 - Der Button **ÖFFNEN** in der Add-on-Ansicht nutzt die interne Weiterleitung.
 
-Der Host-Port lässt sich in der Add-on-Konfiguration ändern (Standard: `8069`).
+Der Host-Port ist in `config.yaml` (`ports: 5000/tcp: 8069`) fest verdrahtet und
+nicht über die Add-on-Optionen änderbar. Für einen anderen Port muss dieser Wert
+im Repository angepasst werden.
 
 ## Konfiguration
 

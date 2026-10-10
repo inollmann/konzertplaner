@@ -60,7 +60,7 @@ docker compose up --build -d     # im Hintergrund
 
 Dann im Browser: **http://localhost:5000**
 
-Docker Compose nutzt SQLite; die Datenbank liegt im gemounteten Ordner `./data` und bleibt so über Neustarts erhalten. Für PostgreSQL stattdessen `DATABASE_URL` in `docker-compose.yml` setzen.
+Docker Compose nutzt SQLite; die Datenbank liegt im gemounteten Ordner `./data` und bleibt so über Neustarts erhalten. Für PostgreSQL stattdessen in `docker-compose.yml` die Variable `DATABASE_URL` auf eine `postgresql+psycopg://…`-URL setzen — die Compose-Datei enthält keinen Postgres-Service mehr, es wird also eine externe Datenbank erwartet.
 
 ---
 
@@ -70,9 +70,31 @@ Das Projekt kann als Home-Assistant-Add-on (HAOS) installiert werden. Siehe [`ho
 
 1. In HA unter **Einstellungen → Add-ons → Add-on-Store → Repositories** die URL `https://github.com/inollmann/konzertplaner` hinzufügen.
 2. Add-on **Konzertplaner** installieren und starten.
-3. Oberfläche über `http://<HA-HOST>:8069` öffnen (Port konfigurierbar).
+3. Oberfläche über `http://<HA-HOST>:8069` öffnen (fester Port aus `config.yaml`).
 
 Die Daten liegen unter `/data/konzertplaner.db` und sind damit in HA-Backups enthalten.
+
+---
+
+## Upgrade von einer älteren Version (PostgreSQL → SQLite)
+
+Frühere Versionen nutzten standardmäßig PostgreSQL (Docker Compose mit `db`-Service).
+Seit dieser Version ist **SQLite der Standard**: ohne gesetzte `DATABASE_URL` startet
+die App mit einer **neuen, leeren** SQLite-Datenbank unter `data/konzertplaner.db`.
+Die alten PostgreSQL-Daten sind **nicht verloren**, werden aber **nicht automatisch**
+übernommen — beim Start erscheint lediglich ein Hinweis im Log, wenn die
+Standard-Datenbank leer ist.
+
+So übernimmst du bestehende PostgreSQL-Daten:
+
+1. Die alte PostgreSQL-Instanz bzw. das Volume **nicht löschen**.
+2. Migration ausführen:
+   ```bash
+   uv run python scripts/migrate_pg_to_sqlite.py \
+       --source postgresql+psycopg://kp:kp@localhost:5432/kp \
+       --target data/konzertplaner.db
+   ```
+3. App neu starten — Events, Artists, Venues und Bilder liegen jetzt in SQLite.
 
 ---
 

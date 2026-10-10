@@ -7,8 +7,9 @@ services:
       - "5000:5000"
     environment:
       # SQLite is the default: the database file lives in the mounted ./data
-      # volume below. To use PostgreSQL instead, set DATABASE_URL, e.g.:
-      #   DATABASE_URL: postgresql+psycopg://kp:kp@db:5432/kp
+      # volume below. To use PostgreSQL instead, set DATABASE_URL to an
+      # external server (this compose file ships no Postgres service), e.g.:
+      #   DATABASE_URL: postgresql+psycopg://kp:kp@host:5432/kp
       KP_DEBUG: "0"
     volumes:
       # Read-write: holds the SQLite database (konzertplaner.db) plus the

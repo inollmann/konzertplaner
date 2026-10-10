@@ -511,7 +511,29 @@ def _auto_migrate():
 
         if migrated:
             s.commit()
-            print("[db] Auto-migrated data from JSON files into PostgreSQL")
+            print("[db] Auto-migrated data from JSON files into the database")
+
+
+def _warn_if_empty_default_db():
+    """Log a hint when the default SQLite DB is empty.
+
+    An upgrade from a previous PostgreSQL-based install silently starts with a
+    fresh, empty SQLite file (PostgreSQL is only used when DATABASE_URL is set).
+    Point the operator at the migration script instead of failing silently.
+    """
+    if "DATABASE_URL" in os.environ:
+        return  # Explicit database configured — nothing to hint about.
+    with session() as s:
+        if s.exec(select(EventRow)).first() is not None:
+            return
+        if s.exec(select(ArtistRow)).first() is not None:
+            return
+    print(
+        "[db] Hinweis: Die Standard-SQLite-Datenbank ist leer. Falls zuvor "
+        "PostgreSQL genutzt wurde, lassen sich die Daten mit "
+        "`uv run python scripts/migrate_pg_to_sqlite.py --source <pg-url> "
+        "--target data/konzertplaner.db` übernehmen."
+    )
 
 
 # ── Init ──────────────────────────────────────────────────────────────────────
@@ -530,3 +552,4 @@ def init_db():
             c.exec_driver_sql("ALTER TABLE artists ADD COLUMN logo_mono_id UUID")
     if os.environ.get("KP_TESTING") != "1":
         _auto_migrate()
+        _warn_if_empty_default_db()
