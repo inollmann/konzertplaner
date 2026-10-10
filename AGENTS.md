@@ -12,7 +12,7 @@ python main.py                     # server on http://localhost:5000, debug=True
 ```
 
 Python **3.13** required (uses `str | None`, `dict[str, ...]`). No `.env`, no config files.
-Requires PostgreSQL — `DATABASE_URL` defaults to `postgresql+psycopg://kp:kp@localhost:5432/kp` (overridable by env). Docker Compose starts a Postgres container automatically.
+No database server required — defaults to SQLite at `data/konzertplaner.db`. Set `DATABASE_URL` (e.g. `postgresql+psycopg://kp:kp@localhost:5432/kp`) to use PostgreSQL instead. Docker Compose uses SQLite too (data persists in the mounted `./data` volume).
 
 ### Windows + WSL share one checkout (TypeScript binary gotcha)
 
@@ -37,7 +37,7 @@ The available project skills are stored in `.agents/skills`.
 
 - `main.py` — Flask app + all routes (`/api/...` plus `/`, `/design-tool`, `/invite/<eid>/<code>`). ~1000 lines, one file.
 - `concert.py` — data models: `Event` base → `Tour` (N concerts) and `Festival` (single date/venue); `Concert`, `Artist`, `Venue` catalogue models. All have `to_dict`/`from_dict`. Used as API DTOs.
-- `db.py` — Database layer: SQLModel engine, session, CRUD functions (`list_events`, `get_event`, `upsert_event`, `list_artists`, `upsert_artist`, `list_venues`, `create_image`, `get_image`, etc.), row↔domain mappers, and auto-migration from JSON on first boot.
+- `db.py` — Database layer: SQLModel engine (`_make_engine()` adapts to SQLite vs. server DBs; SQLite gets `check_same_thread=False` + WAL/foreign-keys pragmas), session, CRUD functions (`list_events`, `get_event`, `upsert_event`, `list_artists`, `upsert_artist`, `list_venues`, `create_image`, `get_image`, etc.), row↔domain mappers, and auto-migration from JSON on first boot.
 - `models.py` — SQLModel table definitions: `Image` (BYTEA), `EventRow` (polymorphic, JSONB `attrs`), `ArtistRow`, `VenueRow`.
 - `static/` — SPA, **no build step**: `index.html` + ES modules under `static/js/` + `style.css`. Served as-is by Flask. Leaflet.js (map) loaded via CDN. Entry point is `static/js/main.js` (`<script type="module">`); inline `onclick` handlers resolve via `globals.js` which assigns all module exports to `window`.
 
@@ -70,24 +70,38 @@ The available project skills are stored in `.agents/skills`.
 
 **Cross-module communication**: Feature modules dispatch `window` custom events (`filterchange`, `tabchange`, `ratingchange`, `showsfilterchange`) instead of importing each other's render functions — this avoids circular imports. `main.js` listens and orchestrates re-renders.
 
-### Database (PostgreSQL via SQLModel)
-All data lives in PostgreSQL — events, artists, venues, and images (BYTEA). The app is **multi-worker safe** (no in-memory state; every request reads/writes the DB). `db.py` creates the engine at import, auto-creates tables via `SQLModel.metadata.create_all`, and auto-migrates from legacy JSON files on first boot if the DB is empty.
-- `DATABASE_URL` defaults to `postgresql://kp:kp@localhost:5432/kp` (local dev); Docker sets it via env to `postgresql://kp:kp@db:5432/kp`.
-- Concerts stay nested as JSONB in `events.attrs` (app filters client-side; scalability win is multi-worker safety, not SQL queries).
-- Images served via `/api/img/<uuid>` route from the `images` table (BYTEA). No on-disk image storage.
+### Database (SQLite by default, PostgreSQL optional, via SQLModel)
+All data lives in one database — events, artists, venues, and images (BLOB/BYTEA). The app is **multi-worker safe** (no in-memory state; every request reads/writes the DB). `db.py` creates the engine at import, auto-creates tables via `SQLModel.metadata.create_all`, and auto-migrates from legacy JSON files on first boot if the DB is empty.
+- `DATABASE_URL` defaults to `sqlite:///<repo>/data/konzertplaner.db` (absolute path via `BASE_DIR`); set it to `postgresql+psycopg://...` to use PostgreSQL.
+- SQLite engines use `connect_args={"check_same_thread": False}` and set `PRAGMA journal_mode=WAL` + `PRAGMA foreign_keys=ON` on connect. Run a **single process** with SQLite (one writer); the Flask dev server is threaded, which is fine.
+- Concerts stay nested as JSON in `events.attrs` (app filters client-side; scalability win is multi-worker safety, not SQL queries).
+- Images served via `/api/img/<uuid>` route from the `images` table (BLOB/BYTEA). No on-disk image storage.
+- Migrating PostgreSQL → SQLite: `uv run python scripts/migrate_pg_to_sqlite.py --source <pg-url> --target data/konzertplaner.db` (idempotent; `--force` to overwrite a non-empty target).
 
-## Data & uploads (all in PostgreSQL)
+## Data & uploads (all in the database)
+
+- **Database**: SQLite at `data/konzertplaner.db` by default (PostgreSQL via `DATABASE_URL`). `data/*` is gitignored, so a fresh checkout starts with an empty DB.
 
 - **Legacy migration source** (read-only): `data/events.json` and `data/catalogue.json` are read once on first boot if the DB is empty, then images from `static/posters/`, `static/logos/`, `static/festival-logos/` are loaded into the `images` table. After migration, the JSON files are no longer read.
 - `data/events.json` was the former events store; `load_events()` no longer exists — use `list_events()` from `db.py`.
 - Image uploads (`/api/upload-poster`, `/api/upload-logo`, `/api/upload-festival-logo`) now store bytes in the `images` table and return `{"id": "<uuid>"}`. The frontend uses the UUID as the `poster`/`logo`/`photo` field value, and constructs URLs as `/api/img/<uuid>`.
+
+## Home Assistant add-on (`homeassistant/`)
+
+Packages the app as a HAOS add-on while keeping standalone hosting intact. Access is **port-based** (`webui` link on host port **8069** → container 5000); ingress is intentionally not used yet (it would break the frontend's absolute `/static/...` paths + Service Worker).
+- `repository.yaml` (repo root) makes the GitHub repo an add-on repository.
+- `homeassistant/config.yaml` — add-on metadata: `ports: {5000/tcp: 8069}`, `webui`, options `log_level` + optional `database_url`, `environment` (`KP_DEBUG=0`, `PORT=5000`). `version` must be kept in sync with `pyproject.toml`.
+- `homeassistant/Dockerfile` — **the add-on build context is only this folder**, so the app source is `git clone`d from GitHub at build time (`--build-arg KP_REF=<tag>` pins a ref; `.git` is removed afterwards, so `/api/repo-update` returns `behind=false`).
+- `homeassistant/run.sh` — reads `/data/options.json` via `jq`; defaults `DATABASE_URL=sqlite:////data/konzertplaner.db` (the add-on's persistent volume, included in HA backups) and starts `python3 /app/main.py`.
+- Icons: `icon.png` / `logo.png` (copied from `static/icon-192x192.png` / `icon-512x512.png`).
 
 ## Dependencies — pyproject.toml vs requirements.txt disagree
 
 | Package | pyproject.toml (uv/dev) | requirements.txt (Docker) | Actually used? |
 |---|---|---|---|
 | flask, werkzeug | yes | yes | yes (runtime) |
-| sqlmodel, psycopg[binary] | yes | yes | yes (database layer) |
+| sqlmodel | yes | yes | yes (database layer) |
+| psycopg[binary] | yes | yes | only for PostgreSQL — optional with the default SQLite DB; also used by `scripts/migrate_pg_to_sqlite.py` |
 | requests | yes | **no** | optional — lazy-imported in `main.py` with `try/except`; falls back to `urllib` |
 | pillow | yes | **no** | only by `static/generate_favicons.py` (one-off script), not the app |
 | beautifulsoup4 | no | yes | **never imported** (dead) |

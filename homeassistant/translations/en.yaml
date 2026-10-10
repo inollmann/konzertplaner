@@ -1,0 +1,9 @@
+configuration:
+  log_level:
+    name: Log level
+    description: Verbosity of the application logs.
+  database_url:
+    name: Database URL
+    description: >-
+      Optional SQLAlchemy database URL. Leave empty to use the built-in SQLite
+      database stored in the add-on's persistent /data folder (recommended).

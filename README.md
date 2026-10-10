@@ -1,6 +1,6 @@
 # Konzertplaner
 
-Lokales Planungstool für Konzerte und Touren — Flask-Backend + Vanilla-JS-Single-Page-Frontend. Daten in PostgreSQL (via SQLModel). Deutschsprachige UI.
+Lokales Planungstool für Konzerte und Touren — Flask-Backend + Vanilla-JS-Single-Page-Frontend. Daten in SQLite (via SQLModel, PostgreSQL optional). Deutschsprachige UI.
 
 ## Projektstruktur
 
@@ -11,11 +11,14 @@ konzertplaner/
 ├── db.py              DB-Layer (SQLModel-Engine, CRUD, JSON-Migration)
 ├── models.py          SQLModel-Tabellen (Image, EventRow, ArtistRow, VenueRow)
 ├── static/            SPA ohne Build-Step (index.html, js/, style.css, PWA-Assets)
-├── data/              Legacy-Migrationsquelle (events.json, catalogue.json)
+├── data/              SQLite-DB + Legacy-Migrationsquelle (events.json, catalogue.json)
+├── scripts/           Hilfsskripte (z. B. PostgreSQL → SQLite Migration)
+├── homeassistant/     Home-Assistant-Add-on (config.yaml, Dockerfile, run.sh)
 ├── tests/             pytest (Unit) + Playwright E2E
 ├── .github/workflows/ CI (ruff, pytest, tsc, vitest, e2e, docker build)
 ├── pyproject.toml     uv/Dev-Abhängigkeiten
 ├── requirements.txt   Docker-Abhängigkeiten
+├── repository.yaml    Home-Assistant-Add-on-Repository
 ├── Dockerfile / docker-compose.yml
 ├── AGENTS.md          Architektur-Doku (autoritativ)
 └── DESIGN.md
@@ -37,10 +40,14 @@ python main.py
 
 Dann im Browser: **http://localhost:5000** (debug=True)
 
-> **PostgreSQL erforderlich.** `DATABASE_URL` defaultet auf
-> `postgresql+psycopg://kp:kp@localhost:5432/kp` und ist per Environment-Variable
-> überschreibbar. Tabellen werden beim ersten Start automatisch angelegt;
-> falls die DB leer ist, wird einmalig aus `data/*.json` migriert.
+> **Keine Datenbank nötig.** Standardmäßig wird SQLite unter
+> `data/konzertplaner.db` genutzt. Tabellen werden beim ersten Start automatisch
+> angelegt; falls die DB leer ist, wird einmalig aus `data/*.json` migriert.
+>
+> **PostgreSQL** (optional): `DATABASE_URL` auf eine
+> `postgresql+psycopg://…`-URL setzen. Bestehende PostgreSQL-Daten lassen sich
+> mit `uv run python scripts/migrate_pg_to_sqlite.py --source <pg-url> --target data/konzertplaner.db`
+> nach SQLite übertragen.
 
 ---
 
@@ -53,7 +60,19 @@ docker compose up --build -d     # im Hintergrund
 
 Dann im Browser: **http://localhost:5000**
 
-Docker Compose startet automatisch einen PostgreSQL-Container und verbindet die App per `DATABASE_URL`.
+Docker Compose nutzt SQLite; die Datenbank liegt im gemounteten Ordner `./data` und bleibt so über Neustarts erhalten. Für PostgreSQL stattdessen `DATABASE_URL` in `docker-compose.yml` setzen.
+
+---
+
+## Option 3: Home Assistant Add-on
+
+Das Projekt kann als Home-Assistant-Add-on (HAOS) installiert werden. Siehe [`homeassistant/DOCS.md`](homeassistant/DOCS.md). Kurzfassung:
+
+1. In HA unter **Einstellungen → Add-ons → Add-on-Store → Repositories** die URL `https://github.com/inollmann/konzertplaner` hinzufügen.
+2. Add-on **Konzertplaner** installieren und starten.
+3. Oberfläche über `http://<HA-HOST>:8069` öffnen (Port konfigurierbar).
+
+Die Daten liegen unter `/data/konzertplaner.db` und sind damit in HA-Backups enthalten.
 
 ---
 
@@ -98,17 +117,17 @@ Docker Compose startet automatisch einen PostgreSQL-Container und verbindet die 
 
 ## Persistenz
 
-- **PostgreSQL** via SQLModel — Events, Artists, Venues und Bilder
-- **Bilder** in `images`-Tabelle (BYTEA), ausgeliefert über `/api/img/<uuid>`. Keine Bildspeicherung auf Festplatte
+- **SQLite** (Standard) via SQLModel — Events, Artists, Venues und Bilder; **PostgreSQL** per `DATABASE_URL` wählbar
+- **Bilder** in `images`-Tabelle (BLOB/BYTEA), ausgeliefert über `/api/img/<uuid>`. Keine Bildspeicherung auf Festplatte
 - **`data/*.json`** sind Legacy-Migrationsquelle: werden nur beim ersten Start gelesen, wenn die DB leer ist, danach nicht mehr
-- **Multi-worker-safe** — kein In-Memory-State, jede Anfrage liest/schreibt die DB
+- **Multi-worker-safe** — kein In-Memory-State, jede Anfrage liest/schreibt die DB (bei SQLite einen einzelnen Prozess betreiben)
 - **Browser-Cache** — Designs, Farben, Favoriten in localStorage
 
 ---
 
 ## Technologie
 
-- **Backend**: Flask, SQLModel, PostgreSQL (psycopg)
+- **Backend**: Flask, SQLModel, SQLite (psycopg optional für PostgreSQL)
 - **Frontend**: Vanilla JavaScript (ES Modules), CSS Variables, Leaflet.js + OpenStreetMap
 - **Typen**: TypeScript-Check via `tsc --noEmit` (ambient types in `static/js/types.d.ts`)
 - **PWA**: manifest.json + service-worker.js

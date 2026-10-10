@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_from_directory
@@ -1201,4 +1202,9 @@ def repo_update():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Debug defaults to on for local development (auto-reload + verbose errors).
+    # In containers set KP_DEBUG=0; the Werkzeug reloader is disabled when
+    # debug is off so the process runs as a plain single-process server.
+    debug = os.environ.get("KP_DEBUG", "1") not in ("0", "false", "False")
+    port = int(os.environ.get("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=debug, use_reloader=debug)

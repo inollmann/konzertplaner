@@ -1,4 +1,4 @@
-"""Database layer for Konzertplaner (PostgreSQL via SQLModel).
+"""Database layer for Konzertplaner (SQLite by default, PostgreSQL optional, via SQLModel).
 
 Replaces the former JSON-file persistence (data/events.json, data/catalogue.json)
 and on-disk image storage (static/posters/, static/logos/, static/festival-logos/).
@@ -20,12 +20,54 @@ from models import ArtistRow, EventRow, Image, KvRow, VenueRow
 
 # ── Engine ────────────────────────────────────────────────────────────────────
 
+BASE_DIR = Path(__file__).parent
+
+# Default to a local SQLite file so the app runs without a database server.
+# PostgreSQL stays fully supported: set DATABASE_URL (e.g. in Docker) to a
+# `postgresql+psycopg://...` URL and the engine below adapts automatically.
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg://kp:kp@localhost:5432/kp",  # local dev; Docker overrides via env
+    f"sqlite:///{(BASE_DIR / 'data' / 'konzertplaner.db').as_posix()}",
 )
 
-engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+
+def _make_engine(url: str):
+    """Create a SQLAlchemy engine, adapting to SQLite vs. server databases.
+
+    SQLite needs `check_same_thread=False` because Flask serves requests from
+    multiple threads sharing one connection pool, and WAL mode so readers do
+    not block the single writer. For file-backed SQLite URLs the parent
+    directory is created if missing.
+    """
+    if url.startswith("sqlite"):
+        # Ensure the parent directory of a file-backed SQLite DB exists.
+        prefix = "sqlite:///"
+        if url.startswith(prefix):
+            db_path = url[len(prefix) :]
+            if db_path and db_path != ":memory:":
+                Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        eng = create_engine(
+            url,
+            echo=False,
+            pool_pre_ping=True,
+            connect_args={"check_same_thread": False},
+        )
+
+        from sqlalchemy import event
+
+        @event.listens_for(eng, "connect")
+        def _set_sqlite_pragma(dbapi_connection, _connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
+        return eng
+
+    return create_engine(url, echo=False, pool_pre_ping=True)
+
+
+engine = _make_engine(DATABASE_URL)
 
 
 def session() -> Session:
@@ -34,7 +76,6 @@ def session() -> Session:
 
 # ── Paths (read-only migration sources) ──────────────────────────────────────
 
-BASE_DIR = Path(__file__).parent
 DATA_FILE = BASE_DIR / "data" / "events.json"
 LEGACY_FILE = BASE_DIR / "data" / "tours.json"
 CAT_FILE = BASE_DIR / "data" / "catalogue.json"

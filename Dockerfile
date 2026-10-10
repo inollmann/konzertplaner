@@ -10,8 +10,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py concert.py db.py models.py ./
 COPY static/ static/
 
-# Data directory (read-only mount for migration source only)
+# Data directory: holds the SQLite database and legacy migration sources
 RUN mkdir -p data
+
+# Container-friendly runtime defaults (no reloader, fixed port). The SQLite
+# path defaults to /app/data/konzertplaner.db via db.py; override DATABASE_URL
+# to point at PostgreSQL instead.
+ENV KP_DEBUG=0 \
+    PORT=5000
 
 # Create non-root user and set ownership
 RUN useradd -m appuser && chown -R appuser:appuser /app

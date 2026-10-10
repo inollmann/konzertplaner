@@ -1,0 +1,10 @@
+configuration:
+  log_level:
+    name: Log-Level
+    description: Ausführlichkeit der Anwendungs-Logs.
+  database_url:
+    name: Datenbank-URL
+    description: >-
+      Optionale SQLAlchemy-Datenbank-URL. Leer lassen, um die eingebaute
+      SQLite-Datenbank im persistenten /data-Ordner des Add-ons zu verwenden
+      (empfohlen).

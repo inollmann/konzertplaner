@@ -1,4 +1,5 @@
 data/*
+backups/
 static/logos/*
 static/festival-logos/*
 static/posters/*
