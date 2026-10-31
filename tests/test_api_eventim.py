@@ -1,5 +1,3 @@
-import datetime
-
 import pytest
 
 import main
@@ -146,7 +144,7 @@ def test_artist_events_filters_by_name(client, monkeypatch):
                     attractions=[{"name": "Tool"}],
                     city="Berlin",
                     venue="Arena",
-                    start="2026-09-01T20:00:00",
+                    start="2099-09-01T20:00:00",
                     link="/event/tool",
                     in_stock=True,
                     status="available",
@@ -158,7 +156,7 @@ def test_artist_events_filters_by_name(client, monkeypatch):
                     attractions=[{"name": "Metallica"}],
                     city="Hamburg",
                     venue="Stadthalle",
-                    start="2026-10-01T19:00:00",
+                    start="2099-10-01T19:00:00",
                 ),
                 _product(
                     pid="p3",
@@ -167,7 +165,7 @@ def test_artist_events_filters_by_name(client, monkeypatch):
                     attractions=[{"name": "Tool Tribute Band"}],
                     city="Köln",
                     venue="Lanxess",
-                    start="2026-11-01T19:30:00",
+                    start="2099-11-01T19:30:00",
                 ),
             ]
         }, 200
@@ -177,20 +175,18 @@ def test_artist_events_filters_by_name(client, monkeypatch):
     assert resp.status_code == 200
     body = resp.get_json()
     assert body["artist"] == "Tool"
-    assert body["total"] == 2
-    assert len(body["concerts"]) == 2
+    assert body["total"] == 1
+    assert len(body["concerts"]) == 1
     c = body["concerts"][0]
     assert c["productId"] == "p1"
     assert c["name"] == "Tool Live"
-    assert c["date"] == "2026-09-01"
+    assert c["date"] == "2099-09-01"
     assert c["time"] == "20:00"
     assert c["city"] == "Berlin"
     assert c["venue"] == "Arena"
     assert c["link"] == "/event/tool"
     assert c["inStock"] is True
     assert c["attractions"] == ["Tool"]
-    names = sorted(c["name"] for c in body["concerts"])
-    assert names == ["Tool Live", "Tool Tribute"]
 
 
 def test_artist_events_error_passthrough(client, monkeypatch):
@@ -203,25 +199,40 @@ def test_artist_events_error_passthrough(client, monkeypatch):
     assert resp.get_json() == {"error": "boom"}
 
 
-def test_artist_events_date_from_is_today(client, monkeypatch):
-    real_date = datetime.date
-
-    class FakeDate(real_date):
-        @classmethod
-        def today(cls):
-            return real_date(2026, 1, 15)
-
-    monkeypatch.setattr(datetime, "date", FakeDate)
+def test_artist_events_no_date_from_and_filters_past(client, monkeypatch):
+    # date_from würde die Relevanz-Sortierung abschalten → Filter läuft in Python
     captured = {}
 
     def fake_get(path, params):
         captured["params"] = params
-        return {"products": []}, 200
+        return {
+            "products": [
+                _product(
+                    pid="old",
+                    gid="g0",
+                    name="Tool Old",
+                    attractions=[{"name": "Tool"}],
+                    city="Berlin",
+                    venue="Arena",
+                    start="2000-01-01T20:00:00",
+                ),
+                _product(
+                    pid="new",
+                    gid="g1",
+                    name="Tool New",
+                    attractions=[{"name": "Tool"}],
+                    city="Berlin",
+                    venue="Arena",
+                    start="2099-01-01T20:00:00",
+                ),
+            ]
+        }, 200
 
     monkeypatch.setattr(main, "_eventim_get", fake_get)
     resp = client.get("/api/eventim/artist-events?name=Tool")
     assert resp.status_code == 200
-    assert captured["params"]["date_from"] == "2026-01-15"
+    assert "date_from" not in captured["params"]
+    assert [c["productId"] for c in resp.get_json()["concerts"]] == ["new"]
 
 
 def test_search_missing_q(client):
@@ -402,3 +413,136 @@ def test_prices_error_passthrough(client, monkeypatch):
     resp = client.get("/api/eventim/prices?product_id=p1&date=2026-09-01")
     assert resp.status_code == 502
     assert resp.get_json() == {"error": "boom"}
+
+
+def test_no_sort_param_sent(client, monkeypatch):
+    seen = []
+
+    def fake_get(path, params):
+        seen.append(params)
+        return {"products": []}, 200
+
+    monkeypatch.setattr(main, "_eventim_get", fake_get)
+    client.get("/api/eventim/artist-search?q=Allt")
+    client.get("/api/eventim/artist-events?name=Allt")
+    client.get("/api/eventim/search?q=Allt")
+    assert len(seen) == 3
+    assert all("sort" not in p for p in seen)
+
+
+def test_artist_events_sorted_and_substring_fallback(client, monkeypatch):
+    def fake_get(path, params):
+        return {
+            "products": [
+                _product(
+                    pid="b", attractions=[{"name": "Polaris Tribute"}], start="2026-12-01T20:00:00"
+                ),
+                _product(
+                    pid="a", attractions=[{"name": "Polaris Tribute"}], start="2026-11-01T20:00:00"
+                ),
+            ]
+        }, 200
+
+    monkeypatch.setattr(main, "_eventim_get", fake_get)
+    body = client.get("/api/eventim/artist-events?name=Polaris").get_json()
+    assert [c["productId"] for c in body["concerts"]] == ["a", "b"]
+
+
+def test_artist_events_exact_casefold_and_sorted(client, monkeypatch):
+    def fake_get(path, params):
+        return {
+            "products": [
+                _product(pid="late", attractions=[{"name": "ALLT"}], start="2026-12-01T20:00:00"),
+                _product(
+                    pid="sub", attractions=[{"name": "Allthing"}], start="2026-10-01T20:00:00"
+                ),
+                _product(pid="early", attractions=[{"name": "Allt"}], start="2026-11-01T20:00:00"),
+            ]
+        }, 200
+
+    monkeypatch.setattr(main, "_eventim_get", fake_get)
+    body = client.get("/api/eventim/artist-events?name=allt").get_json()
+    assert [c["productId"] for c in body["concerts"]] == ["early", "late"]
+
+
+def test_artist_events_fetches_up_to_three_pages(client, monkeypatch):
+    pages = []
+
+    def fake_get(path, params):
+        pages.append(params["page"])
+        n = params["page"]
+        return {
+            "products": [
+                _product(
+                    pid=f"p{n}", attractions=[{"name": "Allt"}], start=f"2026-1{n}-01T20:00:00"
+                )
+            ],
+            "page": int(n),
+            "totalPages": 9,
+        }, 200
+
+    monkeypatch.setattr(main, "_eventim_get", fake_get)
+    body = client.get("/api/eventim/artist-events?name=Allt").get_json()
+    assert pages == ["1", "2", "3"]
+    assert body["total"] == 3
+
+
+def test_artist_events_stops_at_page_without_hits(client, monkeypatch):
+    pages = []
+
+    def fake_get(path, params):
+        pages.append(params["page"])
+        prods = [_product(attractions=[{"name": "Allt"}])] if params["page"] == "1" else []
+        return {"products": prods, "totalPages": 9}, 200
+
+    monkeypatch.setattr(main, "_eventim_get", fake_get)
+    client.get("/api/eventim/artist-events?name=Allt")
+    assert pages == ["1", "2"]
+
+
+def test_search_tours_sorted_by_date(client, monkeypatch):
+    def fake_get(path, params):
+        return {
+            "products": [
+                _product(
+                    pid="1", gid="gB", attractions=[{"name": "B"}], start="2026-12-01T20:00:00"
+                ),
+                _product(
+                    pid="2", gid="gA", attractions=[{"name": "A"}], start="2026-10-01T20:00:00"
+                ),
+            ]
+        }, 200
+
+    monkeypatch.setattr(main, "_eventim_get", fake_get)
+    tours = client.get("/api/eventim/search?q=x").get_json()["tours"]
+    assert [t["artist"] for t in tours] == ["A", "B"]
+
+
+def test_search_marks_festival_and_end_date(client, monkeypatch):
+    prod = _product(
+        pid="f1",
+        gid="4185862",
+        name="VAINSTREAM 2027 - Weekendticket",
+        attractions=[{"name": "Vainstream"}, {"name": "Lorna Shore"}],
+        city="Münster",
+        venue="Festivalgelände am Hawerkamp",
+        start="2027-06-25T12:00:00+02:00",
+    )
+    prod["typeAttributes"]["liveEntertainment"]["endDate"] = "2027-06-26T12:00:00+02:00"
+    prod["categories"] = [
+        {"name": "Konzerte"},
+        {"name": "Festivals", "parentCategory": {"name": "Konzerte"}},
+    ]
+    plain = _product(pid="p9", gid="g9")
+    plain["typeAttributes"]["liveEntertainment"]["endDate"] = "2026-09-01T23:00:00"
+    monkeypatch.setattr(
+        main, "_eventim_get", lambda path, params: ({"products": [prod, plain]}, 200)
+    )
+    tours = client.get("/api/eventim/search?q=vainstream").get_json()["tours"]
+    fest = next(t for t in tours if t["group_id"] == "4185862")
+    assert fest["is_festival"] is True
+    assert fest["concerts"][0]["end_date"] == "2027-06-26"
+    assert fest["concerts"][0]["attractions"] == ["Vainstream", "Lorna Shore"]
+    other = next(t for t in tours if t["group_id"] == "g9")
+    assert other["is_festival"] is False
+    assert other["concerts"][0]["end_date"] == ""

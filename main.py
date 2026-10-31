@@ -1,10 +1,11 @@
 import json
 import os
+import uuid
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 
-from concert import Artist, Festival, Tour, Venue
+from concert import Artist, Event, Festival, Tour, Venue
 from db import (
     create_image,
     delete_artist_db,
@@ -314,7 +315,6 @@ def eventim_artist_search():
             "webId": "web__eventim-de",
             "language": "de",
             "page": "1",
-            "sort": "DateAsc",
             "top": "50",  # larger set for better name matching
             "search_term": q,
             "categories": "Konzerte",
@@ -376,46 +376,64 @@ def eventim_artist_events():
     if not name:
         return jsonify({"error": "Missing name"}), 400
     today = __import__("datetime").date.today().isoformat()
-    data, status = _eventim_get(
-        "/websearch/search/api/exploration/v1/products",
-        {
-            "webId": "web__eventim-de",
-            "language": "de",
-            "page": page,
-            "sort": "DateAsc",
-            "top": "50",
-            "search_term": name,
-            "categories": "Konzerte",
-            # no in_stock filter — artist may have future sold-out events
-            "date_from": today,
-        },
-    )
-    if "error" in data:
-        return jsonify(data), status
-
-    # Filter to products where this artist is an attraction
-    name_lower = name.lower()
-    concerts = []
-    for p in data.get("products", []):  # type: ignore[union-attr]
-        atts = [a["name"] for a in p.get("attractions", [])]  # type: ignore[union-attr]
-        if not any(a.lower() == name_lower or name_lower in a.lower() for a in atts):
-            continue
-        live = p.get("typeAttributes", {}).get("liveEntertainment", {})
-        loc = live.get("location", {})
-        start = live.get("startDate", "")
-        concerts.append(
+    name_lower = name.casefold()
+    try:
+        start_page = int(page)
+    except ValueError:
+        start_page = 1
+    exact: list[dict] = []
+    partial: list[dict] = []
+    data: dict | list = {}
+    for pg in range(start_page, start_page + 3):
+        data, status = _eventim_get(
+            "/websearch/search/api/exploration/v1/products",
             {
-                "productId": p.get("productId"),  # type: ignore[union-attr]
-                "name": p.get("name", ""),  # type: ignore[union-attr]
-                "date": start[:10] if start else "",
-                "time": start[11:16] if len(start) > 10 else "",
-                "city": loc.get("city", ""),
-                "venue": loc.get("name", ""),
-                "link": p.get("link", ""),  # type: ignore[union-attr]
-                "inStock": p.get("inStock", False),  # type: ignore[union-attr]
-                "attractions": atts,
-            }
+                "webId": "web__eventim-de",
+                "language": "de",
+                "page": str(pg),
+                "top": "50",
+                "search_term": name,
+                "categories": "Konzerte",
+                # no in_stock filter — artist may have future sold-out events
+                # KEIN date_from: der Parameter schaltet die Relevanz-Sortierung ab,
+                # echte Treffer rutschen dann von Seite 1 → Filter unten in Python.
+            },
         )
+        if "error" in data:
+            return jsonify(data), status
+
+        # Relevanz-Sortierung: echte Treffer stehen vorne → Abbruch bei erster Seite ohne Treffer
+        found = False
+        for p in data.get("products", []):  # type: ignore[union-attr]
+            atts = [a["name"] for a in p.get("attractions", [])]  # type: ignore[union-attr]
+            is_exact = any(a.casefold() == name_lower for a in atts)
+            if not is_exact and not any(name_lower in a.casefold() for a in atts):
+                continue
+            found = True
+            live = p.get("typeAttributes", {}).get("liveEntertainment", {})
+            loc = live.get("location", {})
+            start = live.get("startDate", "")
+            if start[:10] < today:
+                continue
+            (exact if is_exact else partial).append(
+                {
+                    "productId": p.get("productId"),  # type: ignore[union-attr]
+                    "name": p.get("name", ""),  # type: ignore[union-attr]
+                    "date": start[:10] if start else "",
+                    "time": start[11:16] if len(start) > 10 else "",
+                    "city": loc.get("city", ""),
+                    "venue": loc.get("name", ""),
+                    "link": p.get("link", ""),  # type: ignore[union-attr]
+                    "inStock": p.get("inStock", False),  # type: ignore[union-attr]
+                    "attractions": atts,
+                }
+            )
+        total_pages = data.get("totalPages", 1)  # type: ignore[union-attr]
+        if not found or pg >= total_pages:
+            break
+    # Exakter Treffer verdrängt Teilstring-Treffer; Teilstring nur als Fallback
+    concerts = exact or partial
+    concerts.sort(key=lambda c: (c["date"], c["time"]))
     return jsonify(
         {
             "artist": name,
@@ -504,6 +522,18 @@ def update_event(eid):
     if not ev:
         return jsonify({"error": "Not found"}), 404
     data = request.get_json()
+    new_type = data.get("event_type")
+    if new_type in ("tour", "festival") and new_type != ev.event_type:
+        # Typwechsel (Tour <-> Festival): neues Objekt mit gleicher ID aufbauen
+        old_id, old_poster = ev.id, ev.poster
+        payload = {**data, "id": old_id}
+        if "concerts" in payload:
+            payload["concerts"] = [{"id": str(uuid.uuid4()), **c} for c in payload["concerts"]]
+        ev = Event.from_dict(payload)
+        if "poster" not in data:
+            ev.poster = old_poster
+        upsert_event(ev)
+        return jsonify(ev.to_dict())
     if isinstance(ev, Festival):
         ev.name = data.get("name", ev.name)
         ev.city = data.get("city", ev.city)
@@ -986,7 +1016,6 @@ def eventim_search():
             "webId": "web__eventim-de",
             "language": "de",
             "page": page,
-            "sort": "DateAsc",
             "top": "50",
             "search_term": q,
             "categories": "Konzerte",
@@ -1008,6 +1037,10 @@ def eventim_search():
         live = p.get("typeAttributes", {}).get("liveEntertainment", {})
         location = live.get("location", {})
         start_raw = live.get("startDate", "")
+        end_raw = live.get("endDate", "") or ""
+        end_date = end_raw[:10] if end_raw[:10] != start_raw[:10] else ""
+        cats = p.get("categories", []) or []  # type: ignore[union-attr]
+        is_fest = any((c or {}).get("name") == "Festivals" for c in cats)
 
         concert_entry = {
             "productId": p.get("productId"),  # type: ignore[union-attr]
@@ -1016,6 +1049,8 @@ def eventim_search():
             "time": start_raw[11:16] if len(start_raw) > 10 else "",
             "city": location.get("city", ""),
             "venue": location.get("name", ""),
+            "end_date": end_date,
+            "attractions": [a.get("name", "") for a in attractions if a.get("name")],
             "link": p.get("link", ""),  # type: ignore[union-attr]
             "inStock": p.get("inStock", False),  # type: ignore[union-attr]
             "status": p.get("status", ""),  # type: ignore[union-attr]
@@ -1026,15 +1061,22 @@ def eventim_search():
                 "artist": artist_name,
                 "tour_name": p.get("name", ""),  # type: ignore[union-attr]
                 "group_id": group_id,
+                "is_festival": False,
                 "concerts": [],
             }
+        if is_fest:
+            tours[key]["is_festival"] = True
         tours[key]["concerts"].append(concert_entry)
         # Use shortest product name as tour name (usually the tour title)
         if len(p.get("name", "")) < len(tours[key]["tour_name"]):  # type: ignore[union-attr]
             tours[key]["tour_name"] = p.get("name", "")  # type: ignore[union-attr]
 
+    tour_list = list(tours.values())
+    for t in tour_list:
+        t["concerts"].sort(key=lambda c: (c["date"], c["time"]))
+    tour_list.sort(key=lambda t: (t["concerts"][0]["date"], t["concerts"][0]["time"]))
     result = {
-        "tours": list(tours.values()),
+        "tours": tour_list,
         "totalResults": data.get("totalResults", 0),  # type: ignore[union-attr]
         "page": data.get("page", 1),  # type: ignore[union-attr]
         "totalPages": data.get("totalPages", 1),  # type: ignore[union-attr]

@@ -182,6 +182,7 @@ export async function importBackup(input) {
     document.getElementById('backup-status').innerHTML = `<span style="color:var(--tickets-color)">${icon('check')} Backup erfolgreich importiert</span>`;
 
     await fetchAll();
+    window.dispatchEvent(new CustomEvent('datachange'));
   } catch (err) {
     document.getElementById('backup-status').innerHTML = '<span style="color:#f87171">Fehler: ' + err.message + '</span>';
   }

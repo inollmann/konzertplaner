@@ -21,12 +21,13 @@
 // removePill, addPillTag. Keep those names stable or update globals.
 // ══════════════════════════════════════════════════════════════════════
 
-import { state } from './state.js';
+import { state, getEvent } from './state.js';
 import { esc } from './utils.js';
-import { openModal, closeModal, closeDrawer, showAlert } from './ui.js';
+import { openModal, closeModal, closeDrawer, showAlert, showConfirm } from './ui.js';
 import { fetchAll } from './api.js';
 import { openDetail, closeDetail } from './list.js';
 import { icon } from './icons.js';
+import { tourToFestival, festivalToTour } from './event-convert.js';
 
 let pendingBlob = { tour: null, festival: null };
 let savedPoster = { tour: null, festival: null };
@@ -68,6 +69,10 @@ export function openEventModal(ev) {
   document.getElementById('event-modal-title').textContent = ev ? 'Event bearbeiten' : 'Neues Event';
 
   selectType(ev ? ev.event_type : 'tour', false);
+
+  const convBtn = document.getElementById('btn-convert');
+  convBtn.style.display = ev ? '' : 'none';
+  if (ev) convBtn.textContent = ev.event_type === 'festival' ? 'In Tour umwandeln' : 'In Festival umwandeln';
 
   if (!ev || ev.event_type === 'tour') {
     const artistData = ev?.artist;
@@ -420,6 +425,33 @@ export function pickVenue(itemEl, dropId, venueName, cityName) {
 /** Close an autocomplete dropdown by id. */
 export function closeAcDrop(id) {
   const el = document.getElementById(id); if (el) el.classList.remove('open');
+}
+
+// ── Typ umwandeln ────────────────────────────────────────────────────
+/**
+ * Wandelt das gerade bearbeitete Event (gespeicherter Stand) zwischen Tour und
+ * Festival um, speichert es unter derselben ID und öffnet den Editor neu.
+ */
+export function convertEventType() {
+  const ev = state.editingId ? getEvent(state.editingId) : null;
+  if (!ev) return;
+  const toFestival = ev.event_type !== 'festival';
+  const msg = toFestival
+    ? 'Tour in ein Festival umwandeln? Nicht gespeicherte Änderungen im Formular gehen verloren, mehrere Konzerttermine werden zu einem Zeitraum zusammengefasst.'
+    : 'Festival in eine Tour umwandeln? Nicht gespeicherte Änderungen im Formular gehen verloren, das Festival-Logo entfällt.';
+  showConfirm(msg, async () => {
+    try {
+      const payload = toFestival ? tourToFestival(ev) : festivalToTour(ev);
+      const r = await fetch(`/api/events/${ev.id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (!r.ok) throw new Error('Server error ' + r.status);
+      await fetchAll();
+      window.dispatchEvent(new CustomEvent('datachange'));
+      const updated = getEvent(ev.id);
+      if (updated) openEventModal(updated);
+    } catch(err) {
+      showAlert('Fehler: ' + err.message);
+    }
+  }, 'Typ umwandeln');
 }
 
 // ── Save ─────────────────────────────────────────────────────────────

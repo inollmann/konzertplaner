@@ -101,7 +101,8 @@ export function saveKv(kvKey, blob) {
  */
 export async function deleteEvent(id) {
   await fetch('/api/events/' + id, { method: 'DELETE' });
-  return fetchAll();
+  await fetchAll();
+  window.dispatchEvent(new CustomEvent('datachange'));
 }
 
 /**
@@ -187,6 +188,7 @@ export async function promptAddSupport(eventId, concertId) {
     conc.support_present.push(name.trim());
   }
   await patchEvent(ev);
+  window.dispatchEvent(new CustomEvent('datachange'));
 }
 
 /**
@@ -204,6 +206,7 @@ export async function promptAddFestivalBand(eventId) {
     ev.bands_to_watch.push(name.trim());
   }
   await patchEvent(ev);
+  window.dispatchEvent(new CustomEvent('datachange'));
 }
 
 /**

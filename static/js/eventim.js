@@ -18,6 +18,7 @@ import { openModal, closeModal, switchTab, showAlert } from './ui.js';
 import { fetchAll } from './api.js';
 import { getLocationCity, getPreferredCities } from './tools.js';
 import { icon } from './icons.js';
+import { festivalFromEventim } from './event-convert.js';
 
 let _searchTimeout = null;
 let _currentSearchPage = 1;
@@ -103,7 +104,7 @@ export function showToursModal(query, data) {
       return `<button class="unstyled ev-tour-item" type="button" data-tour-idx="${i}">
         <div class="ev-tour-icon">${icon('guitar')}</div>
         <div class="ev-tour-meta">
-          <div class="ev-tour-artist">${esc(tour.artist)}</div>
+          <div class="ev-tour-artist">${esc(tour.artist)}${tour.is_festival ? ' <span class="type-badge festival">Festival</span>' : ''}</div>
           <div class="ev-tour-name">${esc(tour.tour_name)}${dateRange ? ' · ' + dateRange : ''}</div>
         </div>
         <div class="ev-tour-count">${tour.concerts.length} Termin${tour.concerts.length !== 1 ? 'e' : ''} ${icon('arrow-right')}</div>
@@ -167,7 +168,7 @@ export function showConcertsModal(tourIndex) {
   _selectedConcerts = new Set();
 
   document.getElementById('eventim-concerts-title').textContent =
-    `${esc(_currentTour.artist)} – Termine auswählen`;
+    `${_currentTour.is_festival ? 'Festival: ' : ''}${esc(_currentTour.artist)} – Termine auswählen`;
 
   renderConcertSelection();
   openModal('eventim-concerts-modal');
@@ -271,7 +272,7 @@ export async function importEventimTour() {
   if (_selectedConcerts.size === 0) { showAlert('Bitte mindestens einen Termin auswählen.'); return; }
 
   const selected = _currentTour.concerts.filter((_, i) => _selectedConcerts.has(i));
-  const payload = {
+  const payload = _currentTour.is_festival ? festivalFromEventim(selected) : {
     event_type: 'tour',
     artist:     _currentTour.artist,
     tour_name:  _currentTour.tour_name || _currentTour.artist,
@@ -301,6 +302,7 @@ export async function importEventimTour() {
     closeModal('eventim-concerts-modal');
     closeSearchPanel();
     await fetchAll();
+    window.dispatchEvent(new CustomEvent('datachange'));
     const listTab = document.querySelector('.tab');
     if (listTab) switchTab('list', listTab);
   } catch(err) {

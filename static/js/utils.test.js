@@ -1,7 +1,9 @@
 import {
   esc, localIso, parseDate, fmtDateShort, fmtDateLong, fmtPrice,
   eventLatestDate, eventEarliestDate, pipColor, venueMapHtml,
-  artistLogoSrc, artistLogoClass, haversineKm,
+  artistLogoSrc, artistLogoClass, haversineKm, wallLayout,
+  nextUpcomingDate, daysBetween, fmtCountdown, fmtMonthHeader,
+  concertLineup, festivalLineup,
 } from './utils.js';
 
 describe('esc', () => {
@@ -49,13 +51,51 @@ describe('parseDate', () => {
     expect(r.year).toBe(2026);
   });
   it('returns placeholders for empty string', () => {
-    expect(parseDate('')).toEqual({ day: '?', month: '???', year: '????' });
+    expect(parseDate('')).toEqual({ day: '?', month: '???', year: '????', weekday: '??' });
   });
   it('returns placeholders for null', () => {
-    expect(parseDate(null)).toEqual({ day: '?', month: '???', year: '????' });
+    expect(parseDate(null)).toEqual({ day: '?', month: '???', year: '????', weekday: '??' });
   });
   it('returns placeholders for undefined', () => {
-    expect(parseDate(undefined)).toEqual({ day: '?', month: '???', year: '????' });
+    expect(parseDate(undefined)).toEqual({ day: '?', month: '???', year: '????', weekday: '??' });
+  });
+});
+
+describe('parseDate weekday', () => {
+  it('liefert den deutschen Kurz-Wochentag', () => {
+    expect(parseDate('2026-11-14').weekday).toMatch(/^Sa/);
+  });
+});
+
+describe('fmtDateShort weekday', () => {
+  it('enthält den Wochentag nur mit Option', () => {
+    expect(fmtDateShort('2026-11-14', { weekday: true })).toMatch(/^Sa.*14/);
+    expect(fmtDateShort('2026-11-14')).not.toMatch(/Sa/);
+  });
+  it('leer bei fehlendem Datum', () => {
+    expect(fmtDateShort('', { weekday: true })).toBe('');
+  });
+});
+
+describe('wallLayout', () => {
+  it('ein Event ist nicht breiter als max', () => {
+    const r = wallLayout(1400, 800, 1, 16);
+    expect(r.tile).toBeLessThanOrEqual(420);
+  });
+  it('viele Events führen zu w ≈ min', () => {
+    const r = wallLayout(1000, 600, 500, 16);
+    expect(r.cols).toBe(Math.floor((1000 + 16) / (160 + 16)));
+    expect(r.tile).toBeGreaterThanOrEqual(160);
+  });
+  it('passt in die Höhe, wenn möglich', () => {
+    const r = wallLayout(1200, 700, 12, 16);
+    const rows = Math.ceil(12 / r.cols);
+    expect(rows * r.tile * 1.5 + (rows - 1) * 16).toBeLessThanOrEqual(700);
+  });
+  it('n = 0 liefert gültige Werte', () => {
+    const r = wallLayout(800, 600, 0, 16);
+    expect(r.cols).toBeGreaterThan(0);
+    expect(r.tile).toBeGreaterThanOrEqual(160);
   });
 });
 
@@ -247,5 +287,65 @@ describe('haversineKm', () => {
     const a = { lat: 50.0, lon: 8.0 };
     const b = { lat: 50.001, lon: 8.001 };
     expect(haversineKm(a, b)).toBeLessThan(0.2);
+  });
+});
+
+describe('daysBetween / fmtCountdown', () => {
+  it('zählt Tage (auch über Monatsgrenzen)', () => {
+    expect(daysBetween('2026-10-31', '2026-11-02')).toBe(2);
+    expect(daysBetween('2026-10-31', '2026-10-31')).toBe(0);
+    expect(daysBetween('2026-11-02', '2026-10-31')).toBe(-2);
+  });
+  it('formatiert den Countdown', () => {
+    expect(fmtCountdown(0)).toBe('heute');
+    expect(fmtCountdown(1)).toBe('morgen');
+    expect(fmtCountdown(5)).toBe('in 5 Tagen');
+    expect(fmtCountdown(-1)).toBe('');
+  });
+});
+
+describe('nextUpcomingDate', () => {
+  const tour = { event_type: 'tour', concerts: [{ date: '2026-10-01' }, { date: '2026-12-05' }, { date: '2026-11-20' }] };
+  it('wählt das früheste Datum ab heute', () => {
+    expect(nextUpcomingDate(tour, '2026-10-31')).toBe('2026-11-20');
+  });
+  it('fällt auf das früheste Datum zurück, wenn alles vorbei ist', () => {
+    expect(nextUpcomingDate(tour, '2027-01-01')).toBe('2026-10-01');
+  });
+  it('berücksichtigt laufende Festivals', () => {
+    const f = { event_type: 'festival', date: '2026-10-30', end_date: '2026-11-01' };
+    expect(nextUpcomingDate(f, '2026-10-31')).toBe('2026-10-31');
+  });
+});
+
+describe('fmtMonthHeader', () => {
+  it('liefert Monat und Jahr', () => {
+    expect(fmtMonthHeader('2026-11-14')).toMatch(/November 2026/);
+    expect(fmtMonthHeader('')).toBe('');
+  });
+});
+
+describe('concertLineup', () => {
+  it('uses support_present when set', () => {
+    const r = concertLineup({ artist: ['A', 'B'], support: ['X'] }, { support_present: ['Y'] });
+    expect(r).toEqual({ headliners: ['A', 'B'], supports: ['Y'], assumed: false });
+  });
+  it('falls back to tour support and handles string artist', () => {
+    const r = concertLineup({ artist: 'A', support: ['X'] }, { support_present: [] });
+    expect(r).toEqual({ headliners: ['A'], supports: ['X'], assumed: true });
+  });
+  it('is empty without data', () => {
+    expect(concertLineup({ artist: 'A' }, {}).supports).toEqual([]);
+  });
+});
+
+describe('festivalLineup', () => {
+  it('clamps and counts remainder', () => {
+    const r = festivalLineup(Array.from({ length: 13 }, (_, i) => 'b' + i));
+    expect(r.shown).toHaveLength(10);
+    expect(r.more).toBe(3);
+  });
+  it('handles undefined', () => {
+    expect(festivalLineup(undefined)).toEqual({ shown: [], more: 0 });
   });
 });

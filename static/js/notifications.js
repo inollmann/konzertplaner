@@ -149,6 +149,7 @@ export async function importNotifEvent() {
   if (!r.ok){showAlert('Fehler beim Speichern.');return;}
   closeModal('notif-event-modal');
   await fetchAll();
+  window.dispatchEvent(new CustomEvent('datachange'));
 }
 
 /**

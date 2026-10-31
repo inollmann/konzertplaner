@@ -91,6 +91,7 @@ window.addEventListener('datachange', () => {
   if (bd && bd.classList.contains('open') && state.openDetailId) {
     const ev = state.allEvents.find(x => x.id === state.openDetailId);
     if (ev) document.getElementById('detail-panel').innerHTML = window.buildDetailHTML(ev);
+    else window.closeDetail?.();
   }
 });
 

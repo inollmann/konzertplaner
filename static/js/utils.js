@@ -64,22 +64,53 @@ export function localIso(d) {
  * Uses noon UTC-offset-agnostic local time so `2024-01-15` doesn't render
  * as the 14th in negative-offset timezones.
  * @param {string} iso
- * @returns {{day:number|string, month:string, year:number|string}}
+ * @returns {{day:number|string, month:string, year:number|string, weekday:string}}
  */
 export function parseDate(iso) {
-  if (!iso) return { day: '?', month: '???', year: '????' };
+  if (!iso) return { day: '?', month: '???', year: '????', weekday: '??' };
   const d = new Date(iso + 'T12:00:00');
   return {
     day: d.getDate(),
     month: d.toLocaleDateString('de-DE', { month: 'short' }),
     year: d.getFullYear(),
+    weekday: d.toLocaleDateString('de-DE', { weekday: 'short' }),
   };
 }
 
-/** Short German date, e.g. `15. Jan`. */
-export function fmtDateShort(iso) {
+/**
+ * Short German date, e.g. `15. Jan`; mit `weekday` z. B. `Fr., 14. Nov.`.
+ * @param {string} iso
+ * @param {{weekday?: boolean}} [opts]
+ */
+export function fmtDateShort(iso, { weekday = false } = {}) {
   if (!iso) return '';
-  return new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  /** @type {Intl.DateTimeFormatOptions} */
+  const o = weekday ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short' };
+  return new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', o);
+}
+
+/**
+ * Wählt Spaltenzahl und Kachelbreite für die Posterwand, sodass alle `n`
+ * Kacheln möglichst ohne Scrollen in `height` passen (Kachelbreite in
+ * `[min, max]`). Passt nichts, wird die maximale Spaltenzahl (w ≈ min) gewählt.
+ * @param {number} width verfügbare Breite in px
+ * @param {number} height verfügbare Höhe in px
+ * @param {number} n Anzahl Kacheln
+ * @param {number} gap Abstand in px
+ * @param {{min?:number, max?:number, ratio?:number}} [opts] ratio = Höhe/Breite
+ * @returns {{cols:number, tile:number}}
+ */
+export function wallLayout(width, height, n, gap, { min = 160, max = 420, ratio = 1.5 } = {}) {
+  const maxCols = Math.max(1, Math.floor((width + gap) / (min + gap)));
+  const tileFor = cols => (width - (cols - 1) * gap) / cols;
+  const clamp = w => Math.min(max, Math.max(min, w));
+  if (n <= 0) return { cols: 1, tile: clamp(tileFor(1)) };
+  for (let cols = 1; cols <= maxCols; cols++) {
+    const w = tileFor(cols);
+    const rows = Math.ceil(n / cols);
+    if (w <= max && rows * w * ratio + (rows - 1) * gap <= height) return { cols, tile: clamp(w) };
+  }
+  return { cols: maxCols, tile: clamp(tileFor(maxCols)) };
 }
 
 /** Long German date, e.g. `15. Januar 2024`. */
@@ -136,6 +167,45 @@ export function eventEarliestDate(ev) {
 }
 
 /**
+ * Nächstes anstehendes Datum eines Events (frühester Konzerttag >= `todayIso`,
+ * mehrtägige Einträge laufen bis `end_date`); sonst das früheste Datum.
+ * @param {any} ev
+ * @param {string} todayIso
+ * @returns {string}
+ */
+export function nextUpcomingDate(ev, todayIso) {
+  const items = ev.event_type === 'festival' ? [ev] : (ev.concerts || []);
+  let best = '';
+  for (const c of items) {
+    if (!c.date) continue;
+    const end = c.end_date || c.date;
+    const d = c.date >= todayIso ? c.date : (end >= todayIso ? todayIso : '');
+    if (d && (!best || d < best)) best = d;
+  }
+  return best || eventEarliestDate(ev);
+}
+
+/** Ganze Tage von `fromIso` bis `toIso` (negativ, wenn `toIso` früher liegt). */
+export function daysBetween(fromIso, toIso) {
+  const a = new Date(fromIso + 'T12:00:00'), b = new Date(toIso + 'T12:00:00');
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+/** Countdown-Text: `heute`, `morgen`, `in N Tagen`; leer für vergangene Tage. */
+export function fmtCountdown(days) {
+  if (days < 0 || !Number.isFinite(days)) return '';
+  if (days === 0) return 'heute';
+  if (days === 1) return 'morgen';
+  return `in ${days} Tagen`;
+}
+
+/** Monatsüberschrift, z. B. `November 2026`; leer ohne Datum. */
+export function fmtMonthHeader(iso) {
+  if (!iso) return '';
+  return new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+}
+
+/**
  * Colour for a rating pip at position `pos` (1–10), given the total
  * rating `val`. Returns `null` for the empty pips above the rating.
  * Hue interpolates 0° (dark red) at rating 1 → 120° (dark green) at 10,
@@ -165,4 +235,30 @@ export function venueMapHtml(venue, city, zoom = 15) {
       <a class="venue-map-link" href="${searchUrl}" target="_blank">In Google Maps öffnen ${icon('arrow-right')}</a>
     </div>
   </div>`;
+}
+
+/**
+ * Lineup eines Konzerts: Headliner (tour.artist, String oder Array) und Supports.
+ * Supports = concert.support_present, sonst Fallback auf tour.support (assumed=true).
+ * @param {any} tour
+ * @param {any} concert
+ * @returns {{headliners: string[], supports: string[], assumed: boolean}}
+ */
+export function concertLineup(tour, concert) {
+  const headliners = [].concat((tour && tour.artist) || []).filter(Boolean);
+  const present = ((concert && concert.support_present) || []).filter(Boolean);
+  if (present.length) return { headliners, supports: present, assumed: false };
+  const fallback = [].concat((tour && tour.support) || []).filter(Boolean);
+  return { headliners, supports: fallback, assumed: fallback.length > 0 };
+}
+
+/**
+ * Festival-Bandliste auf `max` Einträge kürzen; `more` = Anzahl der ausgeblendeten.
+ * @param {string[]} bands
+ * @param {number} [max]
+ * @returns {{shown: string[], more: number}}
+ */
+export function festivalLineup(bands, max = 10) {
+  const list = (bands || []).filter(Boolean);
+  return { shown: list.slice(0, max), more: Math.max(0, list.length - max) };
 }

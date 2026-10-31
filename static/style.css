@@ -250,6 +250,14 @@ header {
 /* ─── List tab controls (sub-tabs + sort) ─────────────────────────── */
 main#tab-list { padding-top: 0; }
 #event-list { padding-top: var(--space-9); }
+#event-list.event-rows { display: flex; flex-direction: column; gap: var(--space-8); }
+.list-month-header {
+  font-family: 'Bebas Neue', sans-serif; font-size: var(--display-sm); letter-spacing: var(--ls-display);
+  color: var(--accent); text-transform: uppercase; margin-top: var(--space-6);
+  display: flex; align-items: center; gap: var(--space-8);
+}
+.list-month-header::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.list-month-header:first-child { margin-top: 0; }
 
 .list-controls {
   display: flex; align-items: flex-end; justify-content: space-between;
@@ -353,7 +361,7 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
 .event-card {
   display: block; width: 100%; text-align: left;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-xl); margin-bottom: var(--space-9); overflow: hidden;
+  border-radius: var(--radius-xl); overflow: hidden;
   animation: fadeUp var(--dur-slow) var(--ease-out) both; cursor: pointer; transition: border-color var(--dur-med);
 }
 .event-card:hover { border-color: color-mix(in srgb,var(--accent) 40%,transparent); }
@@ -377,7 +385,8 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
 /* ─── Poster wall ──────────────────────────────────────────────────── */
 .poster-wall {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(var(--wall-cols, 4), minmax(0, var(--wall-tile-max, 1fr)));
+  justify-content: center;
   gap: var(--space-8);
   padding-top: var(--space-8);
 }
@@ -433,13 +442,9 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
 }
 .poster-card-meta svg { width: 12px; height: 12px; vertical-align: -1px; }
 
-.event-header {
-  display: flex; align-items: center; gap: var(--space-8);
-  padding: var(--space-8) var(--space-9); border-bottom: 1px solid var(--border);
-}
-.event-poster { width: 68px; height: 68px; object-fit: cover; border-radius: var(--radius-md); flex-shrink: 0; }
+.event-poster { width: 96px; height: 96px; object-fit: cover; border-radius: var(--radius-md); flex-shrink: 0; }
 .event-poster-placeholder {
-  width: 68px; height: 68px; border-radius: var(--radius-md); background: var(--surface2);
+  width: 96px; height: 96px; border-radius: var(--radius-md); background: var(--surface2);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 26px; color: var(--muted);
 }
 .event-meta { flex: 1; min-width: 0; }
@@ -500,19 +505,109 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
   background: color-mix(in srgb,var(--link-soldout) 8%,transparent);
 }
 
-/* ─── Concert items (list view) ────────────────────────────────────── */
-.concert-list { display: flex; flex-direction: column; }
-.concert-item {
-  display: grid; grid-template-columns: 80px 1fr auto;
-  padding: var(--space-6) var(--space-9); border-bottom: 1px solid var(--border); align-items: center;
+/* ─── Tour-Zeilen (list view) ──────────────────────────────────────── */
+.tour-row { display: grid; grid-template-columns: clamp(100px, 9vw, 140px) minmax(0, 1fr); align-items: stretch; }
+/* Poster gibt über seine natürliche Höhe die Mindesthöhe der Karte vor; ist die
+   Karte höher, füllt es per cover die volle Höhe (Crop links/rechts statt Lücke). */
+.tour-row > .event-poster { width: 100%; height: 100%; align-self: stretch; border-radius: 0; object-fit: cover; display: block; }
+.tour-row > .event-poster-placeholder { width: 100%; height: 100%; min-height: calc(clamp(100px, 9vw, 140px) * 1.5); align-self: stretch; border-radius: 0; }
+.row-main { min-width: 0; display: flex; flex-direction: column; }
+.row-head { padding: var(--space-6) var(--space-9); border-bottom: 1px solid var(--border); }
+.row-head-line { display: flex; align-items: center; gap: var(--space-5); min-width: 0; }
+.row-head-line .event-title { min-width: 0; overflow-wrap: anywhere; }
+.row-head-line .row-countdown { margin: 0 0 0 auto; padding-left: var(--space-5); white-space: nowrap; }
+.row-head-sub { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--muted); }
+.row-head-sub .event-subtitle { display: inline; margin: 0; font-size: inherit; letter-spacing: .5px; }
+.row-head-sub .event-support { display: inline; margin: 0; color: var(--muted); }
+.row-badge { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-2); }
+.row-countdown {
+  display: inline-block; font-size: var(--text-xs); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--accent);
 }
-.concert-item:last-child { border-bottom: none; }
+.row-body { flex: 1; min-width: 0; display: flex; align-items: stretch; }
+/* Zellen mit Trennlinien: Wrapper schneidet die jeweils erste Linie (links/oben) ab */
+.cells { overflow: hidden; width: 100%; }
+.tile-grid, .row-detail { margin-left: -1px; margin-top: -1px; }
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.cell { border-left: 1px solid var(--border); border-top: 1px solid var(--border); padding: var(--space-5) var(--space-7); min-width: 0; }
+.date-tile { display: flex; flex-direction: column; gap: var(--space-1); }
+.date-tile.is-done { opacity: .45; }
+.date-tile-more { align-items: center; justify-content: center; color: var(--muted); font-size: var(--text-sm); }
+.tile-date { display: flex; align-items: baseline; gap: var(--space-2); white-space: nowrap; }
+.tile-weekday, .tile-month { font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.tile-day { font-family: 'Bebas Neue', sans-serif; font-size: var(--display-md); line-height: 1; color: var(--tour); }
+.tile-city { font-weight: 700; font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-venue { font-size: var(--text-sm); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-foot { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-xs); color: var(--muted); min-height: 16px; }
+.tile-mark { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; border-radius: var(--radius-pill); font-size: 10px; }
+.tile-time { margin-right: auto; }
+.tile-mark:first-of-type { margin-left: auto; }
+/* Konzertblöcke: Datum | Ort | Lineup | Preis als Einheit; Blöcke teilen sich die Breite */
+.row-body { position: relative; }
+.blocks { display: flex; width: 100%; min-width: 0; }
+.cblock { flex: 1 1 0; min-width: 0; container-type: inline-size; container-name: cb; }
+.cblock + .cblock { border-left: 2px solid color-mix(in srgb, var(--muted) 55%, var(--border)); }
+.cblock.is-done { opacity: .45; }
+.cb-grid { display: flex; align-items: stretch; height: 100%; }
+.cb-grid > * { min-width: 0; padding: var(--space-5) var(--space-7); border-left: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
+.cb-grid > .cb-date { border-left: 0; flex: 0 0 auto; width: 112px; min-width: 112px; height: auto; padding: var(--space-5) var(--space-6); }
+.cb-loc { flex: 1 1 0; }
+.cb-lineup { flex: 1.4 1 0; gap: var(--space-3); }
+.cb-grid > .cb-side { flex: 0 0 176px; width: 176px; align-items: flex-start; gap: var(--space-4); }
+.cb-price { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cb-price.is-empty { color: var(--muted); font-weight: 400; opacity: .6; }
+.cb-price-row { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
+.cb-pills { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.cb-pill, .cb-btn { display: inline-flex; align-items: center; gap: var(--space-2); height: 24px; padding: 0 var(--space-5); border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; line-height: 1; white-space: nowrap; box-sizing: border-box; }
+.cb-pill svg, .cb-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+.cb-btn { background: var(--surface3); color: var(--link); border: 1px solid var(--border); text-decoration: none; transition: border-color var(--dur-fast), background var(--dur-fast); }
+.cb-btn:hover { border-color: var(--link); background: color-mix(in srgb, var(--link) 10%, var(--surface3)); }
+.lu-head { font-family: 'Bebas Neue', sans-serif; font-size: var(--display-md); line-height: 1.05; letter-spacing: .5px; color: var(--tour); overflow-wrap: anywhere; }
+.lu-plus { color: var(--muted); }
+.lu-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.lu-with { font-size: var(--text-sm); color: var(--muted); margin-right: var(--space-1); }
+.lu-chip { font-size: 13px; line-height: 1.4; padding: 2px var(--space-5); border-radius: var(--radius-pill); border: 1px solid color-mix(in srgb, var(--text) 18%, var(--border)); color: var(--text); background: var(--surface2); }
+.lu-chips.is-assumed .lu-chip { border-style: dashed; }
+.lu-bands { max-height: 5.6em; overflow: hidden; }
+.lu-band { color: var(--festival); border-color: color-mix(in srgb, var(--festival) 30%, transparent); background: color-mix(in srgb, var(--festival) 10%, transparent); }
+.lu-more { color: var(--muted); font-weight: 600; }
+.lu-chips.is-assumed .lu-chip { cursor: help; }
+/* Schmale Blöcke: Datum links, Rest gestapelt rechts */
+@container cb (max-width: 520px) {
+  .cb-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .cb-grid > .cb-date { grid-column: 1; grid-row: 1 / span 4; }
+  .cb-grid > :not(.cb-date) { grid-column: 2; border-left: 1px solid var(--border); border-top: 1px solid var(--border); padding: var(--space-4) var(--space-6); }
+  .cb-grid > .cb-date + * { border-top: 0; }
+  .cb-grid > .cb-side { flex: 1 1 auto; width: auto; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: var(--space-3); }
+  .cb-pills { flex-direction: row; flex-wrap: wrap; min-width: 0; gap: var(--space-2); }
+  .cb-pill { padding: 0 var(--space-4); gap: var(--space-2); }
+  .cb-price-row { gap: var(--space-3); }
+  .cb-btn { width: 24px; padding: 0; justify-content: center; flex-shrink: 0; }
+  .cb-pill-more { display: none; }
+  .cb-btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .cb-grid > .cb-date { padding: var(--space-5) var(--space-6); width: auto; min-width: 76px; }
+}
+/* Kachel-Modus (zu wenig Platz pro Block) */
+.tour-row .cells { display: none; }
+.tour-row.is-compact .cells { display: block; }
+.tour-row.is-compact .blocks { display: none; }
+.row-body[data-blocks] .blocks { display: flex; }
+.row-body[data-blocks] .cells { display: none; }
+.tour-row.is-compact .row-body[data-blocks] .blocks { display: none; }
+.tour-row.is-compact .row-body[data-blocks] .cells { display: block; }
+.concert-support-acts.clamp { margin-top: 0; max-height: 3.6em; overflow: hidden; }
+@media (max-width: 700px) {
+  .tour-row { grid-template-columns: 80px minmax(0, 1fr); }
+  .row-head { padding: var(--space-5) var(--space-6); }
+  .cell { padding: var(--space-4) var(--space-5); }
+}
 
 /* shared date block */
 .date-block { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .date-day   { font-family: 'Bebas Neue', sans-serif; font-size: var(--display-lg); line-height: 1; color: var(--tour); }
 .festival-date .date-day { color: var(--festival); }
 .date-month { font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.date-weekday { font-size: var(--text-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .date-year  { font-size: var(--text-xs); color: var(--muted); }
 .date-end   { font-size: 10px; color: var(--muted); margin-top: var(--space-1); }
 
@@ -528,6 +623,9 @@ main { padding: var(--space-10) var(--space-12); min-height: calc(100vh - 174px)
 .venue-map-link:hover { text-decoration: underline; }
 .venue-map-zoom { font-size: 12px; color: var(--muted); text-decoration: none; cursor: pointer; }
 .venue-map-zoom:hover { color: var(--accent); }
+.concert-where { font-size: var(--text-sm); color: var(--muted); margin-top: var(--space-1); }
+.concert-where svg { width: 12px; height: 12px; vertical-align: -1px; }
+.concert-extra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); margin-top: var(--space-3); }
 .concert-time  { font-size: 12px; color: var(--muted); margin-top: var(--space-1); }
 .concert-support-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
 /* act-chip now defined in rating section above */
@@ -1587,8 +1685,8 @@ input.search-input::placeholder { color: var(--muted); }
   /* Filter bars: add row-gap for wrapped chips */
   .filter-bar { row-gap: var(--space-3); }
 
-  /* Poster wall: fewer columns */
-  .poster-wall { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-6); }
+  /* Poster wall: kleinerer Abstand */
+  .poster-wall { gap: var(--space-6); }
 
   /* Modals: reduce max-width and padding */
   .modal { max-width: calc(100vw - 32px) !important; padding: var(--space-9); }
@@ -1607,8 +1705,8 @@ input.search-input::placeholder { color: var(--muted); }
   /* Timeline/Road: hide event-skip buttons on very small screens */
   .timeline-today-btn { font-size: 11px; padding: 2px 8px; }
 
-  /* Poster wall: 2 columns minimum */
-  .poster-wall { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); }
+  /* Poster wall: kleinerer Abstand */
+  .poster-wall { gap: var(--space-4); }
 
   /* Tabs: smaller padding */
   .tab { padding: var(--space-3) var(--space-6); font-size: var(--text-sm); }

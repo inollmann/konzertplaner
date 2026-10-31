@@ -481,3 +481,47 @@ def test_get_venues_query(client):
     venues = resp.get_json()
     assert all(v["city"].lower() == "berlin" for v in venues)
     assert any(v["name"] == "Arena" for v in venues)
+
+
+def test_put_convert_tour_to_festival_and_back(client):
+    eid = client.post(
+        "/api/events",
+        json={
+            "event_type": "tour",
+            "artist": ["Band"],
+            "tour_name": "T",
+            "poster": "11111111-1111-1111-1111-111111111111",
+            "comment": "c",
+            "concerts": [{"date": "2026-09-01", "city": "Berlin", "venue": "Arena"}],
+        },
+    ).get_json()["id"]
+    resp = client.put(
+        f"/api/events/{eid}",
+        json={
+            "event_type": "festival",
+            "name": "Fest",
+            "date": "2026-09-01",
+            "city": "Berlin",
+            "comment": "c",
+        },
+    )
+    assert resp.status_code == 200
+    ev = next(e for e in client.get("/api/events").get_json() if e["id"] == eid)
+    assert ev["event_type"] == "festival"
+    assert ev["name"] == "Fest"
+    assert ev["poster"] == "11111111-1111-1111-1111-111111111111"
+    assert "concerts" not in ev
+
+    resp = client.put(
+        f"/api/events/{eid}",
+        json={
+            "event_type": "tour",
+            "artist": ["Fest"],
+            "tour_name": "Fest",
+            "concerts": [{"date": "2026-09-01", "city": "Berlin", "venue": "X"}],
+        },
+    )
+    assert resp.status_code == 200
+    ev = next(e for e in client.get("/api/events").get_json() if e["id"] == eid)
+    assert ev["event_type"] == "tour"
+    assert len(ev["concerts"]) == 1
