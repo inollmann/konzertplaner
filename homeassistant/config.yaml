@@ -1,5 +1,5 @@
 name: Konzertplaner
-version: "0.1.0"
+version: "0.2.0"
 slug: konzertplaner
 description: Lokaler Konzert- und Tourplaner (Flask + SQLite)
 url: https://github.com/inollmann/konzertplaner
